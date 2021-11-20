@@ -1,0 +1,85 @@
+
+{
+
+  "keyboard-c4": { "sounds": [ "honkytones:keyboard/c4" ] },
+  "keyboard-d4_": { "sounds": [ "honkytones:keyboard/d4_" ] },
+  "keyboard-d4": { "sounds": [ "honkytones:keyboard/d4" ] },
+  "keyboard-e4_": { "sounds": [ "honkytones:keyboard/e4_" ] },
+  "keyboard-e4": { "sounds": [ "honkytones:keyboard/e4" ] },
+  "keyboard-f4": { "sounds": [ "honkytones:keyboard/f4" ] },
+  "keyboard-g4_": { "sounds": [ "honkytones:keyboard/g4_" ] },
+  "keyboard-g4": { "sounds": [ "honkytones:keyboard/g4" ] },
+  "keyboard-a4_": { "sounds": [ "honkytones:keyboard/a4_" ] },
+  "keyboard-a4": { "sounds": [ "honkytones:keyboard/a4" ] },
+  "keyboard-b4_": { "sounds": [ "honkytones:keyboard/b4_" ] },
+  "keyboard-b4": { "sounds": [ "honkytones:keyboard/b4" ] },
+
+  "organ-c4-e4_": { "sounds": [ "honkytones:organ/c4-e4_" ] },
+  "organ-e4-g4": { "sounds": [ "honkytones:organ/e4-g4" ] },
+  "organ-a4_-b4": { "sounds": [ "honkytones:organ/a4_-b4" ] },
+
+  "drumset-c4": { "sounds": [ "honkytones:percussion/drumset/closed-hat" ] },
+  "drumset-d4_": { "sounds": [ "honkytones:percussion/drumset/crash" ] },
+  "drumset-d4": { "sounds": [ "honkytones:percussion/drumset/floor-tom" ] },
+  "drumset-e4_": { "sounds": [ "honkytones:percussion/drumset/hi-tom" ] },
+  "drumset-e4": { "sounds": [ "honkytones:percussion/drumset/kickdrum" ] },
+  "drumset-f4": { "sounds": [ "honkytones:percussion/drumset/lite-crash" ] },
+  "drumset-g4_": { "sounds": [ "honkytones:percussion/drumset/lite-ride" ] },
+  "drumset-g4": { "sounds": [ "honkytones:percussion/drumset/lo-tom" ] },
+  "drumset-a4_": { "sounds": [ "honkytones:percussion/drumset/mid-tom" ] },
+  "drumset-a4": { "sounds": [ "honkytones:percussion/drumset/open-hi-hat" ] },
+  "drumset-b4_": { "sounds": [ "honkytones:percussion/drumset/pedal-hi-hat" ] },
+  "drumset-b4": { "sounds": [ "honkytones:percussion/drumset/ridebell" ] },
+  "drumset-c5": { "sounds": [ "honkytones:percussion/drumset/sidestick" ] },
+  "drumset-d5_": { "sounds": [ "honkytones:percussion/drumset/snare1" ] },
+  "drumset-d5": { "sounds": [ "honkytones:percussion/drumset/snare2" ] },
+  "drumset-e5_": { "sounds": [ "honkytones:percussion/drumset/tambourine" ] },
+
+  "acousticguitar-b3-d4": { "sounds": [ "honkytones:string/guitar/acoustic/b3-d4" ] },
+  "acousticguitar-e4_-g4_": { "sounds": [ "honkytones:string/guitar/acoustic/e4_-g4_" ] },
+  "acousticguitar-g4-b4_": { "sounds": [ "honkytones:string/guitar/acoustic/g4-b4_" ] },
+  "acousticguitar-b4-d5": { "sounds": [ "honkytones:string/guitar/acoustic/b4-d5" ] },
+
+  "electricguitar-c4": { "sounds": [ "honkytones:string/guitar/electric/c4" ] },
+  "electricguitar-d4_": { "sounds": [ "honkytones:string/guitar/electric/d4_" ] },
+  "electricguitar-d4": { "sounds": [ "honkytones:string/guitar/electric/d4" ] },
+  "electricguitar-e4_": { "sounds": [ "honkytones:string/guitar/electric/e4_" ] },
+  "electricguitar-e4": { "sounds": [ "honkytones:string/guitar/electric/e4" ] },
+  "electricguitar-f4": { "sounds": [ "honkytones:string/guitar/electric/f4" ] },
+  "electricguitar-g4_": { "sounds": [ "honkytones:string/guitar/electric/g4_" ] },
+  "electricguitar-g4": { "sounds": [ "honkytones:string/guitar/electric/g4" ] },
+  "electricguitar-a4_": { "sounds": [ "honkytones:string/guitar/electric/a4_" ] },
+  "electricguitar-a4": { "sounds": [ "honkytones:string/guitar/electric/a4" ] },
+  "electricguitar-b4_": { "sounds": [ "honkytones:string/guitar/electric/b4_" ] },
+  "electricguitar-b4": { "sounds": [ "honkytones:string/guitar/electric/b4" ] },
+
+  "electricguitar-clean-c4-e4_": { "sounds": [ "honkytones:string/guitar/electric-clean/c4-e4_" ] },
+  "electricguitar-clean-e4-g4": { "sounds": [ "honkytones:string/guitar/electric-clean/e4-g4" ] },
+  "electricguitar-clean-a4_-b4": { "sounds": [ "honkytones:string/guitar/electric-clean/a4_-b4" ] },
+
+  "harp-c4-e4_": { "sounds": [ "honkytones:string/harp/c4-e4_" ] },
+  "harp-e4-g4": { "sounds": [ "honkytones:string/harp/e4-g4" ] },
+  "harp-a4_-b4": { "sounds": [ "honkytones:string/harp/a4_-b4" ] },
+
+  "viola-b3-d4": { "sounds": [ "honkytones:string/viola/b3-d4" ] },
+  "viola-e4_-g4_": { "sounds": [ "honkytones:string/viola/e4_-g4_" ] },
+  "viola-g4-b4_": { "sounds": [ "honkytones:string/viola/g4-b4_" ] },
+  "viola-b4-d5": { "sounds": [ "honkytones:string/viola/b4-d5" ] },
+
+  "violin-c4-e4_": { "sounds": [ "honkytones:string/violin/c4-e4_" ] },
+  "violin-e4-g4": { "sounds": [ "honkytones:string/violin/e4-g4" ] },
+  "violin-a4_-b4": { "sounds": [ "honkytones:string/violin/a4_-b4" ] },
+
+  "flute-c4-e4_": { "sounds": [ "honkytones:wind/flute/c4-e4_" ] },
+  "flute-e4-g4": { "sounds": [ "honkytones:wind/flute/e4-g4" ] },
+  "flute-a4_-b4": { "sounds": [ "honkytones:wind/flute/a4_-b4" ] },
+
+  "oboe-c4-e4_": { "sounds": [ "honkytones:wind/oboe/c4-e4_" ] },
+  "oboe-e4-g4": { "sounds": [ "honkytones:wind/oboe/e4-g4" ] },
+  "oboe-a4_-b4": { "sounds": [ "honkytones:wind/oboe/a4_-b4" ] },
+
+  "trombone-c4-e4_": { "sounds": [ "honkytones:wind/trombone/c4-e4_" ] },
+  "trombone-e4-g4": { "sounds": [ "honkytones:wind/trombone/e4-g4" ] },
+  "trombone-a4_-b4": { "sounds": [ "honkytones:wind/trombone/a4_-b4" ] }
+
+}
