@@ -126,10 +126,8 @@ class Input : ClientModInitializer {
                             device.open()
                             println(" [HONKYTONES]: MIDI device found: ${device.deviceInfo}")
                         } catch(e: MidiUnavailableException) {
-                            println(" [HONKYTONES]: Your MIDI devices are unavailable, they might be in use.")
-                            break
+                            println(" [HONKYTONES]: MIDI device ${device.deviceInfo} is unavailable.")
                         }
-
                     }
 
                 }

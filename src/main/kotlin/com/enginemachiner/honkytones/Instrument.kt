@@ -30,7 +30,6 @@ import net.minecraft.server.network.ServerPlayNetworkHandler
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.tag.BlockTags
-import net.minecraft.text.LiteralText
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 import net.minecraft.util.Identifier
@@ -105,7 +104,7 @@ open class Instrument(
     private val dmg: Float,
     private val speed: Float,
     t: ToolMaterial
-) : ToolItem(t, setting) {
+) : ToolItem(t, setting.maxDamage(t.durability) ) {
 
     override fun getAttributeModifiers(slot: EquipmentSlot?): Multimap<EntityAttribute, EntityAttributeModifier> {
         return if (slot == EquipmentSlot.MAINHAND) { attributeModifiers!! }
@@ -317,10 +316,14 @@ open class Instrument(
         if (state == "Push" && !entity!!.isPlayer) {
             user.resetLastAttackedTicks()
             if ( !user.world.isClient ) {
-                var value = speed + material.miningSpeedMultiplier.toDouble()
-                value = 4 * cd / value
+                var value = speed + 4.5 // 3.5 (lowest) + 1
+                value = 3 / value.pow(2)
                 val dir = user.rotationVector.normalize().multiply(value)
                 entity.addVelocity(dir.x, abs(dir.y), dir.z)
+
+                stack!!.damage(1, user) { e: LivingEntity? ->
+                    e!!.sendEquipmentBreakStatus(EquipmentSlot.MAINHAND)
+                }
             }
         }
 
@@ -459,10 +462,8 @@ open class Instrument(
         fun path(s: Any): String { return inst.soundPathHint.plus(s).lowercase() }
 
         if ( s.length > 3 || s.filter { it.isDigit() } == "" ) {
-            MinecraftClient.getInstance().player!!.sendMessage(
-                LiteralText(" [HONKYTONES]: ERROR: $s sequence has wrong formatting!"),
-                false
-            )
+            println(" [HONKYTONES]: ERROR: $s has wrong format!")
+            return getSoundInstance("")
         }
 
         var hint = s
@@ -671,17 +672,15 @@ open class Instrument(
 
         }
 
-        if ( result.isNotEmpty() ) {
+        if ( result.isNotEmpty() && (0.5f..2f).contains(pitch) ) {
             val sound = getSoundInstance(result)
             sound.pitch = pitch
             return sound
         }
 
-        // Warn the player / user about the limits
-        MinecraftClient.getInstance().player!!.sendMessage(
-            LiteralText(" [HONKYTONES]: ERROR: $s note is out of range / not found!"),
-            false
-        )
+        // Warn the user about the limits
+        println(" [HONKYTONES]: ERROR: $s note is out of range or not found!")
+
         return getSoundInstance("")
 
     }
@@ -714,16 +713,16 @@ class ElectricGuitarClean : ElectricGuitar() {
                 musicalHitParticles(entity!!, ParticleTypes.LANDING_OBSIDIAN_TEAR)
                 entity.extinguish()
 
+                stack!!.damage((material.durability * 0.1f).toInt(), user) { e: LivingEntity? ->
+                    e!!.sendEquipmentBreakStatus(EquipmentSlot.MAINHAND)
+                }
+
             } else {
 
                 val sound = getSoundInstance("${Base.MOD_ID}:magic")
                 sound.pitch = (75..125).random() * 0.01f
 
                 playNetwork(sound, entity!!, " ID: $useKeyID-ability")
-
-                stack!!.damage(25, user) { e: LivingEntity? ->
-                    e!!.sendEquipmentBreakStatus(EquipmentSlot.MAINHAND)
-                }
 
             }
             ActionResult.CONSUME
@@ -734,9 +733,9 @@ class ElectricGuitarClean : ElectricGuitar() {
 
 }
 
-class Harp : Instrument( 2f, -1.25f, MusicalString() )
+class Harp : Instrument( 2f, -1f, MusicalString() )
 class Viola : Instrument( 3.5f, -2f, MusicalString() )
 class Violin : Instrument( 3.75f, -2f, MusicalRedstone() )
-class Flute : Instrument( 1.25f, -1f, MusicalString() )
+class Flute : Instrument( 1.25f, -1.5f, MusicalString() )
 class Oboe : Instrument( 3.25f, -1f, MusicalIron() )
 class Trombone : Instrument( 5f, -3f, MusicalRedstone() )
