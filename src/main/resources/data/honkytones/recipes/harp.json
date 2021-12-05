@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "PSP",
+    "NNN",
+    "PS "
+  ],
+  "key": {
+    "N": { "item": "minecraft:string" },
+    "S": { "item": "minecraft:stick" },
+    "P": { "tag": "minecraft:planks" }
+  },
+  "result": {
+    "item": "honkytones:harp",
+    "count": 1
+  }
+}

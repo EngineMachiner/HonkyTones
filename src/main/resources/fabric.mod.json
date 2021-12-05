@@ -21,6 +21,9 @@
         "adapter": "kotlin",
         "value": "com.enginemachiner.honkytones.Base"
       }
+    ],
+    "client": [
+      "com.enginemachiner.honkytones.Input"
     ]
   },
   "mixins": [

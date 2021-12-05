@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " CN",
+    "LSN",
+    "LLN"
+  ],
+  "key": {
+    "C": { "item": "minecraft:brown_dye" },
+    "N": { "item": "minecraft:stick" },
+    "S": { "item": "minecraft:string" },
+    "L": { "tag": "minecraft:logs" }
+  },
+  "result": {
+    "item": "honkytones:viola",
+    "count": 1
+  }
+}
