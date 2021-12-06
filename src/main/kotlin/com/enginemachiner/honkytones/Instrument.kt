@@ -14,6 +14,9 @@ import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayNetworkHandler
+import net.minecraft.enchantment.Enchantment
+import net.minecraft.enchantment.EnchantmentHelper
+import net.minecraft.enchantment.Enchantments
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.attribute.EntityAttribute
@@ -30,10 +33,8 @@ import net.minecraft.server.network.ServerPlayNetworkHandler
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.tag.BlockTags
-import net.minecraft.util.ActionResult
-import net.minecraft.util.Hand
-import net.minecraft.util.Identifier
-import net.minecraft.util.TypedActionResult
+import net.minecraft.util.*
+import net.minecraft.util.collection.DefaultedList
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import net.minecraft.world.World
@@ -57,6 +58,7 @@ private val setting = Item.Settings()
 // TODO: CREATE BLOCK PLAYER THAT PLAYS INSTRUMENTS AND RADIO ITEM SYNCED (should link to players instruments or the block)
 // TODO: MAGIC BOOK THAT YOU NEED FOR THE BLOCK TO PLAY THE INSTRUMENTS
 // TODO: To do above I need to do a better sequencer that handles ticks first and it can be more complex :( am shook
+// TODO: Remove hold slowdown
 
 private fun musicalHitParticles(entity: LivingEntity, particleType: ParticleEffect) {
 
@@ -110,7 +112,6 @@ open class Instrument(
         return if (slot == EquipmentSlot.MAINHAND) { attributeModifiers!! }
         else { super.getAttributeModifiers(slot) }
     }
-
     override fun canMine(state: BlockState?, world: World?, pos: BlockPos?, miner: PlayerEntity?): Boolean {
         return !miner!!.isCreative
     }
@@ -130,6 +131,33 @@ open class Instrument(
     private var attributeModifiers: ImmutableMultimap<EntityAttribute, EntityAttributeModifier>?
 
     init {
+
+        val map = mutableMapOf<Enchantment, Int>()
+
+        for ( i in (1..5) ) {
+
+            when {
+
+                ( i < 3 ) -> {
+                    map[Enchantments.FIRE_ASPECT] = i
+                    map[Enchantments.KNOCKBACK] = i
+                }
+
+                ( i < 4 ) -> map[Enchantments.LOOTING] = i
+
+                else -> {
+                    map[Enchantments.SMITE] = i
+                }
+
+            }
+
+        }
+        map[Enchantments.MENDING] = 1
+
+        // wtf are enchantments
+        for ( v in map ) {
+            v.key.isAcceptableItem(defaultStack)
+        }
 
         builder.put(
             EntityAttributes.GENERIC_ATTACK_SPEED,
@@ -289,6 +317,7 @@ open class Instrument(
             user.attack(entity)
             if ( user.world.isClient ) {
 
+                println(defaultStack.enchantments)
                 customPostHit(entity)
 
             } else {
