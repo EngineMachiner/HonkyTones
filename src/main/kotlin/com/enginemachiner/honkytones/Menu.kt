@@ -45,6 +45,12 @@ class Menu : Screen( LiteralText("HonkyTones") ) {
 
     override fun init() {
 
+        for ( id in client!!.soundManager.keys ) {
+            if ( id.namespace.contains("honkytones") ) {
+                client!!.soundManager.stopSounds( id, SoundCategory.PLAYERS )
+            }
+        }
+
         var stateIndex = states.indexOf(inst.state)
 
         for ( sound in sounds ) {

@@ -152,6 +152,10 @@ object Base : ModInitializer {
             Registry.register(Registry.SOUND_EVENT, identifier, event)
         }
 
+        val identifier = Identifier("$MOD_ID:magic-c3-e3_")
+        val event = SoundEvent(identifier)
+        Registry.register(Registry.SOUND_EVENT, identifier, event)
+
     }
 
     override fun onInitialize() {

@@ -72,14 +72,15 @@ class MIDIReceiver(id: String) : Receiver {
 
                 sound.volume = volume / 90f
 
-                localSounds[noteInt] = sound
-
-                playNetwork(sound, ply, " ID: $midiID-$noteInt")
+                if (sound.id.path.isNotEmpty()) {
+                    localSounds[noteInt] = sound
+                    playSound(sound, ply, " ID: $midiID-$noteInt")
+                }
 
             } else {
 
                 if ( localSounds[noteInt] != null ) {
-                    stopSounds(localSounds[noteInt]!!, "$midiID-$noteInt")
+                    stopSound(localSounds[noteInt]!!, "$midiID-$noteInt")
                 }
 
             }

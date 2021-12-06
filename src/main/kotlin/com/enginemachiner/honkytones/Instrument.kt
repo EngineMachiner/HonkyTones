@@ -32,9 +32,9 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.network.ServerPlayNetworkHandler
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
+import net.minecraft.sound.SoundCategory
 import net.minecraft.tag.BlockTags
 import net.minecraft.util.*
-import net.minecraft.util.collection.DefaultedList
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import net.minecraft.world.World
@@ -81,14 +81,14 @@ private fun musicalHitParticles(entity: LivingEntity, particleType: ParticleEffe
 
 }
 
-fun stopSounds(sound: HonkyTonesSoundInstance, id: String) {
+fun stopSound(sound: HonkyTonesSoundInstance, id: String) {
     sound.stop()
     val buf = PacketByteBufs.create()
     buf.writeString(id)
     ClientPlayNetworking.send( Identifier(netID + "soundevent-stop"), buf )
 }
 
-fun playNetwork(sound: HonkyTonesSoundInstance, entity: LivingEntity, add: String) {
+fun playSound(sound: HonkyTonesSoundInstance, entity: LivingEntity, add: String) {
 
     sound.entity = entity
     MinecraftClient.getInstance().soundManager.play(sound)
@@ -132,6 +132,10 @@ open class Instrument(
 
     init {
 
+        /*
+
+        Enchantments are done through Mixins? wtf
+
         val map = mutableMapOf<Enchantment, Int>()
 
         for ( i in (1..5) ) {
@@ -154,10 +158,11 @@ open class Instrument(
         }
         map[Enchantments.MENDING] = 1
 
-        // wtf are enchantments
         for ( v in map ) {
-            v.key.isAcceptableItem(defaultStack)
+            println( "$this: ${v.key}: ${v.key.isAcceptableItem(defaultStack)}" )
         }
+
+         */
 
         builder.put(
             EntityAttributes.GENERIC_ATTACK_SPEED,
@@ -303,7 +308,7 @@ open class Instrument(
         sound.pitch = (75..125).random() * 0.1f
         sound.volume = 0.625f
 
-        playNetwork(sound, target!!, " ID: $useKeyID-hit")
+        playSound(sound, target!!, " ID: $useKeyID-hit")
 
     }
     override fun useOnEntity(stack: ItemStack?, user: PlayerEntity?, entity: LivingEntity?, hand: Hand?): ActionResult {
@@ -317,7 +322,6 @@ open class Instrument(
             user.attack(entity)
             if ( user.world.isClient ) {
 
-                println(defaultStack.enchantments)
                 customPostHit(entity)
 
             } else {
@@ -363,15 +367,18 @@ open class Instrument(
 
     override fun getMaxUseTime(stack: ItemStack?): Int { return 150 }
 
-    override fun onStoppedUsing(stack: ItemStack?, world: World?, user: LivingEntity?, remainingUseTicks: Int) {
-
-        if (world!!.isClient()) {
+    private fun stopAllSounds(world: World) {
+        if ( soundMap[useKeyID] == null ) { return }
+        if (world.isClient()) {
             ranOnce = true
             val list = soundMap[useKeyID]!!
-            for (i in 0 until list.size) { stopSounds( list[i]!!, useKeyID) }
+            for (i in 0 until list.size) { stopSound( list[i]!!, useKeyID) }
             soundMap[useKeyID] = mutableListOf()
         }
+    }
 
+    override fun onStoppedUsing(stack: ItemStack?, world: World?, user: LivingEntity?, remainingUseTicks: Int) {
+        stopAllSounds(world!!)
     }
 
     // Each keybinding has a sound and SOUND state assigned
@@ -427,7 +434,7 @@ open class Instrument(
                 list.add(soundPath)
                 val last = list[list.size - 1]!!
 
-                playNetwork(last, player, " ID: $useKeyID")
+                playSound(last, player, " ID: $useKeyID")
 
             }
 
@@ -443,10 +450,13 @@ open class Instrument(
 
         val item = player.mainHandStack.item
         if (invBind.wasPressed() && item.group == group) {
-            if ( client.world!!.isClient ) {
-                client.soundManager.stopAll()
-            }
-            client.setScreen( Menu() )
+            client.setScreen(Menu())
+        }
+
+        // Stop sounds when using other items
+        if ( soundMap[useKeyID] == null ) { return }
+        if (item.group != group && soundMap[useKeyID]!!.isNotEmpty()) {
+            stopAllSounds(client.world!!)
         }
 
     }
@@ -751,7 +761,7 @@ class ElectricGuitarClean : ElectricGuitar() {
                 val sound = getSoundInstance("${Base.MOD_ID}:magic")
                 sound.pitch = (75..125).random() * 0.01f
 
-                playNetwork(sound, entity!!, " ID: $useKeyID-ability")
+                playSound(sound, entity!!, " ID: $useKeyID-ability")
 
             }
             ActionResult.CONSUME
