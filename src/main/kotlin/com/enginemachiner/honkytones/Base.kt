@@ -105,8 +105,8 @@ private fun moreData() {
     for ( t in tempSet ) { doubleOctave.add( t.replace("1","").replace("2","") ) }
 
     // Custom set (16 notes)
-    val drumSet = octaveBuilder(octave, setOf("4")) as MutableSet<String>
-    val setAfter = mutableSetOf("C5","D5_","D5","E5_")
+    val drumSet = octaveBuilder(octave, setOf("2")) as MutableSet<String>
+    val setAfter = mutableSetOf("C3","D3_","D3","E3_")
     for (n in setAfter) { drumSet.add(n) }
     data["drumset"] = drumSet
 
@@ -178,7 +178,7 @@ fun serverToClients( from: String, to: String, radius: Float, func: ( b: PacketB
         // Always re-create the buffer, never send it directly else it won't work
         val list = s.playerManager.playerList
         val newbuf = func(buf)
-        s.send( ServerTask(s.ticks + 40) {
+        s.send( ServerTask(s.ticks + 18) {
             for ( ply in list ) {
                 if ( ply != p ) {
                     if ( radius == 0.0f ) {

@@ -6,15 +6,15 @@ import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvent
 import net.minecraft.util.Identifier
 
-fun getSoundInstance(id: String?): HonkyTonesSoundInstance {
+fun getSoundInstance(id: String?): HTSoundInstance {
     val newID = id!!
     val sound = SoundEvent(Identifier(newID))
-    val instance = HonkyTonesSoundInstance(sound, SoundCategory.PLAYERS)
+    val instance = HTSoundInstance(sound, SoundCategory.PLAYERS)
     if ( id.contains("hits/hit") ) { instance.volume = 0.5f }
     return instance
 }
 
-class HonkyTonesSoundInstance(sE: SoundEvent, sC: SoundCategory): MovingSoundInstance(sE, sC) {
+class HTSoundInstance(sE: SoundEvent, sC: SoundCategory): MovingSoundInstance(sE, sC) {
 
     // Moving pos
     var entity: LivingEntity? = null
@@ -37,12 +37,12 @@ class HonkyTonesSoundInstance(sE: SoundEvent, sC: SoundCategory): MovingSoundIns
                 } else { volume -= lim }
             }
 
-        }
+            // Moving pos
+            if (entity != null && volume > 0) {
+                val pos = entity!!.pos
+                x = pos.x; y = pos.y; z = pos.z
+            }
 
-        // Moving pos
-        if (entity != null) {
-            val pos = entity!!.pos
-            x = pos.x; y = pos.y; z = pos.z
         }
 
     }
