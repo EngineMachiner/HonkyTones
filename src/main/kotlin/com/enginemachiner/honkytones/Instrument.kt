@@ -88,10 +88,12 @@ private fun listCheck(list: MutableList<HTSoundInstance?>): MutableList<HTSoundI
 }
 
 fun stopSound(sound: HTSoundInstance, id: String) {
-    sound.stop()
-    val buf = PacketByteBufs.create()
-    buf.writeString(id)
-    ClientPlayNetworking.send( Identifier(netID + "soundevent-stop"), buf )
+    if (sound.volume > 0) {
+        sound.stop()
+        val buf = PacketByteBufs.create()
+        buf.writeString(id)
+        ClientPlayNetworking.send(Identifier(netID + "soundevent-stop"), buf)
+    }
 }
 
 fun playSound(sound: HTSoundInstance, entity: LivingEntity, add: String) {
@@ -415,8 +417,8 @@ open class Instrument(
                 var value = speed + 4.5 // 3.5 (lowest) + 1
                 value = cd / value.pow(2)
                 val dir = user.rotationVector.normalize().multiply(value)
-                val y = abs(dir.y) * 0.625f + ( abs(dir.x) + abs(dir.z) ) * 0.625f
-                entity.addVelocity(dir.x * 1.35, y, dir.z * 1.35)
+                val y = abs(dir.y) + ( abs(dir.x) + abs(dir.z) ) * 0.25f
+                entity.addVelocity(dir.x * 1.75, y, dir.z * 1.75)
 
                 stack.damage(1, user) { e: LivingEntity? ->
                     e!!.sendEquipmentBreakStatus(EquipmentSlot.MAINHAND)
@@ -477,6 +479,8 @@ open class Instrument(
             val action = tag.getString("Action")
             val sequenceSub = tag.getString("SequenceSub")
 
+            if ( tag.getFloat("Volume") <= 0 ) { return }
+
             if ( noteSequence.isNotEmpty() && action == "Play" ) {
 
                 if ( sequenceSub.isEmpty() ) { tag.putString("SequenceSub", noteSequence) }
@@ -511,13 +515,11 @@ open class Instrument(
         for ( soundInstance in noteGroup ) {
 
             if (soundInstance!!.id.path.isNotEmpty()) {
-
                 val list = soundMap[id]!!
                 list.add(soundInstance)
                 val last = list[list.size - 1]!!
                 val data = " ID: $useKeyID"
                 playSound(last, player, data)
-
             }
 
         }

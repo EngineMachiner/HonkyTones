@@ -101,6 +101,7 @@ class MIDIReceiver(id: String) : Receiver {
             if (sound.id.path.isNotEmpty()) {
 
                 volume = volume / 100f + tag.getFloat("Volume") - 1f
+                if ( volume <= 0 ) { return }
                 sound.volume = volume
 
                 if (localSounds[channelTag] == null) { localSounds[channelTag] = mutableMapOf() }
