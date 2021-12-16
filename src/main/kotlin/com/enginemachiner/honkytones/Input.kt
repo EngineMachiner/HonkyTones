@@ -106,11 +106,6 @@ class MIDIReceiver(id: String) : Receiver {
 
                 if (localSounds[channelTag] == null) { localSounds[channelTag] = mutableMapOf() }
 
-                if (currentInstrument != inst.instrumentName) {
-                    currentInstrument = inst.instrumentName.toString()
-                    localSounds[channelTag]!!.clear()
-                }
-
                 localSounds[channelTag] = mapCheck( localSounds[channelTag]!! )
                 localSounds[channelTag]!![noteInt] = sound
                 val data = " ID: $midiID-$noteInt"
@@ -123,7 +118,6 @@ class MIDIReceiver(id: String) : Receiver {
 
             if ( localSounds[channelTag] == null || localSounds[channelTag]!![noteInt] == null ) { return }
             val sound = localSounds[channelTag]!![noteInt]!!
-            // This isn't working
             if ( inst.instrumentName != "drumset" ) {
                 client.send { stopSound(sound, "$midiID-$noteInt") }
             }

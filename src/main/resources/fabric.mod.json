@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "id": "honkytones",
-  "version": "1.0.0",
+  "version": "1.4.5",
   "name": "HonkyTones",
-  "description": "honk honk",
+  "description": "Mod that reads MIDI stuff and does other things.",
   "authors": [
     "Engine_Machiner"
   ],
   "contact": {
-    "homepage": "https://example.com/",
-    "issues": "https://example.com/",
-    "sources": "https://example.com/"
+    "homepage": "https://modrinth.com/mod/honkytones",
+    "issues": "https://github.com/EngineMachiner/HonkyTones/issues",
+    "sources": "https://github.com/EngineMachiner/HonkyTones"
   },
   "license": "GNU Lesser General Public License version 3 (LGPLv3)",
   "icon": "assets/honkytones/icon.png",
@@ -26,9 +26,6 @@
       "com.enginemachiner.honkytones.Input"
     ]
   },
-  "mixins": [
-    "honkytones.mixins.json"
-  ],
   "depends": {
     "fabricloader": ">=0.11.7",
     "fabric": "*",
