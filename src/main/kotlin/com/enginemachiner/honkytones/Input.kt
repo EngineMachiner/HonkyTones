@@ -13,8 +13,8 @@ import javax.sound.midi.*
 var sequenceBind: KeyBinding? = null
 var restartBind: KeyBinding? = null
 
-private fun mapCheck(map: MutableMap<Int, HTSoundInstance?>): MutableMap<Int, HTSoundInstance?> {
-    val newList = mutableMapOf<Int, HTSoundInstance?>()
+private fun mapCheck(map: MutableMap<String, HTSoundInstance?>): MutableMap<String, HTSoundInstance?> {
+    val newList = mutableMapOf<String, HTSoundInstance?>()
     for ( instanceI in map ) {
         if (!instanceI.value!!.isDone) { newList[instanceI.key] = instanceI.value }
     }
@@ -23,24 +23,24 @@ private fun mapCheck(map: MutableMap<Int, HTSoundInstance?>): MutableMap<Int, HT
 
 class MIDIReceiver(id: String) : Receiver {
 
-    private fun findStack(channel: Byte, player: PlayerEntity): ItemStack? {
+    private fun findStacks(channel: Byte, player: PlayerEntity): MutableList<ItemStack> {
 
+        val list = mutableListOf<ItemStack>()
         for ( v in player.inventory.main ) {
             if (v.item.group == honkyTonesGroup) {
                 val tag = v.orCreateNbt
                 val uniqueCase = tag.getString("MIDI Device Name") == midiID
                 val caseOne = uniqueCase && ( tag.getInt("MIDI Channel") - 113 ).toUInt() == channel.toUInt()
                 val caseTwo = uniqueCase && ( tag.getInt("MIDI Channel") - 113 ).toUInt() == ( channel + 16 ).toUInt()
-                if ( caseOne || caseTwo ) { return v }
+                if ( caseOne || caseTwo ) { list.add(v) }
             }
         }
 
-        return null
+        return list
 
     }
 
-    private var currentInstrument = ""
-    private var localSounds = mutableMapOf< Int, MutableMap<Int, HTSoundInstance?> >()
+    private var localSounds = mutableMapOf< Int, MutableMap<String, HTSoundInstance?> >()
 
     private val midiID = id
 
@@ -52,74 +52,84 @@ class MIDIReceiver(id: String) : Receiver {
         val ply = client.player ?: return
 
         val channel = message!!.message[0]
-        val stack = findStack(channel, ply)
+        val stacks = findStacks(channel, ply)
 
         val noteInt = message.message[1].toInt()
-        var volume = 1f
+        var vel = 127f
         if ( message.message.size > 2 ) {
-            volume = message.message[2].toFloat()
+            vel = message.message[2].toFloat()
         }
 
-        if (stack == null) { return }
+        for ( stack in stacks ) {
 
-        val tag = stack.orCreateNbt
-        val channelTag = tag.getInt("MIDI Channel")
-        val inst = stack.item as Instrument
+            val tag = stack.orCreateNbt
+            val channelTag = tag.getInt("MIDI Channel")
+            val inst = stack.item as Instrument
+            val key = "${inst.instrumentName}-$noteInt"
 
-        if ( tag.getString("Action") != "Play" ) { return }
+            if ( tag.getString("Action") != "Play" ) { return }
 
-        if ( volume > 0 ) {
+            if ( vel > 0 ) {
 
-            val start = 0
-            var midiIndex = start
-            var octaveIndex = 1
-            var rangeCounter = 1;      var range = -1    // Starting range
+                val start = 0
+                var midiIndex = start
+                var octaveIndex = 1
+                var rangeCounter = 1;      var range = -1    // Starting range
 
-            while ( midiIndex != noteInt ) {
+                while ( midiIndex != noteInt ) {
 
-                midiIndex += 1
-                octaveIndex += 1
-                rangeCounter += 1
+                    midiIndex += 1
+                    octaveIndex += 1
+                    rangeCounter += 1
 
-                if ( rangeCounter > 12 ) {
-                    rangeCounter = 1
-                    range += 1
+                    if ( rangeCounter > 12 ) {
+                        rangeCounter = 1
+                        range += 1
+                    }
+
+                    if ( octaveIndex > 12 ) { octaveIndex = 1 }
+
+                    if ( midiIndex > 120 ) { return }
+
                 }
 
-                if ( octaveIndex > 12 ) { octaveIndex = 1 }
+                val selectedNote = octave.elementAt(octaveIndex - 1)
+                val selectedRange = range
 
-                if ( midiIndex > 120 ) { return }
+                val format = formatNote(selectedNote, selectedRange)
+                val sound = inst.getNote(inst, format)
 
-            }
+                if (sound.id.path.isNotEmpty()) {
 
-            val selectedNote = octave.elementAt(octaveIndex - 1)
-            val selectedRange = range
+                    var volume = vel / 127f
+                    volume *= tag.getFloat("Volume")
 
-            val format = formatNote(selectedNote, selectedRange)
-            val sound = inst.getNote(inst, format)
+                    if ( volume > 0 ) {
 
-            if (sound.id.path.isNotEmpty()) {
+                        sound.volume = volume
 
-                volume = volume / 100f + tag.getFloat("Volume") - 1f
-                if ( volume <= 0 ) { return }
-                sound.volume = volume
+                        if (localSounds[channelTag] == null) { localSounds[channelTag] = mutableMapOf() }
 
-                if (localSounds[channelTag] == null) { localSounds[channelTag] = mutableMapOf() }
+                        localSounds[channelTag] = mapCheck( localSounds[channelTag]!! )
+                        localSounds[channelTag]!![key] = sound
+                        val data = " ID: $midiID-$noteInt"
 
-                localSounds[channelTag] = mapCheck( localSounds[channelTag]!! )
-                localSounds[channelTag]!![noteInt] = sound
-                val data = " ID: $midiID-$noteInt"
+                        client.send { playSound(sound, ply, data) }
 
-                client.send { playSound(sound, ply, data) }
+                    }
 
-            }
+                }
 
-        } else {
+            } else {
 
-            if ( localSounds[channelTag] == null || localSounds[channelTag]!![noteInt] == null ) { return }
-            val sound = localSounds[channelTag]!![noteInt]!!
-            if ( inst.instrumentName != "drumset" ) {
-                client.send { stopSound(sound, "$midiID-$noteInt") }
+                if ( localSounds[channelTag] != null && localSounds[channelTag]!![key] != null ) {
+                    val sound = localSounds[channelTag]!![key]!!
+
+                    if ( inst.instrumentName != "drumset" ) {
+                        client.send { stopSound(sound, "$midiID-$noteInt") }
+                    }
+                }
+
             }
 
         }

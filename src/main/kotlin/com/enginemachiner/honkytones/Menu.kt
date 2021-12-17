@@ -24,7 +24,7 @@ class CustomSlider(
     }
 
     override fun applyValue() {
-        tag.putFloat("Volume", value.toFloat())
+        tag.putFloat("Volume", (value * 100).toInt() / 100f)
     }
 
 }

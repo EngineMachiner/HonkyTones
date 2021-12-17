@@ -209,7 +209,7 @@ open class Instrument(
 
     }
 
-    private val incomingSounds = mutableMapOf< String, MutableList<HTSoundInstance?> >()
+    val incomingSounds = mutableMapOf< String, MutableList<HTSoundInstance?> >()
 
     private fun registerNetworking() {
 
@@ -266,7 +266,6 @@ open class Instrument(
                         }
 
                         incomingSounds[id] = listCheck(incomingSounds[id]!!)
-
                         val list = incomingSounds[id]!!
                         list.add(instance)
                         client.soundManager.play(instance)
