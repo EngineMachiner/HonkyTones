@@ -15,7 +15,6 @@ import net.minecraft.block.Blocks
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.enchantment.Enchantment
-import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.enchantment.Enchantments
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
@@ -35,8 +34,6 @@ import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.tag.BlockTags
 import net.minecraft.util.*
-import net.minecraft.util.collection.DefaultedList
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import net.minecraft.world.World
 import java.lang.ClassCastException
@@ -96,19 +93,23 @@ fun stopSound(sound: HTSoundInstance, id: String) {
     }
 }
 
-fun playSound(sound: HTSoundInstance, entity: LivingEntity, add: String) {
+fun playSound(sound: HTSoundInstance, entity: LivingEntity, id: String) {
 
     sound.entity = entity
     MinecraftClient.getInstance().soundManager.play(sound)
 
-    val buf = PacketByteBufs.create()
-    // 1st substring is the sound id
-    var s = "${sound.id} Entity: ${entity.uuidAsString}"
-    s += " Volume: ${sound.volume}"
-    s += add
-    buf.writeString(s)
-    buf.writeFloat(sound.pitch)
-    ClientPlayNetworking.send( Identifier(netID + "soundevent"), buf )
+    if (sound.volume > 0) {
+        val buf = PacketByteBufs.create()
+
+        buf.writeString("" + sound.id)
+        buf.writeString("" + entity.uuidAsString)
+        buf.writeString(id)
+
+        buf.writeFloat(sound.volume)
+        buf.writeFloat(sound.pitch)
+
+        ClientPlayNetworking.send(Identifier(netID + "soundevent"), buf)
+    }
 
 }
 
@@ -209,7 +210,7 @@ open class Instrument(
 
     }
 
-    val incomingSounds = mutableMapOf< String, MutableList<HTSoundInstance?> >()
+    private val incomingSounds = mutableMapOf< String, MutableList<HTSoundInstance?> >()
 
     private fun registerNetworking() {
 
@@ -217,14 +218,29 @@ open class Instrument(
 
         serverToClients( netID + "soundevent", netID + "soundevent-clients", 25f ) {
                 buf: PacketByteBuf -> val newbuf = PacketByteBufs.create()
-            newbuf.writeString(buf.readString());       newbuf.writeFloat(buf.readFloat())
+
+            // Path
+            newbuf.writeString(buf.readString())
+
+            // EntityUUID
+            newbuf.writeString(buf.readString())
+
+            // KeyID
+            newbuf.writeString(buf.readString())
+
+            // Volume
+            newbuf.writeFloat(buf.readFloat())
+
+            // Pitch
+            newbuf.writeFloat(buf.readFloat())
+
             newbuf
         }
 
         serverToClients( netID + "soundevent-stop", netID + "soundevent-stop-clients", 25f ) {
                 buf: PacketByteBuf ->
             val newbuf = PacketByteBufs.create()
-            newbuf.writeString(buf.readString())
+            newbuf.writeString(buf.readString()) // KeyID
             newbuf
         }
 
@@ -237,36 +253,31 @@ open class Instrument(
                         packet: PacketByteBuf,
                         _: PacketSender ->
 
-                    var s = packet.readString()
+                    val path = packet.readString()
+                    val entityID = packet.readString()
+                    val keyID = packet.readString()
+
+                    val volume = packet.readFloat()
                     val pitch = packet.readFloat()
 
                     client.execute {
 
-                        val soundPath = s.substringBefore(" Entity: ")
-                        s = s.substringAfter(" Entity: ")
-                        val entID = s.substringBefore(" Volume: ")
-
-                        val instance = getSoundInstance(soundPath)
+                        val instance = getSoundInstance(path)
                         instance.pitch = pitch
 
-                        s = s.substringAfter(" Volume: ")
-                        val volume = s.substringBefore(" ID: ").toFloat()
-
-                        val id = s.substringAfter(" ID: ")
-
                         for (ent in client.world!!.entities) {
-                            if (ent.uuidAsString == entID && ent.isLiving) {
+                            if (ent.uuidAsString == entityID && ent.isLiving) {
                                 instance.entity = ent as LivingEntity
                                 break
                             }
                         }
 
-                        if (incomingSounds[id] == null) {
-                            incomingSounds[id] = mutableListOf()
+                        if (incomingSounds[keyID] == null) {
+                            incomingSounds[keyID] = mutableListOf()
                         }
 
-                        incomingSounds[id] = listCheck(incomingSounds[id]!!)
-                        val list = incomingSounds[id]!!
+                        incomingSounds[keyID] = listCheck(incomingSounds[keyID]!!)
+                        val list = incomingSounds[keyID]!!
                         list.add(instance)
                         client.soundManager.play(instance)
                         instance.volume = volume
@@ -282,11 +293,9 @@ open class Instrument(
                         _: PacketSender ->
                     val id = buf.readString()
                     client.execute {
-
                         for (instance in incomingSounds[id]!!) {
                             if (!instance!!.isDone) { instance.stop() }
                         }
-
                     }
                 }
 
@@ -295,43 +304,38 @@ open class Instrument(
         }
 
         // Networking screen data
-        val net =
+        var net =
             ServerPlayNetworking.PlayChannelHandler {
                     server: MinecraftServer, player: ServerPlayerEntity,
                     _: ServerPlayNetworkHandler, buf: PacketByteBuf,
                     _: PacketSender ->
 
-                val sentData = buf.readString()
+                val sequence = buf.readString()
+                val action = buf.readString()
+
+                val index = buf.readInt()
                 val channel = buf.readInt()
+
+                val volume = buf.readFloat()
+
                 val isCentering = buf.readBoolean()
 
                 server.execute {
 
-                    var data = sentData
                     val tag = player.mainHandStack.orCreateNbt!!
 
-                    tag.putString("Sequence", data.substringBefore(" Action: "))
+                    tag.putString("Sequence", sequence)
                     tag.putString("SequenceSub", "")
-                    data = data.substringAfter(" Action: ")
+                    tag.putString("Action", action)
 
-                    tag.putString("Action", data.substringBefore(" DeviceIndex: "))
-                    data = data.substringAfter(" DeviceIndex: ")
-
-                    val deviceIndex = data.substringBefore(" Volume: ")
-                    tag.putInt("MIDI Device Index", deviceIndex.toInt())
-                    data = data.substringAfter(" Volume: ")
-
+                    tag.putInt("MIDI Device Index", index)
                     tag.putInt("MIDI Channel", channel)
 
-                    val volume = data.substringBefore(" hasInitialized: ")
-                    tag.putFloat("Volume", volume.toFloat())
+                    tag.putFloat("Volume", volume)
 
                     tag.putBoolean("Center Notes", isCentering)
 
-                    data = data.substringAfter(" hasInitialized: ")
-                    tag.putBoolean("hasInitialized", data.toBoolean())
-
-                    val info = MidiSystem.getMidiDeviceInfo()[ tag.getInt("MIDI Device Index") ]
+                    val info = MidiSystem.getMidiDeviceInfo()[index]
                     tag.putString("MIDI Device Name", info.name)
 
                 }
@@ -339,6 +343,16 @@ open class Instrument(
         }
 
         ServerPlayNetworking.registerGlobalReceiver( Identifier(netID + "client-screen"), net )
+
+        net =
+            ServerPlayNetworking.PlayChannelHandler {
+                    _: MinecraftServer, player: ServerPlayerEntity,
+                    _: ServerPlayNetworkHandler, _: PacketByteBuf,
+                    _: PacketSender ->
+                initTags(player.mainHandStack.orCreateNbt)
+            }
+
+        ServerPlayNetworking.registerGlobalReceiver( Identifier(netID + "init.tags"), net )
 
     }
 
@@ -365,7 +379,7 @@ open class Instrument(
         sound.pitch = (75..125).random() * 0.1f
         sound.volume = 0.5f
 
-        playSound(sound, target!!, " ID: $useKeyID-hit")
+        playSound(sound, target!!, "$useKeyID-hit")
 
     }
     override fun useOnEntity(stack: ItemStack?, user: PlayerEntity?, entity: LivingEntity?, hand: Hand?): ActionResult {
@@ -413,11 +427,12 @@ open class Instrument(
         if (action == "Push" && !entity!!.isPlayer) {
             user.resetLastAttackedTicks()
             if ( !user.world.isClient ) {
-                var value = speed + 4.5 // 3.5 (lowest) + 1
-                value = cd / value.pow(2)
-                val dir = user.rotationVector.normalize().multiply(value)
-                val y = abs(dir.y) + ( abs(dir.x) + abs(dir.z) ) * 0.25f
-                entity.addVelocity(dir.x * 1.75, y, dir.z * 1.75)
+                val spd = speed + 4.5 // 3.5 (lowest) + 1
+                var value = cd / spd
+                val dir = user.rotationVector.normalize()
+                val y = cd * ( abs(dir.y) + 1 / spd ) * 0.625f
+                value = ( 1 + value ) * 0.75f
+                entity.addVelocity(dir.x * value, y, dir.z * value)
 
                 stack.damage(1, user) { e: LivingEntity? ->
                     e!!.sendEquipmentBreakStatus(EquipmentSlot.MAINHAND)
@@ -444,7 +459,8 @@ open class Instrument(
                 if ( instrumentName != "drumset" ) { stopSound(list[i]!!, useKeyID) }
             }
 
-            if ( incomingSounds[useKeyID] != null && incomingSounds[useKeyID]!!.isNotEmpty() ) {
+            val map = incomingSounds[useKeyID]
+            if ( map != null && map.isNotEmpty() ) {
                 incomingSounds[useKeyID]!!.clear()
             }
 
@@ -517,8 +533,7 @@ open class Instrument(
                 val list = soundMap[id]!!
                 list.add(soundInstance)
                 val last = list[list.size - 1]!!
-                val data = " ID: $useKeyID"
-                playSound(last, player, data)
+                playSound(last, player, useKeyID)
             }
 
         }
@@ -533,7 +548,9 @@ open class Instrument(
 
         val item = player.mainHandStack.item
         if (invBind.wasPressed() && item.group == group) {
-            client.setScreen(Menu())
+            initTags(player.mainHandStack.orCreateNbt)
+            ClientPlayNetworking.send( Identifier(netID + "init.tags"), PacketByteBufs.empty() )
+            client.setScreen(Menu(item as Instrument))
         }
 
         // Stop sounds when using other items
@@ -828,7 +845,7 @@ open class Instrument(
             if ( stack.item == inst ) { tag = stack.orCreateNbt }
         }
 
-        if ( tag!!.getBoolean("Center Notes") ) {
+        if ( tag!!.getBoolean("Center Notes") && inst.instrumentName != "drumset" ) {
             var highest = higherBorder.elementAt(higherBorder.size - 1)
             highest = highest.filter { it.isDigit() }
             highest = highest[highest.length - 1].toString()
@@ -896,7 +913,7 @@ class ElectricGuitarClean : ElectricGuitar() {
                 sound.pitch = (75..125).random() * 0.01f
                 sound.volume = 0.5f
 
-                playSound(sound, entity!!, " ID: $useKeyID-ability")
+                playSound(sound, entity!!, "$useKeyID-ability")
 
             }
             ActionResult.CONSUME

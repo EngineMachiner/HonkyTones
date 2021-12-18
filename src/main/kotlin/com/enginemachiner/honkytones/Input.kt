@@ -103,7 +103,6 @@ class MIDIReceiver(id: String) : Receiver {
 
                     var volume = vel / 127f
                     volume *= tag.getFloat("Volume")
-
                     if ( volume > 0 ) {
 
                         sound.volume = volume
@@ -112,9 +111,8 @@ class MIDIReceiver(id: String) : Receiver {
 
                         localSounds[channelTag] = mapCheck( localSounds[channelTag]!! )
                         localSounds[channelTag]!![key] = sound
-                        val data = " ID: $midiID-$noteInt"
 
-                        client.send { playSound(sound, ply, data) }
+                        client.send { playSound(sound, ply, "$midiID-$noteInt") }
 
                     }
 
@@ -122,8 +120,9 @@ class MIDIReceiver(id: String) : Receiver {
 
             } else {
 
-                if ( localSounds[channelTag] != null && localSounds[channelTag]!![key] != null ) {
-                    val sound = localSounds[channelTag]!![key]!!
+                val map = localSounds[channelTag]
+                if ( map != null && map[key] != null ) {
+                    val sound = map[key]!!
 
                     if ( inst.instrumentName != "drumset" ) {
                         client.send { stopSound(sound, "$midiID-$noteInt") }

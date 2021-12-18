@@ -16,7 +16,6 @@ fun getSoundInstance(id: String?): HTSoundInstance {
 
 class HTSoundInstance(sE: SoundEvent, sC: SoundCategory): MovingSoundInstance(sE, sC) {
 
-    // Moving pos
     var entity: LivingEntity? = null
     var lim = 0.1875f
 
