@@ -23,16 +23,14 @@ private fun mapCheck(map: MutableMap<String, HTSoundInstance?>): MutableMap<Stri
 
 class MIDIReceiver(id: String) : Receiver {
 
-    private fun findStacks(channel: Byte, player: PlayerEntity): MutableList<ItemStack> {
+    private fun findStacks(player: PlayerEntity): MutableList<ItemStack> {
 
         val list = mutableListOf<ItemStack>()
         for ( v in player.inventory.main ) {
             if (v.item.group == honkyTonesGroup) {
                 val tag = v.orCreateNbt
                 val uniqueCase = tag.getString("MIDI Device Name") == midiID
-                val caseOne = uniqueCase && ( tag.getInt("MIDI Channel") - 113 ).toUInt() == channel.toUInt()
-                val caseTwo = uniqueCase && ( tag.getInt("MIDI Channel") - 113 ).toUInt() == ( channel + 16 ).toUInt()
-                if ( caseOne || caseTwo ) { list.add(v) }
+                if ( uniqueCase ) { list.add(v) }
             }
         }
 
@@ -52,7 +50,7 @@ class MIDIReceiver(id: String) : Receiver {
         val ply = client.player ?: return
 
         val channel = message!!.message[0]
-        val stacks = findStacks(channel, ply)
+        val stacks = findStacks(ply)
 
         val noteInt = message.message[1].toInt()
         var vel = 127f
@@ -69,7 +67,8 @@ class MIDIReceiver(id: String) : Receiver {
 
             if ( tag.getString("Action") != "Play" ) { return }
 
-            if ( vel > 0 ) {
+            // Note ON
+            if ( ( channelTag - 113 ).toUInt() == channel.toUInt() ) {
 
                 val start = 0
                 var midiIndex = start
@@ -118,7 +117,10 @@ class MIDIReceiver(id: String) : Receiver {
 
                 }
 
-            } else {
+            }
+
+            // Note OFF
+            if ( ( channelTag - 113 ).toUInt() == ( channel + 16 ).toUInt() ) {
 
                 val map = localSounds[channelTag]
                 if ( map != null && map[key] != null ) {
