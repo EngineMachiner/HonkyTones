@@ -852,8 +852,8 @@ open class Instrument(
             var lowest = lowerBorder.elementAt(0)
             lowest = lowest.filter { it.isDigit() }
             lowest = lowest[0].toString()
-            while ( range > highest.toInt() ) { range -= 1 }
-            while ( range < lowest.toInt() && range < highest.toInt() ) { range += 1 }
+            while ( range > highest.toInt() + 1 ) { range -= 1 }
+            while ( range < lowest.toInt() - 1 ) { range += 1 }
             return getNote(inst, "" + hint[0] + range + flat )
         }
 

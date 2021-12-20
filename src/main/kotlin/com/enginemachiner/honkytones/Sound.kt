@@ -17,9 +17,7 @@ fun getSoundInstance(id: String?): HTSoundInstance {
 class HTSoundInstance(sE: SoundEvent, sC: SoundCategory): MovingSoundInstance(sE, sC) {
 
     var entity: LivingEntity? = null
-    var lim = 0f
-
-    init { lim = 0.075f }
+    var lim = 0.075f
 
     private var finished = false
     private var fadeout = false
