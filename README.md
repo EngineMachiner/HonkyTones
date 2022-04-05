@@ -3,7 +3,7 @@
 
 HonkyTones is a mod that can read MIDI devices and do different actions with instruments.
 
-This is still in development.
+This is on hiatus.
 
 
 <p align="center">
