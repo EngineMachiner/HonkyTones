@@ -4,16 +4,14 @@
   "version": "1.4.5",
   "name": "HonkyTones",
   "description": "Mod that reads MIDI stuff and does other things.",
-  "authors": [
-    "Engine_Machiner"
-  ],
+  "authors": [ "Engine_Machiner" ],
   "contact": {
     "homepage": "https://modrinth.com/mod/honkytones",
     "issues": "https://github.com/EngineMachiner/HonkyTones/issues",
     "sources": "https://github.com/EngineMachiner/HonkyTones"
   },
   "license": "GNU Lesser General Public License version 3 (LGPLv3)",
-  "icon": "assets/honkytones/icon.png",
+  "icon": "assets/honkytones/mod-icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
@@ -33,5 +31,8 @@
     "minecraft": "1.17.x",
     "java": ">=16",
     "fabric-key-binding-api-v1": "*"
-  }
+  },
+  "mixins": [
+    "honkytones.mixins.json"
+  ]
 }

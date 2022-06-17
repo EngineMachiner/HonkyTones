@@ -10,125 +10,56 @@ import net.minecraft.item.ItemStack
 import org.lwjgl.glfw.GLFW
 import javax.sound.midi.*
 
-var sequenceBind: KeyBinding? = null
-var restartBind: KeyBinding? = null
+var sequenceMenuBind: KeyBinding? = null
+var sequenceResetBind: KeyBinding? = null
 
-private fun mapCheck(map: MutableMap<String, HTSoundInstance?>): MutableMap<String, HTSoundInstance?> {
-    val newList = mutableMapOf<String, HTSoundInstance?>()
-    for ( instanceI in map ) {
-        if (!instanceI.value!!.isDone) { newList[instanceI.key] = instanceI.value }
-    }
-    return newList.toMutableMap()
-}
+class MIDIReceiver(private val id: String) : Receiver {
 
-class MIDIReceiver(id: String) : Receiver {
-
-    private fun findStacks(player: PlayerEntity): MutableList<ItemStack> {
-
+    // Get instruments' stacks
+    private fun getStacks(player: PlayerEntity): MutableList<ItemStack> {
         val list = mutableListOf<ItemStack>()
-        for ( v in player.inventory.main ) {
-            if (v.item.group == honkyTonesGroup) {
-                val tag = v.orCreateNbt
-                val uniqueCase = tag.getString("MIDI Device Name") == midiID
-                if ( uniqueCase ) { list.add(v) }
+        for ( stack in player.inventory.main ) {
+            if (stack.item.group == instrumentsGroup) {
+                val hasTag = stack.nbt!!.getString("MIDI Device") == id
+                if ( hasTag ) { list.add(stack) }
             }
         }
-
         return list
-
     }
 
-    private var localSounds = mutableMapOf< Int, MutableMap<String, HTSoundInstance?> >()
+    override fun close() { println(" [HONKYTONES]: $id device has been closed.") }
+    override fun send(msg: MidiMessage?, timeStamp: Long) {
 
-    private val midiID = id
+        val client = MinecraftClient.getInstance();     val ply = client.player ?: return
+        val stacks = getStacks(ply)
 
-    override fun close() {}
+        val newMsg = msg as ShortMessage;       val channel = newMsg.channel
 
-    override fun send(message: MidiMessage?, timeStamp: Long) {
-
-        val client = MinecraftClient.getInstance()
-        val ply = client.player ?: return
-
-        val channel = message!!.message[0]
-        val stacks = findStacks(ply)
-
-        val noteInt = message.message[1].toInt()
-        var vel = 127f
-        if ( message.message.size > 2 ) {
-            vel = message.message[2].toFloat()
-        }
+        val screen = client.currentScreen
+        if (screen is Menu && client.isInSingleplayer) return
 
         for ( stack in stacks ) {
 
-            val tag = stack.orCreateNbt
-            val channelTag = tag.getInt("MIDI Channel")
+            val nbt = stack.nbt!!
+            val nbtChannel = nbt.getInt("MIDI Channel")
             val inst = stack.item as Instrument
-            val key = "${inst.instrumentName}-$noteInt"
+            val sounds = inst.sounds["notes"]!!
 
-            if ( tag.getString("Action") != "Play" ) { return }
+            if ( nbt.getString("Action") != "Play" ) { return }
 
-            // Note ON
-            if ( ( channelTag - 113 ).toUInt() == channel.toUInt() ) {
+            if ( channel + 1 == nbtChannel ) {
 
-                val start = 0
-                var midiIndex = start
-                var octaveIndex = 1
-                var rangeCounter = 1;      var range = -1    // Starting range
+                val index = inst.getIndexIfCenter(nbt, newMsg.data1)
+                val sound = sounds[index] ?: return
+                val volume = newMsg.data2 / 127f
 
-                while ( midiIndex != noteInt ) {
-
-                    midiIndex += 1
-                    octaveIndex += 1
-                    rangeCounter += 1
-
-                    if ( rangeCounter > 12 ) {
-                        rangeCounter = 1
-                        range += 1
-                    }
-
-                    if ( octaveIndex > 12 ) { octaveIndex = 1 }
-
-                    if ( midiIndex > 120 ) { return }
-
-                }
-
-                val selectedNote = octave.elementAt(octaveIndex - 1)
-                val selectedRange = range
-
-                val format = formatNote(selectedNote, selectedRange)
-                val sound = inst.getNote(inst, format)
-
-                if (sound.id.path.isNotEmpty()) {
-
-                    var volume = vel / 127f
-                    volume *= tag.getFloat("Volume")
-                    if ( volume > 0 ) {
-
-                        sound.volume = volume
-
-                        if (localSounds[channelTag] == null) { localSounds[channelTag] = mutableMapOf() }
-
-                        localSounds[channelTag] = mapCheck( localSounds[channelTag]!! )
-                        localSounds[channelTag]!![key] = sound
-
-                        client.send { playSound(sound, ply, "$midiID-$noteInt") }
-
-                    }
-
-                }
-
-            }
-
-            // Note OFF
-            if ( ( channelTag - 113 ).toUInt() == ( channel + 16 ).toUInt() ) {
-
-                val map = localSounds[channelTag]
-                if ( map != null && map[key] != null ) {
-                    val sound = map[key]!!
-
-                    if ( inst.instrumentName != "drumset" ) {
-                        client.send { stopSound(sound, "$midiID-$noteInt") }
-                    }
+                // 144 -> Note ON, 176 -> Note OFF
+                if ( volume > 0 && newMsg.command == 144 ) {
+                    sound.volume = volume * nbt.getFloat("Volume")
+                    client.send { playSound(sound, ply) }
+                } else if ( sound.isPlaying && inst.name != "drumset"
+                    && ( volume == 0f || newMsg.command == 176 ) ) {
+                    client.send { stopSound(sound, sounds) }
                 }
 
             }
@@ -140,7 +71,6 @@ class MIDIReceiver(id: String) : Receiver {
 }
 
 val controllersMap = mutableMapOf<MidiDevice, MutableMap< List<Transmitter>, List<Receiver> > >()
-
 class Input : ClientModInitializer {
 
     override fun onInitializeClient() {
@@ -187,14 +117,14 @@ class Input : ClientModInitializer {
 
         }
 
-        val id = Base.MOD_ID
+        val id = Base.MOD_NAME
 
-        sequenceBind = KeyBindingHelper.registerKeyBinding(
+        sequenceMenuBind = KeyBindingHelper.registerKeyBinding(
             KeyBinding("key.$id.sequence",      InputUtil.Type.MOUSE,
                 GLFW.GLFW_MOUSE_BUTTON_MIDDLE,        "category.$id" )
         )
 
-        restartBind = KeyBindingHelper.registerKeyBinding(
+        sequenceResetBind = KeyBindingHelper.registerKeyBinding(
             KeyBinding("key.$id.restart",      InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_Z,        "category.$id" )
         )

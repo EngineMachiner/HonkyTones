@@ -16,7 +16,6 @@ This is on hiatus.
 </p>
 
 <p align="center">
-  </a>
     <a title="ko-fi" href="https://ko-fi.com/W7W32691S">
     <img src="https://ko-fi.com/img/githubbutton_sm.svg">
   </a>

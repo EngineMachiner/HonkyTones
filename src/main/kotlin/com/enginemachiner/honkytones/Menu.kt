@@ -1,140 +1,122 @@
 package com.enginemachiner.honkytones
 
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.SliderWidget
 import net.minecraft.client.gui.widget.TextFieldWidget
 import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.nbt.NbtCompound
+import net.minecraft.item.ItemStack
 import net.minecraft.sound.SoundCategory
 import net.minecraft.text.*
-import net.minecraft.util.Identifier
+import java.awt.Color
 import javax.sound.midi.MidiSystem
 
 class CustomSlider(
-    x: Int, y: Int, w: Int, h: Int, t: Text, d: Double, f: Float
-): SliderWidget(x, y, w, h, t, d) {
+    x: Int, y: Int, w: Int, h: Int,
+    private val name: String, float: Float,
+) : SliderWidget(x, y, w, h, null, float.toDouble()) {
 
-    private var v = f
-    override fun updateMessage() {
-        val int = (v * 100).toInt()
-        message = Text.of("Volume: $int%")
+    init {
+        val int = (value * 100).toInt()
+        message = Text.of("$name: $int%")
     }
 
-    override fun applyValue() { v = (value * 100).toInt() / 100f }
+    override fun updateMessage() {
+        val int = (value * 100).toInt()
+        message = Text.of("$name: $int%")
+    }
+
+    override fun applyValue() {}
 
 }
 
 // Client screen
-
-class Menu(private val inst: Instrument) : Screen( LiteralText("HonkyTones") ) {
+class Menu(private val stack: ItemStack) : Screen( LiteralText("HonkyTones") ) {
 
     private var sequenceField: TextFieldWidget? = null
+    private var channelField: TextFieldWidget? = null
+
     private var clearButton: ButtonWidget? = null
     private var actionButton: ButtonWidget? = null
     private var deviceButton: ButtonWidget? = null
-    private var channelField: TextFieldWidget? = null
-    private var volumeSlider: SliderWidget? = null
     private var centerNotesButton: ButtonWidget? = null
 
-    private val clientI = MinecraftClient.getInstance()
-    private val tag = clientI.player!!.mainHandStack.orCreateNbt
+    private var volumeSlider: SliderWidget? = null
+
+    private val inst = stack.item as Instrument
+    private var nbt = stack.nbt!!
     private val devices = MidiSystem.getMidiDeviceInfo()
+    private val devicesNames = mutableListOf<String>()
     private val actions = setOf("Attack","Play","Push")
-    private val sounds = setOf(
-        getSoundInstance("honkytones:drumset-g4"),
-        getSoundInstance("honkytones:keyboard-c3"),
-        getSoundInstance("honkytones:trombone-g3")
-    )
-    private val clickSound = getSoundInstance("ui.button.click")
 
-    // Temporal
-
-    private var sequence = tag.getString("Sequence")
-    private var action = tag.getString("Action")
-
-    private var index = tag.getInt("MIDI Device Index")
-    private var name = MidiSystem.getMidiDeviceInfo()[index].name
-
-    private var channel = tag.getInt("MIDI Channel")
-
-    private var volume = tag.getFloat("Volume")
-
-    private var center = tag.getBoolean("Center Notes")
+    // Former itemTag values
+    private var sequence = nbt.getString("Sequence")
+    private var action = nbt.getString("Action")
+    private var name = nbt.getString("MIDI Device")
+    private val oldName = name
+    private var channel = nbt.getInt("MIDI Channel")
+    private var volume = nbt.getFloat("Volume")
+    private var shouldCenter = nbt.getBoolean("Center Notes")
 
     override fun onClose() {
 
-        // Send data to the server
-        // I didn't want to use a shared screen for this
+        val v = volumeSlider!!.message.asString()
+        val vol = v.filter { it.isDigit() }.toFloat()
+        val channel = channelField!!.text
 
-        val s = channelField!!.text
-        channel = if (s.isNotEmpty()) s.toInt() else 1
+        nbt.putString("Sequence", sequenceField!!.text)
+        inst.subsequence = sequenceField!!.text
+        nbt.putString("Action", action)
+        nbt.putString("MIDI Device", name)
+        nbt.putInt("MIDI Channel", channel.toInt())
+        nbt.putFloat("Volume", vol * 0.01f)
+        nbt.putBoolean("Center Notes", shouldCenter)
 
-        val buf = PacketByteBufs.create()
-
-        buf.writeString("" + sequenceField!!.text)
-        buf.writeString("" + action)
-
-        buf.writeInt(index)
-        buf.writeInt(channel)
-
-        val vol = volumeSlider!!.message.asString().filter { it.isDigit() }
-        buf.writeFloat( vol.toFloat() / 100f )
-
-        buf.writeBoolean(center)
-
-        ClientPlayNetworking.send( Identifier(netID + "client-screen"), buf )
+        if (oldName != name) {
+            val s = inst.name + " - " + name + " - " + channel
+            stack.setCustomName( Text.of(s) )
+        } else stack.removeCustomName()
 
         super.onClose()
 
     }
 
-    private fun checkIndex(index: Int): Int {
-        for ( (newIndex, info) in devices.withIndex() ) {
-            if ( info.name == name ) { return newIndex }
-        }
-        if ( index > devices.size - 1 ) { return 0 }
-        return index
+    private fun stringCut(s: String, lim: Int): String {
+        if (s.length > lim) { return s.substring( 0, lim ) + "..." }
+        return s
+    }
+
+    private fun <T: Any> next(value: T, col: Collection<T>): T {
+        var i = col.indexOf(value) + 1;   if (i > col.size - 1) { i = 0 }
+        return col.elementAt(i)
     }
 
     override fun init() {
 
-        // Stop sounds in singleplayer
-        if ( client!!.isInSingleplayer ) {
-            for (id in client!!.soundManager.keys) {
-                if (id.namespace.contains("honkytones")) {
-                    client!!.soundManager.stopSounds(id, SoundCategory.PLAYERS)
-                }
+        // Stop sounds in single-player
+        if (client!!.isInSingleplayer) {
+            val manager = client!!.soundManager
+            val sounds = manager.keys.filter {
+                it.namespace.contains("honkytones")
             }
+            for (id in sounds) { manager.stopSounds(id, SoundCategory.PLAYERS) }
         }
 
-        for ( sound in sounds ) {
-            sound.volume = client!!.options.getSoundVolume(SoundCategory.PLAYERS)
-        }
-        clickSound.volume = client!!.options.getSoundVolume(SoundCategory.MASTER)
+        // Device names and set current device name
+        for ( device in devices ) { devicesNames.add(device.name) }
 
-
+        // Based dimensions
         val x = (width * 0.5 - width * 0.75 * 0.5).toInt()
         val y = (height * 0.08 * 1.5).toInt()
         val w = (width * 0.75).toInt()
         val h = (240 * 0.08).toInt()
-
-
-        // Sequence field
-        sequenceField = TextFieldWidget(
-            textRenderer,
-            x, y, w, h, Text.of("")
-        )
-        sequenceField!!.setMaxLength(32 * 5)
-        sequenceField!!.text = sequence
-        addSelectableChild(sequenceField)
-
-
         val w2 = (w * 0.35).toInt()
-        fun getTemplate( x2: Float, y2: Float, w3: Float, func: (butt: ButtonWidget) -> Unit ): ButtonWidget {
+
+        // Button template creation function
+        fun createButton(
+            x2: Float, y2: Float, w3:
+            Float, func: (butt: ButtonWidget) -> Unit
+        ): ButtonWidget {
             return ButtonWidget(
                 (x + w * 0.5 + w2 * 0.05 + x2).toInt(),
                 (y + h * 1.5 + y2).toInt(),
@@ -143,93 +125,78 @@ class Menu(private val inst: Instrument) : Screen( LiteralText("HonkyTones") ) {
             ) { func(it) }
         }
 
+        // Sequence field
+        sequenceField = TextFieldWidget(textRenderer, x, y, w, h, Text.of(""))
+        sequenceField!!.setMaxLength(32 * 5)
+        sequenceField!!.text = sequence
+        addSelectableChild(sequenceField)
+
+
         // Clear button
-        clearButton = getTemplate( 0f, 0f, 0f ) {
-            sequenceField!!.text = ""
-        }
+        clearButton = createButton( 0f, 0f, 0f ) { sequenceField!!.text = "" }
         clearButton!!.message = Text.of("Clear")
         addSelectableChild(clearButton)
 
 
         // Action button
-        var actionIndex = actions.indexOf( action )
-        actionButton = getTemplate( - w2.toFloat(), 0f, 0f ) {
-            actionIndex++
-            if (actionIndex > actions.size - 1) { actionIndex = 0 }
-            action = actions.elementAt(actionIndex)
+        actionButton = createButton( - w2.toFloat(), 0f, 0f ) {
+            action = next(action, actions)
             it.message = Text.of("Action: $action")
         }
         actionButton!!.message = Text.of("Action: $action")
         addSelectableChild(actionButton)
 
 
-        // MIDI device
-        var deviceIndex = tag.getInt("MIDI Device Index")
-        deviceIndex = checkIndex(deviceIndex)
-        var s: String
-        deviceButton = getTemplate( - w2.toFloat(), h * 1.25f, 0f ) {
-
-            cooldownMap["device"] = cooldownDefault["device"]!!
-
-            deviceIndex++
-            if (deviceIndex > devices.size - 1) { deviceIndex = 0 }
-
-            index = deviceIndex
-            name = MidiSystem.getMidiDeviceInfo()[index].name
-
-            s = "Device: " + devices[deviceIndex].name
-            val range = w2 * 0.125f
-            if (s.length > range) { s = s.substring( 0, range.toInt() ) + "..." }
-            it.message = Text.of(s)
-
+        // MIDI device button
+        val charLim = ( w2 * 0.125f ).toInt()
+        deviceButton = createButton( - w2.toFloat(), h * 1.25f, 0f ) {
+            resetTween( tweenStack["deviceName"]!! )
+            name = next(name, devicesNames)
+            it.message = Text.of( stringCut( "Device: $name", charLim ) )
         }
-
-        s = "Device: " + devices[deviceIndex].name
-        val range = w2 * 0.125f
-        if (s.length > range) { s = s.substring( 0, range.toInt() ) + "..." }
-        deviceButton!!.message = Text.of(s)
-
+        deviceButton!!.message = Text.of( stringCut( "Device: $name", charLim ) )
         addSelectableChild(deviceButton)
 
 
         // Channel field
         val w4 = w * 0.075f
-        channelField = TextFieldWidget(
-            textRenderer,
+        channelField = TextFieldWidget( textRenderer,
             (x + w4 - w4 * 0.5f + w2 * 1.875).toInt(),
-            (y + 2.75 * h).toInt(), w4.toInt(), h, Text.of("")
+            (y + 2.75 * h).toInt(),
+            w4.toInt(), h,
+            Text.of("")
         )
         channelField!!.setMaxLength(2)
         channelField!!.text = channel.toString()
         addSelectableChild(channelField)
 
 
-        val int = (volume * 100).toInt()
         volumeSlider = CustomSlider(
             (x + w * 0.5 + w2 * 0.05 - w2 * 0.5f).toInt(),
             (y + h * 1.5 + h * 1.25f * 2f).toInt(),
-            w2, (h * 1.1f).toInt(), Text.of("Volume: $int%"), volume.toDouble(), volume
+            w2, (h * 1.1f).toInt(),
+            "Volume", volume
         )
         addSelectableChild(volumeSlider)
 
 
-        // Tweak notes out of range
-        centerNotesButton = getTemplate( - w2 * 0.5f, h * 1.25f * 3f, 0f ) {
-            center = !center
-            val string = if (center) { "On" } else "Off"
-            it.message = Text.of("Center notes: $string")
+        // Find missing notes the nearest range note
+        val switch = mutableMapOf( true to "On", false to "Off")
+        centerNotesButton = createButton( - w2 * 0.5f, h * 1.25f * 3f, 0f ) {
+            shouldCenter = !shouldCenter
+            it.message = Text.of("Center notes: ${switch[shouldCenter]}")
         }
-        val string = if (center) { "On" } else "Off"
-        centerNotesButton!!.message = Text.of("Center notes: $string")
+        centerNotesButton!!.message = Text.of("Center notes: ${switch[shouldCenter]}")
         addSelectableChild(centerNotesButton)
 
-
-        cooldownMap = cooldownDefault.toMutableMap()
     }
 
-    private val cooldownDefault = mutableMapOf( "device" to 200f )
-    private var cooldownMap = cooldownDefault.toMutableMap()
+    private fun resetTween(list: MutableList<Int>) {
+        for ( i in 0 until list.size) { list[i] = 0 }
+    }
 
+    // 1st -> incremental, 2nd -> frame-time
+    private val tweenStack = mutableMapOf( "deviceName" to mutableListOf(0, 0) )
     override fun render(matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float) {
 
         renderBackground(matrices)
@@ -239,25 +206,28 @@ class Menu(private val inst: Instrument) : Screen( LiteralText("HonkyTones") ) {
         deviceButton!!.render(matrices, mouseX, mouseY, delta)
         channelField!!.render(matrices, mouseX, mouseY, delta)
         volumeSlider!!.render(matrices, mouseX, mouseY, delta)
-        if (inst.instrumentName != "drumset") {
+        clearButton!!.render(matrices, mouseX, mouseY, delta)
+        if (inst.name != "drumset") {
             centerNotesButton!!.render(matrices, mouseX, mouseY, delta)
         }
 
+        // Channel input restrictions
         val caseOne = channelField!!.text.isBlank() && !channelField!!.isFocused
-        val caseTwo = channelField!!.text.length == 1 && channelField!!.text.contains(Regex("[^1-9]"))
+        val caseTwo = channelField!!.text.length == 1
+                && channelField!!.text.contains(Regex("[^1-9]"))
 
         var caseThree = channelField!!.text.length == 2
-        caseThree = caseThree && ( channelField!!.text[0] != '1' || channelField!!.text[1].toString().contains(Regex("[^0-6]")) )
+        caseThree = caseThree && ( channelField!!.text[0] != '1'
+                || channelField!!.text[1].toString().contains(Regex("[^0-6]")) )
 
         if ( caseOne || caseTwo || caseThree ) { channelField!!.text = "1" }
 
+        // Subtitles
         textRenderer.draw(
             matrices, "Sequence:",
             sequenceField!!.x.toFloat(), sequenceField!!.y.toFloat() - 10,
             0xFFFFFF
         )
-
-        clearButton!!.render(matrices, mouseX, mouseY, delta)
 
         textRenderer.draw(
             matrices, "Channel: ",
@@ -265,17 +235,16 @@ class Menu(private val inst: Instrument) : Screen( LiteralText("HonkyTones") ) {
             0xFFFFFF
         )
 
-        // Show device
-        var n = cooldownMap["device"]!!
-        if ( n > 0 ) {
-            val n2 = n + 10
-            n -= 0.25f;    cooldownMap["device"] = n
-            index = checkIndex(index)
-            val s = devices[index].name
+        // Show device name on change
+        val tween = tweenStack["deviceName"]!!
+        if ( tween[1] < 400 ) {
+            if (tween[0] < 255 && tween[1] > 200) tween[0]++
+            val s = name; tween[1]++
+            val color = Color( 255 - tween[0], 255 - tween[0], 255 - tween[0] )
             textRenderer.drawWithShadow(
                 matrices, s,
                 ( width * 0.5f - s.length * 2.5f ), height - 60f,
-                (0xFFFFFF * n2 * 5).toInt()
+                color.rgb
             )
         }
 

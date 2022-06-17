@@ -60,6 +60,6 @@ open class MusicalRedstone : ToolMaterial {
     override fun getAttackDamage(): Float { return data["AttackDamage"] as Float }
     override fun getMiningLevel(): Int { return data["MiningLevel"] as Int }
     override fun getEnchantability(): Int { return data["Enchantability"] as Int }
-    override fun getRepairIngredient(): Ingredient { return data["RepairIngredient"] as Ingredient  }
+    override fun getRepairIngredient(): Ingredient { return data["RepairIngredient"] as Ingredient }
 
 }
