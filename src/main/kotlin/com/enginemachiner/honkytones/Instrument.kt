@@ -30,7 +30,10 @@ import net.minecraft.particle.ParticleTypes
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.tag.BlockTags
 import net.minecraft.text.Text
-import net.minecraft.util.*
+import net.minecraft.util.ActionResult
+import net.minecraft.util.Hand
+import net.minecraft.util.Identifier
+import net.minecraft.util.TypedActionResult
 import net.minecraft.util.collection.DefaultedList
 import net.minecraft.util.math.MathHelper
 import net.minecraft.world.World
@@ -646,7 +649,7 @@ open class ElectricGuitar : Instrument( 4f, -2.4f, MusicalRedstone() ) {
     private val miningSpeed = MusicalRedstone().miningSpeedMultiplier
     private val effectiveBlocks = BlockTags.AXE_MINEABLE
     override fun getMiningSpeedMultiplier(stack: ItemStack?, state: BlockState?): Float {
-        return if (effectiveBlocks.contains(state!!.block)) miningSpeed else 1.0f
+        return if (state!!.isIn(effectiveBlocks)) miningSpeed else 1.0f
     }
 
 }
