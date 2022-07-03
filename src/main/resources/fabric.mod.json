@@ -29,7 +29,8 @@
     "fabric": "*",
     "fabric-language-kotlin": ">=1.7.4+kotlin.1.6.21",
     "minecraft": "1.18",
-    "java": ">=17"
+    "java": ">=17",
+    "fabric-key-binding-api-v1": "*"
   },
   "mixins": [
     "honkytones.mixins.json"
