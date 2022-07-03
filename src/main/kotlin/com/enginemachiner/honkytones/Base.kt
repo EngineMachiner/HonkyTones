@@ -4,9 +4,10 @@ import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import net.fabricmc.api.ModInitializer
-import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.networking.v1.PacketSender
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
+import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.network.PacketByteBuf
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.ServerTask
@@ -180,7 +181,9 @@ object Base : ModInitializer {
 
         // Commands
         CommandRegistrationCallback.EVENT.register {
-                dispatcher: CommandDispatcher<ServerCommandSource>, _: Boolean ->
+                dispatcher: CommandDispatcher<ServerCommandSource>,
+                _: CommandRegistryAccess,
+                _: CommandManager.RegistrationEnvironment ->
 
             val l1 = CommandManager.literal("honkytones")
             var l2 = CommandManager.literal("debugger")
@@ -202,7 +205,7 @@ object Base : ModInitializer {
                 val error = "Number has to be minimum 120"
 
                 if (i >= min) { commands["mobPlayingTickDelay"] = i }
-                else it.source.player.sendMessage( Text.of(error), false )
+                else it.source.player!!.sendMessage( Text.of(error), false )
 
                 0
 

@@ -31,7 +31,7 @@ class CustomSlider(
 }
 
 // Client screen
-class Menu(private val stack: ItemStack) : Screen( LiteralText("HonkyTones") ) {
+class Menu(private val stack: ItemStack) : Screen( Text.of("HonkyTones") ) {
 
     private var sequenceField: TextFieldWidget? = null
     private var channelField: TextFieldWidget? = null
@@ -60,7 +60,7 @@ class Menu(private val stack: ItemStack) : Screen( LiteralText("HonkyTones") ) {
 
     override fun close() {
 
-        val v = volumeSlider!!.message.asString()
+        val v = volumeSlider!!.message.string
         val vol = v.filter { it.isDigit() }.toFloat()
         val channel = channelField!!.text
 

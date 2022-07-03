@@ -8,12 +8,11 @@ import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.*;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.LocalDifficulty;
+import net.minecraft.util.math.random.Random;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.Random;
 
 import static com.enginemachiner.honkytones.BaseKt.getClassesMap;
 
@@ -29,16 +28,16 @@ public class MobsCanPlay {
     MobLogicMixin logic = new MobLogicMixin();
 
     @Inject(at = @At("TAIL"), method = "initEquipment")
-    private void initEquipment(LocalDifficulty diff, CallbackInfo info) {
+    private void initEquipment(Random random, LocalDifficulty diff, CallbackInfo info) {
 
         MobEntity mob = ((MobEntity) (Object) this);
 
-        boolean chance = new Random().nextInt(8) + 1 == 8;
+        boolean chance = Random.create().nextInt(8) + 1 == 8;
 
-        if ( chance && logic.canPlay( (Class<MobEntity>) mob.getClass() ) ) {
+        if ( true && logic.canPlay( (Class<MobEntity>) mob.getClass() ) ) {
 
             Object[] names = getClassesMap().values().toArray();
-            int index = new Random().nextInt(names.length);
+            int index = Random.create().nextInt(names.length);
             String name = (String) names[index];
 
             Identifier id = new Identifier(Base.MOD_NAME + ":" + name);

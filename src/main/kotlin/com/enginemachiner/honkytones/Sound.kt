@@ -8,6 +8,7 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvent
 import net.minecraft.util.Identifier
+import net.minecraft.util.math.random.Random
 import kotlin.math.pow
 
 fun playSound(sound: HTSound, entity: LivingEntity) {
@@ -63,7 +64,7 @@ fun stopSound(sound: HTSound, list: MutableList<HTSound?>) {
 }
 
 class HTSound(s: String)
-    : MovingSoundInstance( SoundEvent( Identifier(s) ), SoundCategory.PLAYERS ) {
+    : MovingSoundInstance( SoundEvent( Identifier(s) ), SoundCategory.PLAYERS, Random.create() ) {
 
     var entity: LivingEntity? = null
 

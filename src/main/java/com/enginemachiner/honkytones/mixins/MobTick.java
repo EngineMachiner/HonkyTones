@@ -8,13 +8,12 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.Random;
 
 @Mixin(MobEntity.class)
 public class MobTick {
@@ -37,7 +36,7 @@ public class MobTick {
             NbtCompound nbt = stack.getNbt();
             int timer = nbt.getInt("mobTick");
             int delay = (int) BaseKt.getCommands().get("mobsPlayingDelay");
-            if (new Random().nextInt(3) == 0) {
+            if (Random.create().nextInt(3) == 0) {
                 if (timer < delay) {
                     nbt.putInt("mobTick", timer + 1);
                 } else {
