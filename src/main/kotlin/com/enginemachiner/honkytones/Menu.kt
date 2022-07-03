@@ -58,7 +58,7 @@ class Menu(private val stack: ItemStack) : Screen( LiteralText("HonkyTones") ) {
     private var volume = nbt.getFloat("Volume")
     private var shouldCenter = nbt.getBoolean("Center Notes")
 
-    override fun close() {
+    override fun onClose() {
 
         val v = volumeSlider!!.message.asString()
         val vol = v.filter { it.isDigit() }.toFloat()
@@ -77,7 +77,7 @@ class Menu(private val stack: ItemStack) : Screen( LiteralText("HonkyTones") ) {
             stack.setCustomName( Text.of(s) )
         } else stack.removeCustomName()
 
-        super.close()
+        super.onClose()
 
     }
 
