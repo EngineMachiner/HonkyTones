@@ -34,7 +34,7 @@ public class MobTick {
         b = b && logic.isInGame();
 
         if (b && item instanceof Instrument inst) {
-            NbtCompound nbt = stack.getNbt();
+            NbtCompound nbt = stack.getTag();
             int timer = nbt.getInt("mobTick");
             int delay = (int) BaseKt.getCommands().get("mobsPlayingDelay");
             if (new Random().nextInt(3) == 0) {

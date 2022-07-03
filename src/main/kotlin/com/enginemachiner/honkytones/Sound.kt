@@ -21,7 +21,7 @@ fun playSound(sound: HTSound, entity: LivingEntity) {
 
     val stack = entity.mainHandStack;       val item = stack.item
     if (item is Instrument && item.onUse) {
-        sound.volume = stack.nbt!!.getFloat("Volume")
+        sound.volume = stack.tag!!.getFloat("Volume")
     }
 
     if (sound.volume > 0) {

@@ -44,7 +44,7 @@ class Menu(private val stack: ItemStack) : Screen( LiteralText("HonkyTones") ) {
     private var volumeSlider: SliderWidget? = null
 
     private val inst = stack.item as Instrument
-    private var nbt = stack.nbt!!
+    private var nbt = stack.tag!!
     private val devices = MidiSystem.getMidiDeviceInfo()
     private val devicesNames = mutableListOf<String>()
     private val actions = setOf("Attack","Play","Push")

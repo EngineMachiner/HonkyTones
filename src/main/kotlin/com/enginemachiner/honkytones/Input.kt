@@ -20,7 +20,7 @@ class MIDIReceiver(private val id: String) : Receiver {
         val list = mutableListOf<ItemStack>()
         for ( stack in player.inventory.main ) {
             if (stack.item.group == instrumentsGroup) {
-                val hasTag = stack.nbt!!.getString("MIDI Device") == id
+                val hasTag = stack.tag!!.getString("MIDI Device") == id
                 if ( hasTag ) { list.add(stack) }
             }
         }
@@ -40,7 +40,7 @@ class MIDIReceiver(private val id: String) : Receiver {
 
         for ( stack in stacks ) {
 
-            val nbt = stack.nbt!!
+            val nbt = stack.tag!!
             val nbtChannel = nbt.getInt("MIDI Channel")
             val inst = stack.item as Instrument
             val sounds = inst.sounds["notes"]!!

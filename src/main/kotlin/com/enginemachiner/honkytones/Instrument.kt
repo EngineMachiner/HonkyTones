@@ -99,7 +99,7 @@ open class Instrument(
     // Stacks on creation can help me put custom NBTs
     override fun appendStacks(group: ItemGroup?, stacks: DefaultedList<ItemStack>?) {
         if (isIn(group)) {
-            val stack = ItemStack(this);    loadNbtData(stack.orCreateNbt)
+            val stack = ItemStack(this);    loadNbtData(stack.orCreateTag)
             stacks!!.add(stack)
         }
     }
@@ -157,7 +157,7 @@ open class Instrument(
 
                 for (note in notes) {
                     var index = wholeNoteSet.indexOf(note)
-                    index = getIndexIfCenter(itemStack.nbt!!, index)
+                    index = getIndexIfCenter(itemStack.tag!!, index)
                     if (index != -1 && sounds[index] != null) playSound(sounds[index]!!, user)
                     else user.sendMessage(userText(note, 1), false)
                 }
@@ -181,7 +181,7 @@ open class Instrument(
 
         use(user!!.world, user, hand)
 
-        val action = stack!!.nbt!!.getString("Action")
+        val action = stack!!.tag!!.getString("Action")
         val cd = user.getAttackCooldownProgress(0.5f)
 
         if (action == "Attack") {
@@ -425,8 +425,8 @@ open class Instrument(
 
         val num = 5;        val world = entity.world
 
-        val toDeg = MathHelper.RADIANS_PER_DEGREE
-        val yawDeg = entity.yaw * toDeg
+        val toDeg = 180 / Math.PI
+        val yawDeg = entity.yaw * toDeg.toFloat()
         val delta = mutableMapOf('x' to - MathHelper.sin( yawDeg ))
 
         for ( i in 1..num ) {
@@ -511,7 +511,7 @@ open class Instrument(
 
                                     var shouldStop = livingEnt.mainHandStack != stack
                                     if (livingEnt is PlayerEntity) {
-                                        val b1 = shouldStop && stack.nbt!!.getString("Action") != "Play"
+                                        val b1 = shouldStop && stack.tag!!.getString("Action") != "Play"
                                         shouldStop = !livingEnt.inventory.contains(stack) || b1
                                     }
 
@@ -540,12 +540,12 @@ open class Instrument(
 
             // Screen open
             if ( sequenceMenuBind!!.wasPressed() ) {
-                client.setScreen(Menu(stack))
+                client.openScreen(Menu(stack))
             }
 
             // Reset sequence
             if (sequenceResetBind!!.wasPressed()) {
-                subsequence = stack.nbt!!.getString("Sequence")
+                subsequence = stack.tag!!.getString("Sequence")
             }
 
         }
