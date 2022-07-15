@@ -70,7 +70,6 @@ open class Instrument(
 ) : ToolItem( mat, settings.maxDamage( mat.durability ) ) {
 
     // Data
-    private val range = mutableSetOf<Int>()
     val name = classesMap[this::class];     private val filesSet = soundsMap[name]!!
     var subsequence = ""
 
@@ -90,8 +89,8 @@ open class Instrument(
             : ImmutableMultimap<EntityAttribute, EntityAttributeModifier>
 
     init {
-        createRange(); loadSounds()
-        setAttributes(); setEnchantments(); networking(); tick()
+        loadSounds(); setAttributes()
+        setEnchantments(); networking(); tick()
     }
 
     // Vanilla methods
@@ -343,7 +342,7 @@ open class Instrument(
 
         for ( sound in list.filterNotNull() ) {
             // For border pitch to be added to the list, the former and last sound must have natural pitch
-            if (sound.toPitch == 0) {
+            if (sound.toPitch == 0 || sound.toPitch == null) {
                 val index = list.indexOf(sound)
                 if (list[index + 1] != null && list[index - 1] == null) gaps["back"]!!.add(index)
                 if (list[index - 1] != null && list[index + 1] == null) gaps["forward"]!!.add(index)
@@ -352,14 +351,13 @@ open class Instrument(
 
         fun addBorderPitch(s: String, i2: Int) {
             for ( index in gaps[s]!! ) {
-                val original = list[index]!!
-                val id = original.id
+                val id = list[index]!!.id
                 val path = id.namespace + ":" + id.path
                 for (i in 1..12) {
                     val i3 = i * i2
                     if (list[index + i3] == null) {
                         val sound = HTSound(path)
-                        sound.toPitch = original.toPitch!! + i3
+                        sound.toPitch = i3
                         list[index + i3] = sound
                     }
                 }
@@ -369,11 +367,6 @@ open class Instrument(
         addBorderPitch("back", -1)
         addBorderPitch("forward", 1)
 
-    }
-
-    private fun createRange() {
-        range.add( filesSet.first().find { it.isDigit() }.toString().toInt() - 1 )
-        range.add( filesSet.last().findLast { it.isDigit() }.toString().toInt() + 1 )
     }
 
     private fun loadNbtData(nbt: NbtCompound) {
