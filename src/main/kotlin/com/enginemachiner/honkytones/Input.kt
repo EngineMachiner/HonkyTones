@@ -58,7 +58,7 @@ class MIDIReceiver(private val id: String) : Receiver {
                     sound.volume = volume * nbt.getFloat("Volume")
                     client.send { playSound(sound, ply) }
                 } else if ( sound.isPlaying && inst.name != "drumset"
-                    && ( volume == 0f || newMsg.command == 176 ) ) {
+                    && newMsg.command == 128 ) {
                     client.send { stopSound(sound, sounds) }
                 }
 
