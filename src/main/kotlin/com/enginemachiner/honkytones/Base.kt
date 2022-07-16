@@ -67,13 +67,21 @@ private fun builder(template: Set<String>?, range: Set<Int>): Set<String>{
         for (t in template!!) {
             if (t.contains("-")) {
 
+                val first = template.first().substringAfter("-")[1].toString()
+
                 // Sort the pair values according to the range given
                 val start = t.substringBefore("-")[1].toString()
                 val end = t.substringAfter("-")[1].toString()
-                var start2 = r;     val end2 = r
+                var start2 = r;     var end2 = r
 
                 if ( start.toInt() < end.toInt() ) {
                     start2 = (r.toInt() - 1).toString()
+                }
+
+                if ( first.toInt() < end.toInt() ) {
+                    val dif = end.toInt() - first.toInt()
+                    start2 = (start2.toInt() + dif).toString()
+                    end2 = (end2.toInt() + dif).toString()
                 }
 
                 newSet.add( t.replace( start, start2 ).replace( end, end2 ) )
