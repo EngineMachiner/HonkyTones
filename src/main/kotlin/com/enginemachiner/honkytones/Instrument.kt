@@ -73,7 +73,6 @@ open class Instrument(
 ) : ToolItem( mat, settings.maxDamage( mat.durability ) ) {
 
     // Data
-    private val range = mutableSetOf<Int>()
     val name = classesMap[this::class];     private val filesSet = soundsMap[name]!!
     var subsequence = ""
 
@@ -93,8 +92,8 @@ open class Instrument(
             : ImmutableMultimap<EntityAttribute, EntityAttributeModifier>
 
     init {
-        createRange(); loadSounds()
-        setAttributes(); setEnchantments(); networking(); tick()
+        loadSounds(); setAttributes();
+        setEnchantments(); networking(); tick()
     }
 
     // Vanilla methods
@@ -132,12 +131,24 @@ open class Instrument(
             onUse = true
             val sounds = sounds["notes"]!!
 
-            if (subsequence.isNotEmpty()) {
+            val hasBadFormat = Regex("[-,][-,]").containsMatchIn(subsequence)
+            val badText = "Subsequence has bad formatting!"
+            if (hasBadFormat) {
+                user.sendMessage(Text.of(badText), true)
+                subsequence = ""
+            }
 
-                if (subsequence[0] == '-') {
-                    subsequence = subsequence.substringAfter('-')
+            if (subsequence.isNotEmpty() && !hasBadFormat) {
+
+                val chars = mutableSetOf('-', ',')
+                val first = subsequence.first()
+                val last = subsequence.last()
+                for (char in chars) {
+                    if (first == char) subsequence = subsequence.substring(1)
+                    if (last == char) subsequence = subsequence.substringBeforeLast(char)
                 }
-                val match = Regex("^.*(?=-[A-Z])").find(subsequence)
+
+                val match = Regex("^\\D*\\d*[^-]*").find(subsequence)
                 var tempSeq = subsequence
                 if (match != null) tempSeq = match.value
                 val notes = tempSeq.split(",").toMutableList()
@@ -168,7 +179,7 @@ open class Instrument(
                 subsequence = subsequence.substringAfter(tempSeq)
                 if (subsequence.isEmpty()) user.sendMessage(userText("", 2), true)
 
-            } else playRandomSound(user)
+            } else if (!hasBadFormat) playRandomSound(user)
         }
 
         if (user.abilities.creativeMode) {
@@ -276,6 +287,7 @@ open class Instrument(
     }
 
     fun getIndexIfCenter(nbt: NbtCompound, index: Int): Int {
+        if (index == -1) return -1
         val sounds = sounds["notes"]!!;     var newIndex = index
         if ( nbt.getBoolean("Center Notes") ) {
             val filter = sounds.filterNotNull()
@@ -346,7 +358,7 @@ open class Instrument(
 
         for ( sound in list.filterNotNull() ) {
             // For border pitch to be added to the list, the former and last sound must have natural pitch
-            if (sound.toPitch == 0) {
+            if (sound.toPitch == 0 || sound.toPitch == null) {
                 val index = list.indexOf(sound)
                 if (list[index + 1] != null && list[index - 1] == null) gaps["back"]!!.add(index)
                 if (list[index - 1] != null && list[index + 1] == null) gaps["forward"]!!.add(index)
@@ -355,14 +367,13 @@ open class Instrument(
 
         fun addBorderPitch(s: String, i2: Int) {
             for ( index in gaps[s]!! ) {
-                val original = list[index]!!
-                val id = original.id
+                val id = list[index]!!.id
                 val path = id.namespace + ":" + id.path
                 for (i in 1..12) {
                     val i3 = i * i2
                     if (list[index + i3] == null) {
                         val sound = HTSound(path)
-                        sound.toPitch = original.toPitch!! + i3
+                        sound.toPitch = i3
                         list[index + i3] = sound
                     }
                 }
@@ -372,11 +383,6 @@ open class Instrument(
         addBorderPitch("back", -1)
         addBorderPitch("forward", 1)
 
-    }
-
-    private fun createRange() {
-        range.add( filesSet.first().find { it.isDigit() }.toString().toInt() - 1 )
-        range.add( filesSet.last().findLast { it.isDigit() }.toString().toInt() + 1 )
     }
 
     private fun loadNbtData(nbt: NbtCompound) {
