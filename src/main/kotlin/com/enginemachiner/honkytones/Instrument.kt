@@ -128,12 +128,24 @@ open class Instrument(
             onUse = true
             val sounds = sounds["notes"]!!
 
-            if (subsequence.isNotEmpty()) {
+            val hasBadFormat = Regex("[-,][-,]").containsMatchIn(subsequence)
+            val badText = "Subsequence has bad formatting!"
+            if (hasBadFormat) {
+                user.sendMessage(Text.of(badText), true)
+                subsequence = ""
+            }
 
-                if (subsequence[0] == '-') {
-                    subsequence = subsequence.substringAfter('-')
+            if (subsequence.isNotEmpty() && !hasBadFormat) {
+
+                val chars = mutableSetOf('-', ',')
+                val first = subsequence.first()
+                val last = subsequence.last()
+                for (char in chars) {
+                    if (first == char) subsequence = subsequence.substring(1)
+                    if (last == char) subsequence = subsequence.substringBeforeLast(char)
                 }
-                val match = Regex("^.*(?=-[A-Z])").find(subsequence)
+
+                val match = Regex("^\\D*\\d*[^-]*").find(subsequence)
                 var tempSeq = subsequence
                 if (match != null) tempSeq = match.value
                 val notes = tempSeq.split(",").toMutableList()
@@ -164,7 +176,7 @@ open class Instrument(
                 subsequence = subsequence.substringAfter(tempSeq)
                 if (subsequence.isEmpty()) user.sendMessage(userText("", 2), true)
 
-            } else playRandomSound(user)
+            } else if (!hasBadFormat) playRandomSound(user)
         }
 
         if (user.abilities.creativeMode) {
@@ -272,6 +284,7 @@ open class Instrument(
     }
 
     fun getIndexIfCenter(nbt: NbtCompound, index: Int): Int {
+        if (index == -1) return -1
         val sounds = sounds["notes"]!!;     var newIndex = index
         if ( nbt.getBoolean("Center Notes") ) {
             val filter = sounds.filterNotNull()

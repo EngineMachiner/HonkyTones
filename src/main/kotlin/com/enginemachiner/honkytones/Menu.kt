@@ -72,8 +72,11 @@ class Menu(private val stack: ItemStack) : Screen( LiteralText("HonkyTones") ) {
         nbt.putFloat("Volume", vol * 0.01f)
         nbt.putBoolean("Center Notes", shouldCenter)
 
-        val s = "$defName - $name - $channel"
-        stack.setCustomName( Text.of(s) )
+        // Set stack custom name only on Play action using a device
+        if (action == "Play") {
+            val s = "$defName - $name - $channel"
+            stack.setCustomName( Text.of(s) )
+        } else stack.removeCustomName()
 
         super.onClose()
 
