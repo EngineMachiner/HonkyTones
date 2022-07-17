@@ -46,14 +46,14 @@ class Menu(private val stack: ItemStack) : Screen( Text.of("HonkyTones") ) {
     private val inst = stack.item as Instrument
     private var nbt = stack.nbt!!
     private val devices = MidiSystem.getMidiDeviceInfo()
-    private val devicesNames = mutableListOf<String>()
+    private val devicesNames = mutableSetOf<String>()
     private val actions = setOf("Attack","Play","Push")
+    private val defName = inst.getName().string
 
     // Former itemTag values
     private var sequence = nbt.getString("Sequence")
     private var action = nbt.getString("Action")
     private var name = nbt.getString("MIDI Device")
-    private val oldName = name
     private var channel = nbt.getInt("MIDI Channel")
     private var volume = nbt.getFloat("Volume")
     private var shouldCenter = nbt.getBoolean("Center Notes")
@@ -72,8 +72,9 @@ class Menu(private val stack: ItemStack) : Screen( Text.of("HonkyTones") ) {
         nbt.putFloat("Volume", vol * 0.01f)
         nbt.putBoolean("Center Notes", shouldCenter)
 
-        if (oldName != name) {
-            val s = inst.name + " - " + name + " - " + channel
+        // Set stack custom name only on Play action using a device
+        if (action == "Play") {
+            val s = "$defName - $name - $channel"
             stack.setCustomName( Text.of(s) )
         } else stack.removeCustomName()
 
