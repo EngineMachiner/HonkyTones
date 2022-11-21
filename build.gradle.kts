@@ -1,17 +1,26 @@
+
 plugins {
     id("fabric-loom")
     val kotlinVersion: String by System.getProperties()
     kotlin("jvm").version(kotlinVersion)
 }
+
 base {
     val archivesBaseName: String by project
     archivesName.set(archivesBaseName)
 }
+
 val modVersion: String by project
 version = modVersion
+
 val mavenGroup: String by project
 group = mavenGroup
-repositories {}
+
+repositories {
+    mavenCentral()
+    maven( url = "https://jitpack.io" )
+}
+
 dependencies {
     val minecraftVersion: String by project
     minecraft("com.mojang", "minecraft", minecraftVersion)
@@ -23,7 +32,11 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api", "fabric-api", fabricVersion)
     val fabricKotlinVersion: String by project
     modImplementation("net.fabricmc", "fabric-language-kotlin", fabricKotlinVersion)
+    implementation("com.github.sapher:youtubedl-java:1.+")
+    implementation("net.bramp.ffmpeg:ffmpeg:0.7.0")
+    implementation("commons-validator:commons-validator:1.7")
 }
+
 tasks {
     val javaVersion = JavaVersion.VERSION_17
     withType<JavaCompile> {

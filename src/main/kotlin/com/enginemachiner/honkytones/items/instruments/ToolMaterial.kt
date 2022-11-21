@@ -1,4 +1,4 @@
-package com.enginemachiner.honkytones
+package com.enginemachiner.honkytones.items.instruments
 
 import net.minecraft.item.Items
 import net.minecraft.item.ToolMaterial
@@ -48,7 +48,7 @@ open class MusicalRedstone : ToolMaterial {
 
     open var data = mapOf(
         "Durability" to ToolMaterials.IRON.durability * 2,
-        "MiningSpeed" to ToolMaterials.WOOD.miningSpeedMultiplier,
+        "MiningSpeed" to ToolMaterials.WOOD.miningSpeedMultiplier * 6,
         "AttackDamage" to ToolMaterials.IRON.attackDamage + 0.75f,
         "MiningLevel" to ToolMaterials.WOOD.miningLevel,
         "Enchantability" to ToolMaterials.IRON.enchantability + 3,
