@@ -118,8 +118,6 @@ open class SimpleNoteParticle(clientWorld: ClientWorld, x: Double, y: Double, z:
 
     init {
 
-        field_28786 = 0.66f
-        field_28787 = true
         velocityX *= 0.009999999776482582
         velocityY *= 0.009999999776482582
         velocityZ *= 0.009999999776482582

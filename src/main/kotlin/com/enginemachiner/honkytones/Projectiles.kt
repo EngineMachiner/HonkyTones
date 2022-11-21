@@ -262,8 +262,8 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
                 val light = WorldRenderer.getLightmapCoordinates( entity!!.world, entity.blockPos )
 
                 val entry = matrices.peek()
-                val mMat: Matrix4f = entry.model
-                val nMat: Matrix3f = entry.normal
+                val mMat: Matrix4f = entry.positionMatrix
+                val nMat: Matrix3f = entry.normalMatrix
 
                 val layer = RenderLayer.getEntityTranslucent( getTexture(entity) )
                 val front = vertexConsumers!!.getBuffer( layer )
