@@ -132,8 +132,11 @@ class StorageScreenHandler( syncID: Int,
 
         private val id = Identifier(Base.MOD_NAME, "musicalstorage")
 
-        val type: ScreenHandlerType<StorageScreenHandler>
-        = ScreenHandlerRegistry.registerSimple(id, ::StorageScreenHandler)
+        lateinit var type: ScreenHandlerType<StorageScreenHandler>
+
+        fun register() {
+            type = ScreenHandlerRegistry.registerSimple(id, ::StorageScreenHandler)
+        }
 
     }
 

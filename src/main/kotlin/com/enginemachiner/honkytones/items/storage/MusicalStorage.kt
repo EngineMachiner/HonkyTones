@@ -9,7 +9,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.PacketSender
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
-import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory
 import net.fabricmc.loader.impl.FabricLoaderImpl
 import net.minecraft.block.Blocks
 import net.minecraft.block.entity.ChestBlockEntity
@@ -26,7 +25,6 @@ import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.network.PacketByteBuf
 import net.minecraft.screen.NamedScreenHandlerFactory
-import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.text.Text
@@ -42,7 +40,7 @@ class MusicalStorageInventory( stack: ItemStack ) : CustomInventory(stack, invSi
 }
 
 // All the mod items can be stored here, and they should have their functionality
-class MusicalStorage : Item( createDefaultItemSettings() ), ExtendedScreenHandlerFactory {
+class MusicalStorage : Item( createDefaultItemSettings() ) {
 
     override fun inventoryTick(stack: ItemStack?, world: World?,
                                entity: Entity?, slot: Int, selected: Boolean) {
@@ -231,13 +229,6 @@ class MusicalStorage : Item( createDefaultItemSettings() ), ExtendedScreenHandle
 
     }
 
-    private fun createMenu(stack: ItemStack): NamedScreenHandlerFactory {
-        return SimpleNamedScreenHandlerFactory( {
-                syncID: Int, playerInv: PlayerInventory, _: PlayerEntity ->
-            StorageScreenHandler( stack, syncID, playerInv )
-        }, Text.of("Musical Storage") )
-    }
-
     private fun loadNbtData(stack: ItemStack) {
 
         val nbt = NbtCompound()
@@ -321,14 +312,11 @@ class MusicalStorage : Item( createDefaultItemSettings() ), ExtendedScreenHandle
 
     }
 
-    override fun createMenu( syncId: Int, inv: PlayerInventory?, player: PlayerEntity? )
-    : ScreenHandler {
-        val stack = player!!.itemsHand.find { it.item is MusicalStorage }
-        return StorageScreenHandler( stack!!, syncId, inv!! )
+    private fun createMenu(stack: ItemStack): NamedScreenHandlerFactory {
+        return SimpleNamedScreenHandlerFactory( {
+                syncID: Int, playerInv: PlayerInventory, _: PlayerEntity ->
+            StorageScreenHandler( stack, syncID, playerInv )
+        }, Text.of("Musical Storage") )
     }
-
-    override fun getDisplayName(): Text { return Text.of("Musical Storage") }
-
-    override fun writeScreenOpeningData( player: ServerPlayerEntity?, buf: PacketByteBuf? ) {}
 
 }

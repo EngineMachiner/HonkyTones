@@ -88,9 +88,11 @@ class DigitalConsoleScreenHandler( syncID: Int, playerInv: PlayerInventory,
     companion object {
 
         private val id = Identifier( Base.MOD_NAME, "digitalconsole" )
+        lateinit var type: ScreenHandlerType<DigitalConsoleScreenHandler>
 
-        val type: ScreenHandlerType<DigitalConsoleScreenHandler>
-                = ScreenHandlerRegistry.registerSimple(id, ::DigitalConsoleScreenHandler)
+        fun register() {
+            type = ScreenHandlerRegistry.registerSimple(id, ::DigitalConsoleScreenHandler)
+        }
 
     }
 
@@ -499,9 +501,11 @@ class PickStackScreenHandler( syncID: Int, playerInv: PlayerInventory )
     companion object {
 
         private val id = Identifier(Base.MOD_NAME, "digitalconsole_pick")
+        lateinit var type: ScreenHandlerType<PickStackScreenHandler>
 
-        val type: ScreenHandlerType<PickStackScreenHandler>
-                = ScreenHandlerRegistry.registerSimple(id, ::PickStackScreenHandler)
+        fun register() {
+            type = ScreenHandlerRegistry.registerSimple(id, ::PickStackScreenHandler)
+        }
 
     }
 

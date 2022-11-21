@@ -168,9 +168,11 @@ class MusicPlayerScreenHandler( syncID: Int, val playerInv: PlayerInventory, val
     companion object {
 
         private val id = Identifier(Base.MOD_NAME, "musicplayer")
+        lateinit var type: ScreenHandlerType<MusicPlayerScreenHandler>
 
-        val type: ScreenHandlerType<MusicPlayerScreenHandler>
-                = ScreenHandlerRegistry.registerExtended(id, ::MusicPlayerScreenHandler)
+        fun register() {
+            type = ScreenHandlerRegistry.registerExtended(id, ::MusicPlayerScreenHandler)
+        }
 
     }
 

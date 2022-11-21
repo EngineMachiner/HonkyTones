@@ -1,19 +1,19 @@
 package com.enginemachiner.honkytones
 
 import com.enginemachiner.honkytones.NoteData.soundsMap
-import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlock
-import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerCompanion
-import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerEntity
-import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerScreen
+import com.enginemachiner.honkytones.blocks.musicplayer.*
 import com.enginemachiner.honkytones.items.Screwdriver
 import com.enginemachiner.honkytones.items.console.DigitalConsole
 import com.enginemachiner.honkytones.items.console.DigitalConsoleScreen
+import com.enginemachiner.honkytones.items.console.DigitalConsoleScreenHandler
+import com.enginemachiner.honkytones.items.console.PickStackScreenHandler
 import com.enginemachiner.honkytones.items.floppy.FloppyDisk
 import com.enginemachiner.honkytones.items.instruments.Instrument
 import com.enginemachiner.honkytones.items.instruments.Instrument.Companion.classesMap
 import com.enginemachiner.honkytones.items.instruments.RangedEnchantment
 import com.enginemachiner.honkytones.items.storage.MusicalStorage
 import com.enginemachiner.honkytones.items.storage.StorageScreen
+import com.enginemachiner.honkytones.items.storage.StorageScreenHandler
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.ModInitializer
@@ -21,6 +21,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.itemgroup.FabricItemGroupBuilder
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
+import net.fabricmc.fabric.api.screenhandler.v1.ScreenHandlerRegistry
 import net.fabricmc.loader.impl.FabricLoaderImpl
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
@@ -237,7 +238,18 @@ class Base : ModInitializer, ClientModInitializer {
             MusicPlayerCompanion.register()
             NoteProjectileEntity.register()
 
+            screenHandlerRegistry()
+
             registerCallbacks()
+
+        }
+
+        private fun screenHandlerRegistry() {
+
+            DigitalConsoleScreenHandler.register()
+            StorageScreenHandler.register()
+            PickStackScreenHandler.register()
+            MusicPlayerScreenHandler.register()
 
         }
 

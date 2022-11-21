@@ -64,7 +64,7 @@ class DigitalConsole : Item( createDefaultItemSettings().maxDamage(6) ) {
 
     }
 
-    fun createMenu( stack: ItemStack ): NamedScreenHandlerFactory {
+    fun createMenu(stack: ItemStack ): NamedScreenHandlerFactory {
         return SimpleNamedScreenHandlerFactory( {
                 syncID: Int, inv: PlayerInventory, _: PlayerEntity ->
             DigitalConsoleScreenHandler( stack, syncID, inv )
