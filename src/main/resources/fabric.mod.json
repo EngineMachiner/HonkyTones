@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "honkytones",
-  "version": "2.0.0-HF1",
+  "version": "3.0.0",
   "name": "HonkyTones",
   "description": "Mod that reads MIDI stuff and does other things.",
   "authors": [ "Engine_Machiner" ],
@@ -15,23 +15,48 @@
   "environment": "*",
   "entrypoints": {
     "main": [
+
       {
         "adapter": "kotlin",
         "value": "com.enginemachiner.honkytones.Base"
+      },
+
+      {
+        "adapter": "kotlin",
+        "value": "com.enginemachiner.honkytones.Particles"
       }
+
     ],
     "client": [
-      "com.enginemachiner.honkytones.Input"
+      "com.enginemachiner.honkytones.Base",
+      "com.enginemachiner.honkytones.Input",
+      "com.enginemachiner.honkytones.Particles",
+      "com.enginemachiner.honkytones.Projectiles"
     ]
   },
   "depends": {
-    "fabricloader": ">=0.14.8",
+    "fabricloader": ">=0.11.7",
     "fabric": "*",
     "fabric-language-kotlin": ">=1.7.4+kotlin.1.6.21",
     "minecraft": "1.18.x",
-    "java": ">=17"
+    "java": ">=16"
   },
   "mixins": [
-    "honkytones.mixins.json"
-  ]
+
+    {
+      "config": "honkytones.mixins.sound.json",
+      "environment": "client"
+    },
+
+    "honkytones.mixins.json",
+    "honkytones.mixins.mob.json",
+    "honkytones.mixins.player.json",
+    "honkytones.mixins.enchantments.json"
+
+  ],
+  "custom": {
+    "loom:injected_interfaces": {
+      "net/minecraft/class_1113": ["com/enginemachiner/honkytones/FabricSoundInstance"]
+    }
+  }
 }

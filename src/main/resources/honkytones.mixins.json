@@ -5,8 +5,8 @@
   "injectors": {
     "defaultRequire": 1
   },
-  "client": [
-    "MobsCanPlay",  "MobTick",
-    "MobInstrumentAttack"
+  "mixins": [
+    "ChestBlockEntityAccessor", "LidAnimatorAccessor",
+    "CrashReportMixin"
   ]
 }
