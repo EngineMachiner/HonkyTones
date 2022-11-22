@@ -145,8 +145,8 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), BlockEnt
         val id = Identifier( Base.MOD_NAME, "musicplayer_entity" )
         val registered = Registry.BLOCK_ENTITY_TYPE.get(id)
         return checkType(type, registered) { world: World, blockPos: BlockPos,
-                                             blockState: BlockState, param: Any ->
-            MusicPlayerEntity.tick( world, blockPos, blockState, param )
+                                             _: BlockState, _: Any ->
+            MusicPlayerEntity.tick( world, blockPos )
         }
 
     }
@@ -311,7 +311,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
 
             id = Identifier( Base.MOD_NAME, "set_musicplayer_states" )
             ServerPlayNetworking.registerGlobalReceiver(id) {
-                    server: MinecraftServer, player: ServerPlayerEntity,
+                    server: MinecraftServer, _: ServerPlayerEntity,
                     _: ServerPlayNetworkHandler, buf: PacketByteBuf, _: PacketSender ->
 
                 val pos = buf.readBlockPos();       val isPlaying = buf.readBoolean()
@@ -416,7 +416,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
 
         }
 
-        fun tick(world: World, pos: BlockPos, state: BlockState, params: Any) {
+        fun tick(world: World, pos: BlockPos) {
 
             if ( !world.isClient ) return
 
