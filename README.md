@@ -5,6 +5,8 @@ HonkyTones is a mod that can read MIDI devices and do different actions with ins
 
 This is on hiatus (sometimes).
 
+This branch is for resources and experimental stuff.
+
 
 <p align="center">
   <a title="Fabric API" href="https://github.com/FabricMC/fabric">
