@@ -9,10 +9,10 @@ import com.enginemachiner.honkytones.items.instruments.Instrument
 import com.enginemachiner.honkytones.printMessage
 import com.mojang.blaze3d.systems.RenderSystem
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
-import net.fabricmc.fabric.api.client.screenhandler.v1.ScreenRegistry
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.fabricmc.fabric.api.screenhandler.v1.ScreenHandlerRegistry
+import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType
 import net.minecraft.client.gui.screen.ingame.HandledScreen
+import net.minecraft.client.gui.screen.ingame.HandledScreens
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.SliderWidget
 import net.minecraft.client.render.GameRenderer
@@ -29,6 +29,7 @@ import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
 import kotlin.math.roundToInt
 
@@ -143,7 +144,7 @@ class MusicPlayerScreenHandler( syncID: Int, val playerInv: PlayerInventory, val
         // Only allow MIDI Channel instruments slots and Floppy Disk slot
         val b1 = isAllowed(slotItem, cursorItem, Instrument::class, slotIndex != 16)
         val b2 = isAllowed(slotItem, cursorItem, FloppyDisk::class, slotIndex >= 16)
-        val b3 = b1 || b2;
+        val b3 = b1 || b2
 
         if ( !b3 ) {
             // Can move all other items in PlayerInventory
@@ -171,7 +172,14 @@ class MusicPlayerScreenHandler( syncID: Int, val playerInv: PlayerInventory, val
         lateinit var type: ScreenHandlerType<MusicPlayerScreenHandler>
 
         fun register() {
-            type = ScreenHandlerRegistry.registerExtended(id, ::MusicPlayerScreenHandler)
+
+            type = ExtendedScreenHandlerType {
+                    syncId: Int, inventory: PlayerInventory, buf: PacketByteBuf ->
+                MusicPlayerScreenHandler(syncId, inventory, buf)
+            }
+
+            Registry.register( Registry.SCREEN_HANDLER, id, type )
+
         }
 
     }
@@ -355,7 +363,7 @@ class MusicPlayerScreen( handler: MusicPlayerScreenHandler,
     companion object {
 
         fun register() {
-            ScreenRegistry.register(MusicPlayerScreenHandler.type, ::MusicPlayerScreen)
+            HandledScreens.register(MusicPlayerScreenHandler.type, ::MusicPlayerScreen)
         }
 
         class MusicPlayerWidget(
@@ -364,7 +372,7 @@ class MusicPlayerScreen( handler: MusicPlayerScreenHandler,
         ) : SliderWidget(x, y, w, h, Text.of(""), 1.0 ) {
 
             var name = ""
-            private var nbtName = "";       private var proportion = 2f;
+            private var nbtName = "";       private var proportion = 2f
             private val world = handler.playerInv.player.world
             private val entity = world.getBlockEntity(handler.pos) as MusicPlayerEntity
             private var stack = entity.getStack(16)

@@ -22,6 +22,7 @@ import static com.enginemachiner.honkytones.BaseKt.getServerConfig;
 public class MobTick {
 
     /** For mobs that already have an instrument, they play notes on a random tick interval */
+    @SuppressWarnings("unchecked")
     @Inject(at = @At("HEAD"), method = "tick")
     private void honkyTonesMobPlayOnInterval(CallbackInfo callback) {
 
