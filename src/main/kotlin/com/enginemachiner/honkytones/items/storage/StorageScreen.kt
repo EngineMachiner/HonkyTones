@@ -3,9 +3,8 @@ package com.enginemachiner.honkytones.items.storage
 import com.enginemachiner.honkytones.Base
 import com.enginemachiner.honkytones.isModItem
 import com.mojang.blaze3d.systems.RenderSystem
-import net.fabricmc.fabric.api.client.screenhandler.v1.ScreenRegistry
-import net.fabricmc.fabric.api.screenhandler.v1.ScreenHandlerRegistry
 import net.minecraft.client.gui.screen.ingame.HandledScreen
+import net.minecraft.client.gui.screen.ingame.HandledScreens
 import net.minecraft.client.render.GameRenderer
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.player.PlayerEntity
@@ -19,6 +18,7 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
+import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
 
 class StorageScreenHandler( syncID: Int,
@@ -131,11 +131,11 @@ class StorageScreenHandler( syncID: Int,
     companion object {
 
         private val id = Identifier(Base.MOD_NAME, "musicalstorage")
-
         lateinit var type: ScreenHandlerType<StorageScreenHandler>
 
         fun register() {
-            type = ScreenHandlerRegistry.registerSimple(id, ::StorageScreenHandler)
+            type = ScreenHandlerType(::StorageScreenHandler)
+            Registry.register( Registry.SCREEN_HANDLER, id, type )
         }
 
     }
@@ -143,7 +143,7 @@ class StorageScreenHandler( syncID: Int,
 }
 
 class StorageScreen(handler: StorageScreenHandler, playerInv: PlayerInventory, text: Text)
-    : HandledScreen<StorageScreenHandler>(handler, playerInv, text ) {
+    : HandledScreen<StorageScreenHandler>( handler, playerInv, text ) {
 
     private val TEXTURE = Identifier("textures/gui/container/generic_54.png")
     private val storageRows = 6
@@ -213,7 +213,7 @@ class StorageScreen(handler: StorageScreenHandler, playerInv: PlayerInventory, t
 
         // Client
         fun register() {
-            ScreenRegistry.register(StorageScreenHandler.type, ::StorageScreen)
+            HandledScreens.register(StorageScreenHandler.type, ::StorageScreen)
         }
 
     }

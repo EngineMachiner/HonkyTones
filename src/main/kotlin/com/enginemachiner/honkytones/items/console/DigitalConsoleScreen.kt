@@ -4,11 +4,11 @@ import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.Base.Companion.paths
 import com.enginemachiner.honkytones.items.instruments.DrumSet
 import com.enginemachiner.honkytones.items.instruments.Instrument
+import com.enginemachiner.honkytones.items.storage.StorageScreenHandler
 import com.mojang.blaze3d.systems.RenderSystem
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
-import net.fabricmc.fabric.api.client.screenhandler.v1.ScreenRegistry
-import net.fabricmc.fabric.api.screenhandler.v1.ScreenHandlerRegistry
 import net.minecraft.client.gui.screen.ingame.HandledScreen
+import net.minecraft.client.gui.screen.ingame.HandledScreens
 import net.minecraft.client.gui.widget.CheckboxWidget
 import net.minecraft.client.option.KeyBinding
 import net.minecraft.client.render.GameRenderer
@@ -26,6 +26,7 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
+import net.minecraft.util.registry.Registry
 import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import javax.sound.midi.MidiSystem
@@ -91,7 +92,8 @@ class DigitalConsoleScreenHandler( syncID: Int, playerInv: PlayerInventory,
         lateinit var type: ScreenHandlerType<DigitalConsoleScreenHandler>
 
         fun register() {
-            type = ScreenHandlerRegistry.registerSimple(id, ::DigitalConsoleScreenHandler)
+            type = ScreenHandlerType(::DigitalConsoleScreenHandler)
+            Registry.register( Registry.SCREEN_HANDLER, id, type )
         }
 
     }
@@ -441,7 +443,7 @@ class DigitalConsoleScreen( handler: DigitalConsoleScreenHandler,
         }
 
         fun register() {
-            ScreenRegistry.register(DigitalConsoleScreenHandler.type, ::DigitalConsoleScreen)
+            HandledScreens.register(DigitalConsoleScreenHandler.type, ::DigitalConsoleScreen)
             PickStackScreen.register()
         }
 
@@ -458,7 +460,8 @@ class PickStackScreenHandler( syncID: Int, playerInv: PlayerInventory )
     }
 
     private var stack = ItemStack.EMPTY
-    private var console = DigitalConsole()
+    private var console = Registry.ITEM[ Identifier(Base.MOD_NAME, "digitalconsole") ]
+            as DigitalConsole
 
     init {
 
@@ -504,7 +507,8 @@ class PickStackScreenHandler( syncID: Int, playerInv: PlayerInventory )
         lateinit var type: ScreenHandlerType<PickStackScreenHandler>
 
         fun register() {
-            type = ScreenHandlerRegistry.registerSimple(id, ::PickStackScreenHandler)
+            type = ScreenHandlerType(::PickStackScreenHandler)
+            Registry.register( Registry.SCREEN_HANDLER, id, type )
         }
 
     }
@@ -548,7 +552,7 @@ class PickStackScreen( handler: PickStackScreenHandler,
 
     companion object {
         fun register() {
-            ScreenRegistry.register(PickStackScreenHandler.type, ::PickStackScreen)
+            HandledScreens.register(PickStackScreenHandler.type, ::PickStackScreen)
         }
     }
 
