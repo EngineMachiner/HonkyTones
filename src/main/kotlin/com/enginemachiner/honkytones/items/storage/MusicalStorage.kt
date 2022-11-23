@@ -198,7 +198,7 @@ class MusicalStorage : Item( createDefaultItemSettings() ) {
 
                         val player = findByUUID(client, uuid) ?: return@send
                         player as PlayerEntity
-                        for ( stack in player.itemsHand ) {
+                        for ( stack in player.handItems ) {
                             val item = stack.item
                             if ( item is MusicalStorage ) {
                                 val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)

@@ -39,7 +39,7 @@ class StorageScreenHandler( syncID: Int,
 
     init {
 
-        stack = player.itemsHand.find { it.item is MusicalStorage }!!
+        stack = player.handItems.find { it.item is MusicalStorage }!!
         storage = stack.item as MusicalStorage
 
         if ( stack == player.offHandStack ) isOffHand = true

@@ -224,7 +224,7 @@ fun trackHandOnNbt( stack: ItemStack, entity: Entity ) {
 
     val nbt = stack.nbt!!.getCompound( Base.MOD_NAME )
 
-    val index = entity.itemsHand.indexOf(stack)
+    val index = entity.handItems.indexOf(stack)
     val b = !nbt.contains("hand") || nbt.getInt("hand") != index
     if ( entity is PlayerEntity && index >= 0 && b ) nbt.putInt( "hand", index )
 

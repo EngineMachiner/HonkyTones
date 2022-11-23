@@ -43,7 +43,7 @@ class DigitalConsoleScreenHandler( syncID: Int, playerInv: PlayerInventory,
 
     private val player = playerInv.player!!
     private val world = player.world
-    val consoleStack: ItemStack = player.itemsHand.find { it.item is DigitalConsole }!!
+    val consoleStack: ItemStack = player.handItems.find { it.item is DigitalConsole }!!
 
     init {
 

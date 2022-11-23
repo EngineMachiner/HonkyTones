@@ -292,7 +292,7 @@ open class Instrument(
             val client = MinecraftClient.getInstance()
             val player = client.player!!;       val world = client.world
 
-            val stacks = player.itemsHand.toSet();      val size = stacks.size
+            val stacks = player.handItems.toSet();      val size = stacks.size
             val instStack = stacks.filter { it.item is Instrument }.toSet()
 
             if ( instStack.isNotEmpty() ) {
