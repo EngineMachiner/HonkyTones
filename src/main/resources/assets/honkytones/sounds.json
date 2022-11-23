@@ -145,6 +145,15 @@
   "trombone-c4-e4_": { "sounds": [ "honkytones:instruments/wind/trombone/c4-e4_" ] },
   "trombone-e4-g4": { "sounds": [ "honkytones:instruments/wind/trombone/e4-g4" ] },
   "trombone-a4_-b4": { "sounds": [ "honkytones:instruments/wind/trombone/a4_-b4" ] },
-  "trombone-b4": { "sounds": [ "honkytones:instruments/wind/trombone/b4" ] }
+  "trombone-b4": { "sounds": [ "honkytones:instruments/wind/trombone/b4" ] },
+
+  "audio_stream": {
+    "sounds": [
+      {
+        "name": "honkytones:audio_stream",
+        "stream": true
+      }
+    ]
+  }
 
 }

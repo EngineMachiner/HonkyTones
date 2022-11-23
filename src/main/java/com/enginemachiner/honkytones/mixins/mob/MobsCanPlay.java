@@ -1,7 +1,8 @@
-package com.enginemachiner.honkytones.mixins;
+package com.enginemachiner.honkytones.mixins.mob;
 
 import com.enginemachiner.honkytones.Base;
-import com.enginemachiner.honkytones.MobLogicMixin;
+import com.enginemachiner.honkytones.HonkyTonesMixinLogic;
+import com.enginemachiner.honkytones.items.instruments.Instrument;
 import net.minecraft.entity.mob.*;
 import net.minecraft.util.Identifier;
 import net.minecraft.entity.EquipmentSlot;
@@ -15,8 +16,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Random;
 
-import static com.enginemachiner.honkytones.BaseKt.getClassesMap;
-
 // DrownedEntity.class and PillagerEntity.class are ranged big sad
 @Mixin( {
         MobEntity.class, AbstractSkeletonEntity.class,
@@ -26,18 +25,18 @@ import static com.enginemachiner.honkytones.BaseKt.getClassesMap;
 } )
 public class MobsCanPlay {
 
-    MobLogicMixin logic = new MobLogicMixin();
-
+    /** Allow mobs to spawn with instruments */
+    @SuppressWarnings("unchecked")
     @Inject(at = @At("TAIL"), method = "initEquipment")
-    private void initEquipment(LocalDifficulty diff, CallbackInfo info) {
+    private void honkyTonesAddChanceToHaveInstruments( LocalDifficulty diff, CallbackInfo callback ) {
 
-        MobEntity mob = ((MobEntity) (Object) this);
+        MobEntity mob = (MobEntity) (Object) this;
 
         boolean chance = new Random().nextInt(8) + 1 == 8;
 
-        if ( chance && logic.canPlay( (Class<MobEntity>) mob.getClass() ) ) {
+        if ( chance && HonkyTonesMixinLogic.canPlay( (Class<MobEntity>) mob.getClass() ) ) {
 
-            Object[] names = getClassesMap().values().toArray();
+            Object[] names = Instrument.Companion.getClassesMap().values().toArray();
             int index = new Random().nextInt(names.length);
             String name = (String) names[index];
 
