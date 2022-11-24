@@ -43,20 +43,10 @@
   },
   "mixins": [
 
-    {
-      "config": "honkytones.mixins.sound.json",
-      "environment": "client"
-    },
-
     "honkytones.mixins.json",
     "honkytones.mixins.mob.json",
     "honkytones.mixins.player.json",
     "honkytones.mixins.enchantments.json"
 
-  ],
-  "custom": {
-    "loom:injected_interfaces": {
-      "net/minecraft/class_1113": ["com/enginemachiner/honkytones/FabricSoundInstance"]
-    }
-  }
+  ]
 }

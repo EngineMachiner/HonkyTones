@@ -21,7 +21,6 @@ import net.minecraft.sound.SoundEvent
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.floatprovider.FloatSupplier
 import java.io.BufferedInputStream
 import java.io.File
 import java.util.concurrent.CompletableFuture
