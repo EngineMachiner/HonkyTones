@@ -29,6 +29,7 @@ import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
+import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.SpawnGroup
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
@@ -65,8 +66,7 @@ import javax.sound.midi.MidiSystem
 import javax.sound.midi.Sequencer
 import kotlin.concurrent.schedule
 
-class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), BlockEntityProvider,
-    CanBeMuted {
+class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMuted {
 
     @Deprecated( "Deprecated in Java", ReplaceWith("BlockRenderType.MODEL", "net.minecraft.block.BlockRenderType") )
     override fun getRenderType(state: BlockState?): BlockRenderType {
@@ -85,6 +85,13 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), BlockEnt
     override fun getPlacementState(ctx: ItemPlacementContext?): BlockState? {
         val direction = ctx!!.playerFacing.opposite
         return defaultState!!.with( FACING, direction )
+    }
+
+    override fun onPlaced( world: World?, pos: BlockPos?, state: BlockState?, placer: LivingEntity?,
+                           itemStack: ItemStack? ) {
+        val entity = world!!.getBlockEntity(pos) as MusicPlayerEntity
+        if ( entity.companion == null ) entity.companion = MusicPlayerCompanion(entity)
+        super.onPlaced(world, pos, state, placer, itemStack)
     }
 
     @Deprecated("Deprecated in Java")
@@ -158,6 +165,8 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), BlockEnt
         entity.companion!!.remove( Entity.RemovalReason.DISCARDED )
         entity.sequencer.close()
 
+        MusicPlayerEntity.entities.remove(entity)
+
         super.onBreak(world, pos, state, player)
 
     }
@@ -206,16 +215,6 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
         sequencer.open()
     }
 
-    override fun setWorld(world: World?) {
-
-        super.setWorld(world)
-
-        if (world != null) {
-            if ( companion == null ) companion = MusicPlayerCompanion(this)
-        }
-
-    }
-
     override fun readNbt(nbt: NbtCompound?) {
         super.readNbt(nbt)
         Inventories.readNbt(nbt, items)
@@ -262,6 +261,8 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
 
         const val invSize = 16 + 1
         lateinit var type: BlockEntityType<MusicPlayerEntity>
+
+        val entities = mutableSetOf<MusicPlayerEntity>()
 
         private val coroutine = CoroutineScope( Dispatchers.IO )
 
@@ -716,9 +717,11 @@ class MusicPlayerCompanion( type: EntityType<MusicPlayerCompanion>,
         // Network all the entity server data to the clients
         // Keep track of these entities for use
         entities.add(this)
+        MusicPlayerEntity.entities.add(entity)
+
         if ( world.isClient ) {
             val buf = PacketByteBufs.create()
-            buf.writeBlockPos(BlockPos(pos))
+            buf.writeBlockPos(pos)
             val id = Identifier( Base.MOD_NAME, "musicplayer_sync_uuid" )
             ClientPlayNetworking.send(id, buf)
         }
@@ -744,7 +747,8 @@ class MusicPlayerCompanion( type: EntityType<MusicPlayerCompanion>,
         fun register() {
 
             val builder = FabricEntityTypeBuilder
-                .create( SpawnGroup.MISC, ::MusicPlayerCompanion ).build()
+                .create( SpawnGroup.MISC, ::MusicPlayerCompanion )
+                .build()
 
             val id = Identifier( Base.MOD_NAME, "musicplayer_companion" )
             type = Registry.register( Registry.ENTITY_TYPE, id, builder )
@@ -764,10 +768,13 @@ class MusicPlayerCompanion( type: EntityType<MusicPlayerCompanion>,
                 newBuf.writeBlockPos( blockPos )
 
                 server.send( ServerTask( server.ticks + 1 ) {
-                    val world = server.overworld
-                    val musicPlayer = world.getBlockEntity(blockPos) as MusicPlayerEntity
+
+                    val musicPlayer = MusicPlayerEntity.entities
+                        .find { it.pos == blockPos } ?: return@ServerTask
+
                     EntitySpawnS2CPacket(musicPlayer.companion).write(newBuf)
                     ServerPlayNetworking.send( sender, id, newBuf )
+
                 } )
 
             }
