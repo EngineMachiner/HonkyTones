@@ -57,12 +57,14 @@ class InstrumentReceiver( private val id: String ) : Receiver {
 
         val client = MinecraftClient.getInstance()
 
+        if ( msg !is ShortMessage ) return
+
         client.send {
 
             val player = client.player ?: return@send
             val stacks = getStacks(player)
 
-            val newMsg = msg as ShortMessage;       val channel = newMsg.channel
+            val channel = msg.channel
             val command = msg.command
 
             val screen = client.currentScreen
@@ -77,9 +79,9 @@ class InstrumentReceiver( private val id: String ) : Receiver {
 
                 if ( channel + 1 == nbtChannel ) {
 
-                    val index = instrument.getIndexIfCentered(stack, newMsg.data1)
+                    val index = instrument.getIndexIfCentered(stack, msg.data1)
                     val sound = sounds[index] ?: return@send
-                    val volume = newMsg.data2 / 127f
+                    val volume = msg.data2 / 127f
 
                     if ( command == ShortMessage.NOTE_ON && stack.holder != player ) {
                         stack.holder = player
