@@ -65,8 +65,7 @@ import javax.sound.midi.MidiSystem
 import javax.sound.midi.Sequencer
 import kotlin.concurrent.schedule
 
-class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), BlockEntityProvider,
-    CanBeMuted {
+class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMuted {
 
     @Deprecated( "Deprecated in Java", ReplaceWith("BlockRenderType.MODEL", "net.minecraft.block.BlockRenderType") )
     override fun getRenderType(state: BlockState?): BlockRenderType {

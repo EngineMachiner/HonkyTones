@@ -19,9 +19,11 @@ class MusicPlayerReceiver( private val musicPlayer: MusicPlayerEntity ) : Receiv
 
         val client = MinecraftClient.getInstance()
 
+        if ( msg !is ShortMessage ) return
+
         client.send {
 
-            val newMsg = msg as ShortMessage;       val channel = newMsg.channel
+            val channel = msg.channel
             val command = msg.command
 
             val sequencer = musicPlayer.sequencer
@@ -45,9 +47,9 @@ class MusicPlayerReceiver( private val musicPlayer: MusicPlayerEntity ) : Receiv
                 if ( instrument is Instrument && i == channel ) {
 
                     val sounds = instrument.getSounds(instrumentStack, "notes")
-                    val index = instrument.getIndexIfCentered(instrumentStack, newMsg.data1)
+                    val index = instrument.getIndexIfCentered(instrumentStack, msg.data1)
                     val sound = sounds[index] ?: return@send
-                    val volume = newMsg.data2 / 127f
+                    val volume = msg.data2 / 127f
                     val companion = musicPlayer.companion
 
                     if ( instrumentStack.holder != companion ) {
