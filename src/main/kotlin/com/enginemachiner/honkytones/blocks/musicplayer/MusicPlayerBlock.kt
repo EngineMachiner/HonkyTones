@@ -87,13 +87,6 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
         return defaultState!!.with( FACING, direction )
     }
 
-    override fun onPlaced( world: World?, pos: BlockPos?, state: BlockState?, placer: LivingEntity?,
-                           itemStack: ItemStack? ) {
-        val entity = world!!.getBlockEntity(pos) as MusicPlayerEntity
-        if ( entity.companion == null ) entity.companion = MusicPlayerCompanion(entity)
-        super.onPlaced(world, pos, state, placer, itemStack)
-    }
-
     @Deprecated("Deprecated in Java")
     override fun onUse( state: BlockState?, world: World?, pos: BlockPos?,
                         player: PlayerEntity?, hand: Hand?, hit: BlockHitResult?
@@ -213,6 +206,16 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
         for (transmitter in transmitters) transmitter.receiver = MusicPlayerReceiver(this)
         sequencer.transmitter.receiver = MusicPlayerReceiver(this)
         sequencer.open()
+    }
+
+    override fun setWorld(world: World?) {
+
+        super.setWorld(world)
+
+        if ( world != null ) {
+            if ( companion == null ) companion = MusicPlayerCompanion(this)
+        }
+
     }
 
     override fun readNbt(nbt: NbtCompound?) {
