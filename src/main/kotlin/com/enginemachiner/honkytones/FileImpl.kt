@@ -23,7 +23,7 @@ open class ConfigFile( s: String ): RestrictedFile( configPath + s ) {
 
     init {
         val dir = RestrictedFile(configPath)
-        if ( !dir.exists() ) dir.mkdir()
+        if ( !dir.exists() ) dir.mkdirs()
         if ( !exists() || length() == 0L ) createNewFile()
         else properties.load( inputStream() )
     }
