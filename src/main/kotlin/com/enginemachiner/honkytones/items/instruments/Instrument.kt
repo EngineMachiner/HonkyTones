@@ -376,18 +376,23 @@ open class Instrument(
 
         fun networking() {
 
-            // Entities UUIDs being read
-            Network.registerServerToClientsHandler("player_keybind_particle", 40f, 18,
-                serverConfig["playerParticles"] as Boolean )
-            { PacketByteBufs.create().writeString(it.readString()) }
+            if ( serverConfig.isNotEmpty() ) {
 
-            Network.registerServerToClientsHandler("player_play_particle", 40f, 18,
-                serverConfig["playerParticles"] as Boolean )
-            { PacketByteBufs.create().writeString(it.readString()) }
+                // Entities UUIDs being read
 
-            Network.registerServerToClientsHandler("mob_play_particle", 40f, 18,
-                serverConfig["mobsParticles"] as Boolean )
-            { PacketByteBufs.create().writeString( it.readString() ) }
+                Network.registerServerToClientsHandler("player_keybind_particle", 40f, 18,
+                    serverConfig["playerParticles"] as Boolean )
+                { PacketByteBufs.create().writeString(it.readString()) }
+
+                Network.registerServerToClientsHandler("player_play_particle", 40f, 18,
+                    serverConfig["playerParticles"] as Boolean )
+                { PacketByteBufs.create().writeString(it.readString()) }
+
+                Network.registerServerToClientsHandler("mob_play_particle", 40f, 18,
+                    serverConfig["mobsParticles"] as Boolean )
+                { PacketByteBufs.create().writeString( it.readString() ) }
+
+            }
 
             if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.CLIENT ) return
 

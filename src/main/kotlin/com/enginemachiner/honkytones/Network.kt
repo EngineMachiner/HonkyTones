@@ -58,8 +58,8 @@ object Network {
         val idFrom = Identifier( Base.MOD_NAME, clientHandlerIdFrom )
         val idTo = Identifier( Base.MOD_NAME, clientHandlerIdTo )
 
-        fun send(receiver: ServerPlayerEntity, buf: PacketByteBuf) {
-            ServerPlayNetworking.send(receiver, idTo, buf)
+        fun send( receiver: ServerPlayerEntity, buf: PacketByteBuf ) {
+            ServerPlayNetworking.send( receiver, idTo, buf )
         }
 
         ServerPlayNetworking.registerGlobalReceiver(idFrom) {

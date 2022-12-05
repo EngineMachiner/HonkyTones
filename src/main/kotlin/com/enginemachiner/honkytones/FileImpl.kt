@@ -1,5 +1,7 @@
 package com.enginemachiner.honkytones
 
+import net.fabricmc.api.EnvType
+import net.fabricmc.loader.impl.FabricLoaderImpl
 import java.io.File
 import java.io.FileWriter
 import java.util.*
@@ -9,7 +11,9 @@ object FileImpl {}
 open class RestrictedFile( s: String ) : File(s) {
 
     init {
-        if ( !path.startsWith(Base.MOD_NAME + "\\") && path.isNotEmpty() ) {
+
+        val parse = s.replace("/", "\\")
+        if ( !parse.startsWith(Base.MOD_NAME + "\\") && parse.isNotEmpty() ) {
             printMessage( "Access Denied" )
             setExecutable(false);     setReadable(false);     setWritable(false)
         }
@@ -20,12 +24,21 @@ open class RestrictedFile( s: String ) : File(s) {
 open class ConfigFile( s: String ): RestrictedFile( configPath + s ) {
 
     val properties = Properties()
+    var shouldCreate = true
 
-    init {
+    init { shouldCreate = verify(shouldCreate);    creation() }
+
+    open fun verify( shouldCreate: Boolean ): Boolean { return shouldCreate }
+
+    private fun creation() {
+
         val dir = RestrictedFile(configPath)
         if ( !dir.exists() ) dir.mkdirs()
+
+        if ( !shouldCreate ) return
         if ( !exists() || length() == 0L ) createNewFile()
         else properties.load( inputStream() )
+
     }
 
     override fun createNewFile(): Boolean {
@@ -56,6 +69,11 @@ open class ConfigFile( s: String ): RestrictedFile( configPath + s ) {
 
 class ClientConfigFile(path: String) : ConfigFile(path) {
 
+    override fun verify( shouldCreate: Boolean ): Boolean {
+        if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.CLIENT ) return false
+        return shouldCreate
+    }
+
     override fun storeProperties() {
 
         properties.setProperty("mobsParticles", "true")
@@ -72,6 +90,11 @@ class ClientConfigFile(path: String) : ConfigFile(path) {
 }
 
 class ServerConfigFile(path: String) : ConfigFile(path) {
+
+    override fun verify( shouldCreate: Boolean ): Boolean {
+        if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.SERVER ) return false
+        return shouldCreate
+    }
 
     override fun storeProperties() {
 

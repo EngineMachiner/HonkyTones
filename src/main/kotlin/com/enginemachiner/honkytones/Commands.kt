@@ -145,7 +145,7 @@ object Commands : DedicatedServerModInitializer {
 
             Base.clientConfigFile.storeProperties()
             clientConfig.clear()
-            Base.buildConfigMaps()
+            Base.buildClientConfigMaps()
 
             val s = "HonkyTones config restored!"
             printMessage( it.source.player, s )
@@ -221,7 +221,7 @@ object Commands : DedicatedServerModInitializer {
 
                 Base.serverConfigFile.storeProperties()
                 serverConfig.clear()
-                Base.buildConfigMaps()
+                Base.buildServerConfigMaps()
 
                 val s = "HonkyTones config restored!"
                 printMessage( it.source.player, s )
