@@ -25,7 +25,7 @@ open class RestrictedFile( s: String ) : File(s) {
 open class ConfigFile( s: String ): RestrictedFile( configPath + s ) {
 
     val properties = Properties()
-    var shouldCreate = true
+    private var shouldCreate = true
 
     init { shouldCreate = verify(shouldCreate);    creation() }
 
@@ -58,12 +58,12 @@ open class ConfigFile( s: String ): RestrictedFile( configPath + s ) {
     }
 
     open fun storeProperties() {
-        properties.store( FileWriter(path), "\n HonkyTones main configuration \n" )
+        properties.store( outputStream(), "\n HonkyTones main configuration \n" )
     }
 
     fun updateProperties( map: Map<String, Any> ) {
         for ( entry in map ) properties.setProperty(entry.key, "${entry.value}")
-        storeProperties()
+        properties.store( outputStream(), "\n HonkyTones main configuration \n" )
     }
 
 }
