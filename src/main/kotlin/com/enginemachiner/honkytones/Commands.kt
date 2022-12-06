@@ -77,6 +77,10 @@ object Commands : DedicatedServerModInitializer {
                     error = "Number is not between 0 and 10"
                 }
 
+                if ( key == "max_length" ) {
+                    b = i > 0;      error = "Max length must be higher than 0"
+                }
+
                 if (b) { clientConfig[key] = i }
                 else printMessage( it.source.player, error )
 

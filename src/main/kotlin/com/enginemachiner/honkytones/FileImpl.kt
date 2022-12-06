@@ -17,6 +17,7 @@ open class RestrictedFile( s: String ) : File(s) {
             printMessage( "Access Denied" )
             setExecutable(false);     setReadable(false);     setWritable(false)
         }
+
     }
 
 }
@@ -82,6 +83,7 @@ class ClientConfigFile(path: String) : ConfigFile(path) {
         properties.setProperty("keep_downloads", "false")
         properties.setProperty("keep_videos", "false")
         properties.setProperty("audio_quality", "5")
+        properties.setProperty("max_length", "1200") // 60 * 20 -> 20 min
 
         super.storeProperties()
 

@@ -121,7 +121,7 @@ class Base : ModInitializer, ClientModInitializer {
                 "playerParticles"
             ),
 
-            Int::class to listOf("audio_quality")
+            Int::class to listOf( "audio_quality", "max_length" )
 
         )
 

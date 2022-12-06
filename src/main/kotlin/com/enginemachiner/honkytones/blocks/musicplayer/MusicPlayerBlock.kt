@@ -549,8 +549,9 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
                 val info = getVideoInfo(path) ?: return
 
                 // Limit to 20 min files
-                if ( info.duration > 60 * 20 ) {
-                    printMessage( "Stream is longer than 20 minutes!" )
+                val max = clientConfig["max_length"] as Int
+                if ( info.duration > max ) {
+                    printMessage( "Stream is longer than $max minutes!" )
                     return
                 }
 
