@@ -2,13 +2,12 @@ package com.enginemachiner.honkytones.mixins.mob;
 
 import com.enginemachiner.honkytones.Base;
 import com.enginemachiner.honkytones.HonkyTonesMixinLogic;
-import com.enginemachiner.honkytones.Network;
 import com.enginemachiner.honkytones.items.instruments.Instrument;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -29,15 +28,14 @@ public class MobTick {
         MobEntity mob = (MobEntity) (Object) this;
         ItemStack stack = mob.getMainHandStack();
         Item item = stack.getItem();
+        World world = mob.world;
 
         boolean b = !mob.isAttacking();
         b = b && HonkyTonesMixinLogic.canPlay( (Class<MobEntity>) mob.getClass() );
         b = b && mob.isAlive() && !mob.isAiDisabled();
-        b = b && Network.INSTANCE.canNetwork() && !mob.world.isClient;
+        b = b && !world.isClient;
 
         if (b && item instanceof Instrument instrument) {
-
-            MinecraftClient client = MinecraftClient.getInstance();
 
             if ( !stack.getOrCreateNbt().contains( Base.MOD_NAME ) ) {
                 instrument.loadNbtData(stack);
@@ -54,12 +52,8 @@ public class MobTick {
 
                     nbt.putInt("mobTick", 0);
                     stack.setHolder(mob);
-                    instrument.spawnNoteParticle(mob.world, mob);
 
-                    client.send( () -> {
-                        instrument.playRandomSound(stack);
-                        instrument.stopAllNotes(stack, client.world);
-                    } );
+                    Instrument.Companion.soundOnMob( mob, "" );
 
                 }
 

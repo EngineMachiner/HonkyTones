@@ -159,8 +159,6 @@ class Base : ModInitializer, ClientModInitializer {
 
         fun buildServerConfigMaps() {
 
-            if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.SERVER ) return
-
             val boolKeys = serverConfigKeys[ Boolean::class ]!!
             for ( key in boolKeys ) {
                 serverConfig[key] = serverConfigFile.properties.getProperty(key).toBoolean()

@@ -216,6 +216,9 @@ class SpecialSoundInstance( var file: File,
 
 object Sound {
 
+    const val minRadius = 25f
+    const val ticksAhead = 18
+
     private fun playSoundWriteBuf( it: PacketByteBuf ): PacketByteBuf {
 
         val newbuf = PacketByteBufs.create()
@@ -247,16 +250,16 @@ object Sound {
         // All read order and write order must be the same
 
         Network.registerServerToClientsHandler("playsound",
-            25f, 18) { playSoundWriteBuf(it) }
+            minRadius, ticksAhead) { playSoundWriteBuf(it) }
 
         Network.registerServerToClientsHandler("play_midi",
-            "playsound", 25f, 18) { playSoundWriteBuf(it) }
+            "playsound", minRadius, ticksAhead) { playSoundWriteBuf(it) }
 
         Network.registerServerToClientsHandler("stopsound",
-            25f, 18) { stopSoundWriteBuf(it) }
+            minRadius, ticksAhead) { stopSoundWriteBuf(it) }
 
         Network.registerServerToClientsHandler("stop_midi",
-            "stopsound", 25f, 18) { stopSoundWriteBuf(it) }
+            "stopsound", minRadius, ticksAhead) { stopSoundWriteBuf(it) }
 
         if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.CLIENT ) return
 

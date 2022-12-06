@@ -34,7 +34,7 @@ public class MobsCanPlay {
 
         boolean chance = new Random().nextInt(8) + 1 == 8;
 
-        if ( chance && HonkyTonesMixinLogic.canPlay( (Class<MobEntity>) mob.getClass() ) ) {
+        if ( true && HonkyTonesMixinLogic.canPlay( (Class<MobEntity>) mob.getClass() ) ) {
 
             Object[] names = Instrument.Companion.getClassesMap().values().toArray();
             int index = new Random().nextInt(names.length);
@@ -43,7 +43,7 @@ public class MobsCanPlay {
             Identifier id = new Identifier(Base.MOD_NAME + ":" + name);
             Item inst = Registry.ITEM.get(id);
 
-            mob.equipStack(EquipmentSlot.MAINHAND, new ItemStack(inst));
+            mob.equipStack( EquipmentSlot.MAINHAND, new ItemStack(inst) );
 
         }
 

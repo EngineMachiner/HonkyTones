@@ -18,6 +18,7 @@ import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.util.Hand
 import net.minecraft.util.Identifier
 import org.apache.commons.validator.routines.UrlValidator
+import kotlin.math.pow
 
 /*
  Storing item stacks and networking them from client
@@ -86,7 +87,7 @@ object Network {
                     if ( ply != sender ) {
 
                         if ( radius == 0f ) send(ply, newbuf)
-                        else if ( ply.distanceTo( radiusEntity ) < radius ) send(ply, newbuf)
+                        else if ( ply.squaredDistanceTo( radiusEntity ) < radius.pow(2) ) send(ply, newbuf)
 
                         if ( serverConfig["debugMode"]!! as Boolean ) {
                             println( Base.DEBUG_NAME + "$sender networking " +

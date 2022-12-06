@@ -91,11 +91,6 @@ class ClientConfigFile(path: String) : ConfigFile(path) {
 
 class ServerConfigFile(path: String) : ConfigFile(path) {
 
-    override fun verify( shouldCreate: Boolean ): Boolean {
-        if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.SERVER ) return false
-        return shouldCreate
-    }
-
     override fun storeProperties() {
 
         properties.setProperty("debugMode", "false")
