@@ -34,7 +34,7 @@ public class MobsCanPlay {
 
         boolean chance = new Random().nextInt(8) + 1 == 8;
 
-        if ( true && HonkyTonesMixinLogic.canPlay( (Class<MobEntity>) mob.getClass() ) ) {
+        if ( chance && HonkyTonesMixinLogic.canPlay( (Class<MobEntity>) mob.getClass() ) ) {
 
             Object[] names = Instrument.Companion.getClassesMap().values().toArray();
             int index = new Random().nextInt(names.length);
