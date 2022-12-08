@@ -29,6 +29,7 @@ import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
+import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.SpawnGroup
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
@@ -47,6 +48,7 @@ import net.minecraft.server.network.ServerPlayNetworkHandler
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.state.StateManager
 import net.minecraft.state.property.Properties
+import net.minecraft.text.MutableText
 import net.minecraft.text.Text
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
@@ -58,6 +60,7 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
+import net.minecraft.world.WorldView
 import java.io.File
 import java.util.*
 import javax.sound.midi.InvalidMidiDataException
@@ -82,6 +85,7 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
     }
 
     override fun getPlacementState(ctx: ItemPlacementContext?): BlockState? {
+
         val direction = ctx!!.playerFacing.opposite
         return defaultState!!.with( FACING, direction )
     }
@@ -161,6 +165,12 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
 
     }
 
+    @Deprecated("Deprecated in Java")
+    override fun canPlaceAt( state: BlockState?, world: WorldView?, pos: BlockPos? ): Boolean {
+        if ( !hasMidiSystemSequencer() ) return false
+        return super.canPlaceAt(state, world, pos)
+    }
+
     companion object {
 
         private val FACING = Properties.HORIZONTAL_FACING
@@ -189,7 +199,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
     var currentPath = ""
     var lastTickPosition: Long = 0
     var companion: MusicPlayerCompanion? = null
-    val sequencer: Sequencer = MidiSystem.getSequencer()
+    var sequencer: Sequencer = MidiSystem.getSequencer()
     var streamInstance: SpecialSoundInstance? = null
     val trustedUsers = mutableSetOf<PlayerEntity>()
 

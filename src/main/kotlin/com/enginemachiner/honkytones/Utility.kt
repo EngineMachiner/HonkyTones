@@ -27,6 +27,7 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3f
 import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
+import javax.sound.midi.MidiSystem
 import kotlin.reflect.KClass
 
 object FFmpegImpl {
@@ -236,6 +237,19 @@ fun writeDisplayNameOnNbt( stack: ItemStack, toNbt: NbtCompound ) {
         val displayNbt = formerNbt.getCompound("display")
         toNbt.put("display",  displayNbt)
     }
+}
+
+fun hasMidiSystemSequencer(): Boolean {
+
+    try { MidiSystem.getSequencer() }
+    catch ( e: Exception ) {
+        printMessage("Couldn't get the OS default midi sequencer!")
+        e.printStackTrace()
+        return false
+    }
+
+    return true
+
 }
 
 /**
