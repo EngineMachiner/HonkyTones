@@ -169,7 +169,7 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
 
     @Deprecated("Deprecated in Java")
     override fun canPlaceAt( state: BlockState?, world: WorldView?, pos: BlockPos? ): Boolean {
-        if ( !hasMidiSystemSequencer() ) return false
+        if ( world!!.isClient && !hasMidiSystemSequencer() ) return false
         return true
     }
 
