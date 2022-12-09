@@ -147,7 +147,7 @@ object Commands : DedicatedServerModInitializer {
         cl2 = ClientCommandManager.literal("restoreDefaults")
         cCommand = cl1.then( cl2.executes {
 
-            Base.clientConfigFile.storeProperties()
+            Base.clientConfigFile.setDefaultProperties()
             clientConfig.clear()
             Base.buildClientConfigMaps()
 
@@ -223,7 +223,7 @@ object Commands : DedicatedServerModInitializer {
             sl2 = CommandManager.literal("restoreDefaults")
             sCommand = sl1.then( sl2.executes {
 
-                Base.serverConfigFile.storeProperties()
+                Base.serverConfigFile.setDefaultProperties()
                 serverConfig.clear()
                 Base.buildServerConfigMaps()
 

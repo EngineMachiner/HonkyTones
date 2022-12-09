@@ -3,7 +3,6 @@ package com.enginemachiner.honkytones
 import net.fabricmc.api.EnvType
 import net.fabricmc.loader.impl.FabricLoaderImpl
 import java.io.File
-import java.io.FileWriter
 import java.util.*
 
 object FileImpl {}
@@ -39,31 +38,29 @@ open class ConfigFile( s: String ): RestrictedFile( configPath + s ) {
         if ( !shouldCreate ) return
         if ( !exists() || length() == 0L ) createNewFile()
         else properties.load( inputStream() )
+        setDefaultProperties()
 
     }
 
     override fun createNewFile(): Boolean {
-
         val b = super.createNewFile()
-
         properties.load( inputStream() )
-        storeProperties()
-
         return b
-
     }
 
     companion object {
         private const val configPath = Base.MOD_NAME + "/config/"
     }
 
-    open fun storeProperties() {
+    open fun setDefaultProperties() {
         properties.store( outputStream(), "\n HonkyTones main configuration \n" )
     }
 
-    fun updateProperties( map: Map<String, Any> ) {
+    fun updateProperties(map: Map<String, Any> ) {
+
         for ( entry in map ) properties.setProperty(entry.key, "${entry.value}")
         properties.store( outputStream(), "\n HonkyTones main configuration \n" )
+
     }
 
 }
@@ -75,17 +72,20 @@ class ClientConfigFile(path: String) : ConfigFile(path) {
         return shouldCreate
     }
 
-    override fun storeProperties() {
+    override fun setDefaultProperties() {
 
-        properties.setProperty("mobsParticles", "true")
-        properties.setProperty("writeDeviceInfo", "true")
-        properties.setProperty("playerParticles", "true")
-        properties.setProperty("keep_downloads", "false")
-        properties.setProperty("keep_videos", "false")
-        properties.setProperty("audio_quality", "5")
-        properties.setProperty("max_length", "1200") // 60 * 20 -> 20 min
+        val default = mapOf(
+            "mobsParticles" to "true",       "writeDeviceInfo" to "true",
+            "playerParticles" to "true",     "keep_downloads" to "false",
+            "keep_videos" to "false",       "audio_quality" to "5",
+            "max_length" to "1200" // 60 * 20 -> 20 min
+        )
 
-        super.storeProperties()
+        for ( pair in default ) {
+            if ( !properties.contains(pair.key) ) properties.setProperty( pair.key, pair.value )
+        }
+
+        super.setDefaultProperties()
 
     }
 
@@ -93,15 +93,19 @@ class ClientConfigFile(path: String) : ConfigFile(path) {
 
 class ServerConfigFile(path: String) : ConfigFile(path) {
 
-    override fun storeProperties() {
+    override fun setDefaultProperties() {
 
-        properties.setProperty("debugMode", "false")
-        properties.setProperty("mobsPlayingDelay", "120")
-        properties.setProperty("mobsParticles", "true")
-        properties.setProperty("playerParticles", "true")
-        properties.setProperty("allowPushingPlayers", "false")
+        val default = mapOf(
+            "debugMode" to "false",       "mobsPlayingDelay" to "120",
+            "mobsParticles" to "true",     "playerParticles" to "true",
+            "allowPushingPlayers" to "false"
+        )
 
-        super.storeProperties()
+        for ( pair in default ) {
+            if ( !properties.contains(pair.key) ) properties.setProperty( pair.key, pair.value )
+        }
+
+        super.setDefaultProperties()
 
     }
 
