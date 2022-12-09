@@ -5,6 +5,7 @@ import com.enginemachiner.honkytones.CanBeMuted
 import com.enginemachiner.honkytones.Network
 import com.enginemachiner.honkytones.items.instruments.DrumSet
 import com.enginemachiner.honkytones.items.instruments.Instrument
+import com.enginemachiner.honkytones.printMessage
 import net.minecraft.client.MinecraftClient
 import net.minecraft.entity.Entity
 import javax.sound.midi.MidiMessage

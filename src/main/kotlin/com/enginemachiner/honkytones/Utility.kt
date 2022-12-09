@@ -39,9 +39,9 @@ object FFmpegImpl {
 
         try {
             builder = FFmpegBuilder()
-            executor = FFmpegExecutor( FFmpeg("ffmpeg.exe"), FFprobe("ffprobe.exe") )
+            executor = FFmpegExecutor( FFmpeg("ffmpeg"), FFprobe("ffprobe") )
         } catch ( e: Exception ) {
-            printMessage("ffmpeg executables are missing or incompatible!")
+            printMessage("ffmpeg executables / files are missing or incompatible!")
         }
 
     }

@@ -328,7 +328,9 @@ class DigitalConsoleScreen( handler: DigitalConsoleScreenHandler,
 
         if ( recordCheckbox.isChecked && !willRecord ) {
 
-            if ( !hasMidiSystemSequencer() ) return
+            if ( !hasMidiSystemSequencer() ) {
+                recordCheckbox.onPress();       return
+            }
 
             client!!.setScreen( RecordingOptionsScreen(this) )
             willRecord = true;      timeStamp = 0f

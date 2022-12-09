@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.PacketSender
@@ -159,7 +160,8 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
         val entity = world!!.getBlockEntity(pos) as MusicPlayerEntity
         for ( i in 0..16 ) dropStack( world, pos, entity.getStack(i) )
         entity.companion!!.remove( Entity.RemovalReason.DISCARDED )
-        entity.sequencer.close()
+
+        if (world.isClient) entity.sequencer.close()
 
         super.onBreak(world, pos, state, player)
 
@@ -168,7 +170,7 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
     @Deprecated("Deprecated in Java")
     override fun canPlaceAt( state: BlockState?, world: WorldView?, pos: BlockPos? ): Boolean {
         if ( !hasMidiSystemSequencer() ) return false
-        return super.canPlaceAt(state, world, pos)
+        return true
     }
 
     companion object {
@@ -199,7 +201,10 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
     var currentPath = ""
     var lastTickPosition: Long = 0
     var companion: MusicPlayerCompanion? = null
+
+    @Environment(EnvType.CLIENT)
     var sequencer: Sequencer = MidiSystem.getSequencer()
+
     var streamInstance: SpecialSoundInstance? = null
     val trustedUsers = mutableSetOf<PlayerEntity>()
 
@@ -208,19 +213,21 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
 
     private val items = DefaultedList.ofSize( invSize, ItemStack.EMPTY )
 
-    init {
-        val transmitters = sequencer.transmitters
-        for (transmitter in transmitters) transmitter.receiver = MusicPlayerReceiver(this)
-        sequencer.transmitter.receiver = MusicPlayerReceiver(this)
-        sequencer.open()
-    }
-
     override fun setWorld(world: World?) {
 
         super.setWorld(world)
 
         if (world != null) {
+
             if ( companion == null ) companion = MusicPlayerCompanion(this)
+
+            if (world.isClient) {
+                val transmitters = sequencer.transmitters
+                for (transmitter in transmitters) transmitter.receiver = MusicPlayerReceiver(this)
+                sequencer.transmitter.receiver = MusicPlayerReceiver(this)
+                sequencer.open()
+            }
+
         }
 
     }
