@@ -107,7 +107,7 @@ fun executeYTDLP( request: YTDLPRequest ): String {
     val process: Process?
     try { process = processBuilder.start()
     } catch ( _: IOException ) {
-        printMessage( "youtube-dl executable is missing!" )
+        printMessage( "youtube-dl executable / file is missing!" )
         return ""
     }
 
