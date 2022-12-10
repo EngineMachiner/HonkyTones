@@ -75,6 +75,7 @@ class ClientConfigFile(path: String) : ConfigFile(path) {
     override fun setDefaultProperties() {
 
         val default = mapOf(
+            "ffmpegDir" to "",       "ytdlPath" to "youtube-dl",
             "mobsParticles" to "true",       "writeDeviceInfo" to "true",
             "playerParticles" to "true",     "keep_downloads" to "false",
             "keep_videos" to "false",       "audio_quality" to "5",
@@ -82,7 +83,7 @@ class ClientConfigFile(path: String) : ConfigFile(path) {
         )
 
         for ( pair in default ) {
-            if ( !properties.contains(pair.key) ) properties.setProperty( pair.key, pair.value )
+            if ( !properties.containsKey(pair.key) ) properties.setProperty( pair.key, pair.value )
         }
 
         super.setDefaultProperties()
@@ -102,7 +103,7 @@ class ServerConfigFile(path: String) : ConfigFile(path) {
         )
 
         for ( pair in default ) {
-            if ( !properties.contains(pair.key) ) properties.setProperty( pair.key, pair.value )
+            if ( !properties.containsKey(pair.key) ) properties.setProperty( pair.key, pair.value )
         }
 
         super.setDefaultProperties()

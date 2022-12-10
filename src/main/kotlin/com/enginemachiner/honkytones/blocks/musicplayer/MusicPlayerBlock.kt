@@ -1,12 +1,12 @@
 package com.enginemachiner.honkytones.blocks.musicplayer
 
-import YTDLPRequest
+import YTDLRequest
 import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.Base.Companion.registerBlock
 import com.enginemachiner.honkytones.items.floppy.FloppyDisk
 import com.enginemachiner.honkytones.items.instruments.Instrument
 import com.sapher.youtubedl.YoutubeDLException
-import executeYTDLP
+import executeYTDL
 import getVideoInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +30,6 @@ import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
-import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.SpawnGroup
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
@@ -49,7 +48,6 @@ import net.minecraft.server.network.ServerPlayNetworkHandler
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.state.StateManager
 import net.minecraft.state.property.Properties
-import net.minecraft.text.MutableText
 import net.minecraft.text.Text
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
@@ -61,7 +59,6 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
-import net.minecraft.world.WorldView
 import java.io.File
 import java.util.*
 import javax.sound.midi.InvalidMidiDataException
@@ -155,7 +152,7 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
 
     }
 
-    override fun onBreak(world: World?, pos: BlockPos?, state: BlockState?, player: PlayerEntity?) {
+    override fun onBreak( world: World?, pos: BlockPos?, state: BlockState?, player: PlayerEntity? ) {
 
         val entity = world!!.getBlockEntity(pos) as MusicPlayerEntity
         for ( i in 0..16 ) dropStack( world, pos, entity.getStack(i) )
@@ -165,12 +162,6 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
 
         super.onBreak(world, pos, state, player)
 
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun canPlaceAt( state: BlockState?, world: WorldView?, pos: BlockPos? ): Boolean {
-        if ( world!!.isClient && !hasMidiSystemSequencer() ) return false
-        return true
     }
 
     companion object {
@@ -586,7 +577,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
 
                     // Request web media
 
-                    val request = YTDLPRequest(path)
+                    val request = YTDLRequest(path)
 
                     request.setOption("no-playlist")
                     request.setOption("no-mark-watched")
@@ -607,7 +598,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
                         outputPath.replace("%(ext)s", "3gp")
                     }
 
-                    if ( executeYTDLP(request).isEmpty() ) return
+                    if ( executeYTDL(request).isEmpty() ) return
 
                     val quality = clientConfig["audio_quality"] as Int
 

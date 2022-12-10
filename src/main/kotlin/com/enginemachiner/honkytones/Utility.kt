@@ -34,12 +34,14 @@ object FFmpegImpl {
 
     var builder: FFmpegBuilder? = null
     var executor: FFmpegExecutor? = null
+    private val ffmpegPath = clientConfig["ffmpegDir"] as String
 
     init {
 
         try {
-            builder = FFmpegBuilder()
-            executor = FFmpegExecutor( FFmpeg("ffmpeg"), FFprobe("ffprobe") )
+            val ffmpeg = FFmpeg( ffmpegPath + "ffmpeg" )
+            val ffprobe = FFprobe( ffmpegPath + "ffprobe" )
+            builder = FFmpegBuilder();      executor = FFmpegExecutor( ffmpeg, ffprobe )
         } catch ( e: Exception ) {
             printMessage("ffmpeg executables / files are missing or incompatible!")
         }

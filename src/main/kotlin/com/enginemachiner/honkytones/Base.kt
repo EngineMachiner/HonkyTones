@@ -121,7 +121,9 @@ class Base : ModInitializer, ClientModInitializer {
                 "playerParticles"
             ),
 
-            Int::class to listOf( "audio_quality", "max_length" )
+            Int::class to listOf( "audio_quality", "max_length" ),
+
+            String::class to listOf( "ffmpegDir", "ytdlPath" )
 
         )
 
@@ -153,6 +155,15 @@ class Base : ModInitializer, ClientModInitializer {
                     clientConfig[key] = 5
                 }
 
+                if ( key == "max_length" && ( clientConfig[key] as Int ) <= 0 ) {
+                    clientConfig[key] = 1200
+                }
+
+            }
+
+            val stringKeys = clientConfigKeys[ String::class ]!!
+            for ( key in stringKeys ) {
+                clientConfig[key] = clientConfigFile.properties.getProperty(key)
             }
 
         }
