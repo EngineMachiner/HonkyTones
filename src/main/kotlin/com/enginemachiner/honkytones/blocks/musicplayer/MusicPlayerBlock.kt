@@ -1,13 +1,13 @@
 package com.enginemachiner.honkytones.blocks.musicplayer
 
-import YTDLRequest
+import com.enginemachiner.honkytones.YTDLRequest
 import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.Base.Companion.registerBlock
 import com.enginemachiner.honkytones.items.floppy.FloppyDisk
 import com.enginemachiner.honkytones.items.instruments.Instrument
 import com.sapher.youtubedl.YoutubeDLException
-import executeYTDL
-import getVideoInfo
+import com.enginemachiner.honkytones.executeYTDL
+import com.enginemachiner.honkytones.getVideoInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

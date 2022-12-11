@@ -27,6 +27,8 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3f
 import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
+import java.io.File
+import java.nio.file.Paths
 import javax.sound.midi.MidiSystem
 import kotlin.reflect.KClass
 
@@ -43,7 +45,8 @@ object FFmpegImpl {
             val ffprobe = FFprobe( ffmpegPath + "ffprobe" )
             builder = FFmpegBuilder();      executor = FFmpegExecutor( ffmpeg, ffprobe )
         } catch ( e: Exception ) {
-            printMessage("ffmpeg executables / files are missing or incompatible!")
+            e.printStackTrace()
+            printMessage("ffmpeg executables are missing or were denied / incompatible!")
         }
 
     }
