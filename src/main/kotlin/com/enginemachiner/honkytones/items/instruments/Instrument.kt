@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.PacketSender
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.fabricmc.fabric.impl.content.registry.FuelRegistryImpl
 import net.fabricmc.loader.impl.FabricLoaderImpl
 import net.minecraft.block.BlockState
@@ -29,6 +30,7 @@ import net.minecraft.entity.attribute.EntityAttribute
 import net.minecraft.entity.attribute.EntityAttributeModifier
 import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.damage.DamageSource
+import net.minecraft.entity.mob.MobEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.inventory.StackReference
 import net.minecraft.item.Item
@@ -40,6 +42,7 @@ import net.minecraft.network.PacketByteBuf
 import net.minecraft.particle.ParticleEffect
 import net.minecraft.particle.ParticleTypes
 import net.minecraft.screen.slot.Slot
+import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.tag.BlockTags
 import net.minecraft.text.Text
@@ -52,6 +55,7 @@ import org.lwjgl.glfw.GLFW
 import java.util.*
 import javax.sound.midi.MidiSystem
 import kotlin.math.abs
+import kotlin.math.pow
 
 class HitSounds {
 
@@ -260,6 +264,23 @@ open class Instrument(
 
         val stacks = mutableListOf<ItemStack>()
 
+        fun soundOnMob(mob: MobEntity, action: String ) {
+
+            val world = mob.world
+            var list: List<PlayerEntity> = world.players
+            list = list.filter { it.squaredDistanceTo(mob) < Sound.minRadius.pow(2) }
+            val id = Identifier( Base.MOD_NAME, "mob_control_random_sound" )
+
+            for ( player in list ) {
+                val player = player as ServerPlayerEntity
+                val buf = PacketByteBufs.create()
+                buf.writeString(action)
+                buf.writeInt(mob.id)
+                ServerPlayNetworking.send(player, id, buf)
+            }
+
+        }
+
         // Register key bindings
         fun registerKeyBindings() {
 
@@ -375,18 +396,23 @@ open class Instrument(
 
         fun networking() {
 
-            // Entities UUIDs being read
-            Network.registerServerToClientsHandler("player_keybind_particle", 40f, 18,
-                serverConfig["playerParticles"] as Boolean )
-            { PacketByteBufs.create().writeString(it.readString()) }
+            if ( serverConfig.isNotEmpty() ) {
 
-            Network.registerServerToClientsHandler("player_play_particle", 40f, 18,
-                serverConfig["playerParticles"] as Boolean )
-            { PacketByteBufs.create().writeString(it.readString()) }
+                // Entities UUIDs being read
 
-            Network.registerServerToClientsHandler("mob_play_particle", 40f, 18,
-                serverConfig["mobsParticles"] as Boolean )
-            { PacketByteBufs.create().writeString( it.readString() ) }
+                Network.registerServerToClientsHandler("player_keybind_particle", 40f, 18,
+                    serverConfig["playerParticles"] as Boolean )
+                { PacketByteBufs.create().writeString(it.readString()) }
+
+                Network.registerServerToClientsHandler("player_play_particle", 40f, 18,
+                    serverConfig["playerParticles"] as Boolean )
+                { PacketByteBufs.create().writeString(it.readString()) }
+
+                Network.registerServerToClientsHandler("mob_play_particle", 40f, 18,
+                    serverConfig["mobsParticles"] as Boolean )
+                { PacketByteBufs.create().writeString( it.readString() ) }
+
+            }
 
             if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.CLIENT ) return
 
@@ -431,6 +457,29 @@ open class Instrument(
                     val mob = client.world!!.getEntityById(id)
                     if ( !b || mob == null ) return@send
                     spawnSimpleNote(world, mob)
+                }
+
+            }
+
+            id = Identifier( Base.MOD_NAME, "mob_control_random_sound" )
+            ClientPlayNetworking.registerGlobalReceiver(id) {
+                    client: MinecraftClient, _: ClientPlayNetworkHandler,
+                    buf: PacketByteBuf, _: PacketSender ->
+
+                val action = buf.readString()
+                val id = buf.readInt();    val world = client.world!!
+                client.send {
+
+                    val mob = client.world!!.getEntityById(id) ?: return@send
+                    mob as MobEntity
+
+                    val stack = mob.mainHandStack
+                    val instrument = mob.mainHandStack.item as Instrument
+                    stack.holder = mob
+                    if ( action == "play" || action.isEmpty() ) instrument.playRandomSound(stack)
+                    if ( action == "stop" || action.isEmpty() ) instrument.stopAllNotes(stack, world)
+                    if ( action.isEmpty() ) instrument.spawnNoteParticle(world, mob)
+
                 }
 
             }
@@ -984,7 +1033,7 @@ class Trombone : Instrument( 5f, -3f, MusicalRedstone() ) {
 
         val actionResult = super.use(world, user, hand)
 
-        val stack = user.getStackInHand(hand);
+        val stack = user.getStackInHand(hand)
         val nbt = stack.tag!!.getCompound(Base.MOD_NAME)
         val isOnUse = nbt.getBoolean("isOnUse")
 

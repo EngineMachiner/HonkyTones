@@ -1,9 +1,6 @@
 package com.enginemachiner.honkytones.items.floppy
 
-import com.enginemachiner.honkytones.Base
-import com.enginemachiner.honkytones.Network
-import com.enginemachiner.honkytones.RestrictedFile
-import com.enginemachiner.honkytones.writeDisplayNameOnNbt
+import com.enginemachiner.honkytones.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import net.minecraft.client.gui.screen.Screen
@@ -33,11 +30,6 @@ class FloppyDiskScreen( private val stack: ItemStack )
 
         if ( lastPath == path ) { super.onClose(); return }
 
-        val times = nbt.getInt("timesWritten")
-        nbt.putInt( "timesWritten", times + 1 )
-
-        if ( times + 1 > nbt.getInt("seed") ) nbt.putBoolean( "isDone", true )
-
         if ( path.isNotBlank() ) {
 
             if ( Network.isValidUrl(path) ) {
@@ -47,6 +39,8 @@ class FloppyDiskScreen( private val stack: ItemStack )
                 // Check FloppyDisk inventoryTick()
 
             } else {
+
+                if ( !hasMidiSystemSequencer() ) { super.onClose(); return }
 
                 nbt.remove("yt-dlp")
                 nbt.remove("queryInterrupted")
@@ -61,6 +55,11 @@ class FloppyDiskScreen( private val stack: ItemStack )
             }
 
         } else nbt.putBoolean("removeName", true)
+
+        val times = nbt.getInt("timesWritten")
+        nbt.putInt( "timesWritten", times + 1 )
+
+        if ( times + 1 > nbt.getInt("seed") ) nbt.putBoolean( "isDone", true )
 
         writeDisplayNameOnNbt( stack, nbt )
 

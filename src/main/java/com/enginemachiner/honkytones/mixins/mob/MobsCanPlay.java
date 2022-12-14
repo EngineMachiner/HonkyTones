@@ -43,7 +43,7 @@ public class MobsCanPlay {
             Identifier id = new Identifier(Base.MOD_NAME + ":" + name);
             Item inst = Registry.ITEM.get(id);
 
-            mob.equipStack(EquipmentSlot.MAINHAND, new ItemStack(inst));
+            mob.equipStack( EquipmentSlot.MAINHAND, new ItemStack(inst) );
 
         }
 

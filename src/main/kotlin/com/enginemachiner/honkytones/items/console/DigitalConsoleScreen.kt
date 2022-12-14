@@ -325,8 +325,14 @@ class DigitalConsoleScreen( handler: DigitalConsoleScreenHandler,
         recordCheckbox.renderButton(matrices, mouseX, mouseY, delta)
 
         if ( recordCheckbox.isChecked && !willRecord ) {
+
+            if ( !hasMidiSystemSequencer() ) {
+                recordCheckbox.onPress();       return
+            }
+
             client!!.openScreen( RecordingOptionsScreen(this) )
             willRecord = true;      timeStamp = 0f
+
         }
 
         if ( isRecording ) {
@@ -363,6 +369,7 @@ class DigitalConsoleScreen( handler: DigitalConsoleScreenHandler,
 
         } catch ( e: Exception ) {
             printMessage("An unexpected error happened trying to write the MIDI!")
+            e.printStackTrace()
         }
 
         // Clean the recording

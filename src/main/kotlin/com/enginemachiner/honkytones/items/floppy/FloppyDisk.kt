@@ -1,7 +1,7 @@
 package com.enginemachiner.honkytones.items.floppy
 
 import com.enginemachiner.honkytones.*
-import getVideoInfo
+import com.enginemachiner.honkytones.getVideoInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

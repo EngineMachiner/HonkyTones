@@ -77,6 +77,10 @@ object Commands : DedicatedServerModInitializer {
                     error = "Number is not between 0 and 10"
                 }
 
+                if ( key == "max_length" ) {
+                    b = i > 0;      error = "Max length must be higher than 0"
+                }
+
                 if (b) { clientConfig[key] = i }
                 else printMessage( it.source.player, error )
 
@@ -143,9 +147,9 @@ object Commands : DedicatedServerModInitializer {
         cl2 = ClientCommandManager.literal("restoreDefaults")
         cCommand = cl1.then( cl2.executes {
 
-            Base.clientConfigFile.storeProperties()
+            Base.clientConfigFile.setDefaultProperties()
             clientConfig.clear()
-            Base.buildConfigMaps()
+            Base.buildClientConfigMaps()
 
             val s = "HonkyTones config restored!"
             printMessage( it.source.player, s )
@@ -219,9 +223,9 @@ object Commands : DedicatedServerModInitializer {
             sl2 = CommandManager.literal("restoreDefaults")
             sCommand = sl1.then( sl2.executes {
 
-                Base.serverConfigFile.storeProperties()
+                Base.serverConfigFile.setDefaultProperties()
                 serverConfig.clear()
-                Base.buildConfigMaps()
+                Base.buildServerConfigMaps()
 
                 val s = "HonkyTones config restored!"
                 printMessage( it.source.player, s )

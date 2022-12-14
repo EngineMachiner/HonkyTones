@@ -1,17 +1,18 @@
 package com.enginemachiner.honkytones.blocks.musicplayer
 
-import YTDLPRequest
+import com.enginemachiner.honkytones.YTDLRequest
 import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.Base.Companion.registerBlock
 import com.enginemachiner.honkytones.items.floppy.FloppyDisk
 import com.enginemachiner.honkytones.items.instruments.Instrument
 import com.sapher.youtubedl.YoutubeDLException
-import executeYTDLP
-import getVideoInfo
+import com.enginemachiner.honkytones.executeYTDL
+import com.enginemachiner.honkytones.getVideoInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.PacketSender
@@ -150,12 +151,14 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
 
     }
 
-    override fun onBreak(world: World?, pos: BlockPos?, state: BlockState?, player: PlayerEntity?) {
+    override fun onBreak( world: World?, pos: BlockPos?, state: BlockState?, player: PlayerEntity? ) {
 
         val entity = world!!.getBlockEntity(pos) as MusicPlayerEntity
         for ( i in 0..16 ) dropStack( world, pos, entity.getStack(i) )
         entity.companion!!.remove( Entity.RemovalReason.DISCARDED )
         entity.sequencer.close()
+
+        if (world.isClient) entity.sequencer.close()
 
         super.onBreak(world, pos, state, player)
 
@@ -189,7 +192,10 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
     var currentPath = ""
     var lastTickPosition: Long = 0
     var companion: MusicPlayerCompanion? = null
-    val sequencer: Sequencer = MidiSystem.getSequencer()
+
+    @Environment(EnvType.CLIENT)
+    var sequencer: Sequencer = MidiSystem.getSequencer()
+
     var streamInstance: SpecialSoundInstance? = null
     val trustedUsers = mutableSetOf<PlayerEntity>()
 
@@ -198,19 +204,21 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
 
     private val items = DefaultedList.ofSize( invSize, ItemStack.EMPTY )
 
-    init {
-        val transmitters = sequencer.transmitters
-        for (transmitter in transmitters) transmitter.receiver = MusicPlayerReceiver(this)
-        sequencer.transmitter.receiver = MusicPlayerReceiver(this)
-        sequencer.open()
-    }
-
     override fun setWorld(world: World?) {
 
         super.setWorld(world)
 
         if (world != null) {
+
             if ( companion == null ) companion = MusicPlayerCompanion(this)
+
+            if (world.isClient) {
+                val transmitters = sequencer.transmitters
+                for (transmitter in transmitters) transmitter.receiver = MusicPlayerReceiver(this)
+                sequencer.transmitter.receiver = MusicPlayerReceiver(this)
+                sequencer.open()
+            }
+
         }
 
     }
@@ -548,9 +556,9 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
 
                 val info = getVideoInfo(path) ?: return
 
-                // Limit to 20 min files
-                if ( info.duration > 60 * 20 ) {
-                    printMessage( "Stream is longer than 20 minutes!" )
+                val max = clientConfig["max_length"] as Int
+                if ( info.duration > max ) {
+                    printMessage( "Stream is longer than $max minutes!" )
                     return
                 }
 
@@ -568,7 +576,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
 
                     // Request web media
 
-                    val request = YTDLPRequest(path)
+                    val request = YTDLRequest(path)
 
                     request.setOption("no-playlist")
                     request.setOption("no-mark-watched")
@@ -589,7 +597,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState)
                         outputPath.replace("%(ext)s", "3gp")
                     }
 
-                    if ( executeYTDLP(request).isEmpty() ) return
+                    if ( executeYTDL(request).isEmpty() ) return
 
                     val quality = clientConfig["audio_quality"] as Int
 

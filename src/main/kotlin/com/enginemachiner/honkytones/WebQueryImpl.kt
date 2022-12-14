@@ -1,4 +1,5 @@
-import com.enginemachiner.honkytones.printMessage
+package com.enginemachiner.honkytones
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.sapher.youtubedl.YoutubeDL
@@ -16,6 +17,11 @@ import java.io.InputStreamReader
 
 object WebQueryImpl {}
 
+/**
+This implementation had to be done because the queries were
+having issues on certain YouTube videos and due to the filesize
+on the former class
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 class VideoInfoImpl : VideoInfo() {
 
@@ -30,7 +36,7 @@ class VideoInfoImpl : VideoInfo() {
 private val mapper = ObjectMapper()
 fun getVideoInfo(path: String): VideoInfo? {
 
-    val request = YTDLPRequest(path)
+    val request = YTDLRequest(path)
     request.setOption("youtube-skip-dash-manifest")
     request.setOption("dump-json")
     request.setOption("no-playlist")
@@ -40,7 +46,7 @@ fun getVideoInfo(path: String): VideoInfo? {
     request.setOption("wait-for-video 5")
     request.setOption("skip-download")
 
-    val response = executeYTDLP(request)
+    val response = executeYTDL(request)
     if ( response.isEmpty() ) return null
 
     try { return mapper.readValue( response, VideoInfoImpl::class.java )
@@ -53,7 +59,7 @@ fun getVideoInfo(path: String): VideoInfo? {
 
 }
 
-@Deprecated("Check YTDLPRequest")
+@Deprecated("Check com.enginemachiner.honkytones.YTDLRequest")
 fun executeSafely( request: YoutubeDLRequest): YoutubeDLResponse? {
 
     // Deny time-outs
@@ -88,7 +94,7 @@ fun executeSafely( request: YoutubeDLRequest): YoutubeDLResponse? {
 
 }
 
-class YTDLPRequest(s: String) : YoutubeDLRequest(s) {
+class YTDLRequest(s: String) : YoutubeDLRequest(s) {
 
     public override fun buildOptions(): String {
         return super.buildOptions()
@@ -96,18 +102,22 @@ class YTDLPRequest(s: String) : YoutubeDLRequest(s) {
 
 }
 
-fun executeYTDLP( request: YTDLPRequest ): String {
+fun executeYTDL(request: YTDLRequest): String {
 
-    val path = "youtube-dl"
-    val command = path + " " + request.buildOptions()
-    val processBuilder = ProcessBuilder( command.split(" ") )
+    var path = clientConfig["ytdlPath"] as String
+    path = getEnvPath( path, "PATH" )
+
+    var command = listOf( "\"$path\"" )
+    command = command + request.buildOptions().split(" ")
+    val processBuilder = ProcessBuilder(command)
 
     if ( request.directory != null ) processBuilder.directory( File( request.directory ) )
 
     val process: Process?
     try { process = processBuilder.start()
-    } catch ( _: IOException ) {
-        printMessage( "youtube-dl executable is missing!" )
+    } catch ( e: IOException ) {
+        e.printStackTrace()
+        printMessage( "youtube-dl executable is missing or was denied!" )
         return ""
     }
 

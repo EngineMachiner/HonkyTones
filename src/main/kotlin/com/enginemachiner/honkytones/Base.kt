@@ -64,14 +64,16 @@ class Base : ModInitializer, ClientModInitializer {
 
     init {
 
-        buildConfigMaps()
+        buildClientConfigMaps();        buildServerConfigMaps()
 
         // Directory creation
+        if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.CLIENT ) paths.clear()
         for ( dir in paths.values ) dir.mkdirs()
 
         // Temp files are deleted on start
-        if ( !( clientConfig["keep_downloads"] as Boolean ) ) {
-            for ( file in paths["streams"]!!.listFiles()!!) file.delete()
+        val keepDownloads = clientConfig["keep_downloads"]
+        if ( keepDownloads != null && !( keepDownloads as Boolean ) ) {
+            for ( file in paths["streams"]!!.listFiles()!! ) file.delete()
         }
 
     }
@@ -101,7 +103,7 @@ class Base : ModInitializer, ClientModInitializer {
         @JvmField
         val serverConfigFile = ServerConfigFile("server.txt")
 
-        val paths = mutableMapOf(
+        var paths = mutableMapOf(
             "streams" to RestrictedFile( "$MOD_NAME/streams/" ),
             "midis" to RestrictedFile( "$MOD_NAME/midi/" )
         )
@@ -120,7 +122,9 @@ class Base : ModInitializer, ClientModInitializer {
                 "playerParticles"
             ),
 
-            Int::class to listOf("audio_quality")
+            Int::class to listOf( "audio_quality", "max_length" ),
+
+            String::class to listOf( "ffmpegDir", "ytdlPath" )
 
         )
 
@@ -133,16 +137,17 @@ class Base : ModInitializer, ClientModInitializer {
 
         )
 
-        fun buildConfigMaps() {
+        fun buildClientConfigMaps() {
 
-            // Client
-            var boolKeys = clientConfigKeys[ Boolean::class ]!!
+            if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.CLIENT ) return
+
+            val boolKeys = clientConfigKeys[ Boolean::class ]!!
 
             for ( key in boolKeys ) {
                 clientConfig[key] = clientConfigFile.properties.getProperty(key).toBoolean()
             }
 
-            var intKeys = clientConfigKeys[ Int::class ]!!
+            val intKeys = clientConfigKeys[ Int::class ]!!
             for ( key in intKeys ) {
 
                 clientConfig[key] = clientConfigFile.properties.getProperty(key).toInt()
@@ -151,15 +156,28 @@ class Base : ModInitializer, ClientModInitializer {
                     clientConfig[key] = 5
                 }
 
+
+                if ( key == "max_length" && ( clientConfig[key] as Int ) <= 0 ) {
+                    clientConfig[key] = 1200
+                }
+
             }
 
-            // Server
-            boolKeys = serverConfigKeys[ Boolean::class ]!!
+            val stringKeys = clientConfigKeys[ String::class ]!!
+            for ( key in stringKeys ) {
+                clientConfig[key] = clientConfigFile.properties.getProperty(key)
+            }
+
+        }
+
+        fun buildServerConfigMaps() {
+
+            val boolKeys = serverConfigKeys[ Boolean::class ]!!
             for ( key in boolKeys ) {
                 serverConfig[key] = serverConfigFile.properties.getProperty(key).toBoolean()
             }
 
-            intKeys = serverConfigKeys[ Int::class ]!!
+            val intKeys = serverConfigKeys[ Int::class ]!!
             for ( key in intKeys ) {
 
                 serverConfig[key] = serverConfigFile.properties.getProperty(key).toInt()

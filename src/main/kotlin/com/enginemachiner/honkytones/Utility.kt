@@ -27,20 +27,24 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3f
 import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
+import javax.sound.midi.MidiSystem
 import kotlin.reflect.KClass
 
 object FFmpegImpl {
 
     var builder: FFmpegBuilder? = null
     var executor: FFmpegExecutor? = null
+    private val ffmpegPath = clientConfig["ffmpegDir"] as String
 
     init {
 
         try {
-            builder = FFmpegBuilder()
-            executor = FFmpegExecutor( FFmpeg("ffmpeg.exe"), FFprobe("ffprobe.exe") )
+            val ffmpeg = FFmpeg( ffmpegPath + "ffmpeg" )
+            val ffprobe = FFprobe( ffmpegPath + "ffprobe" )
+            builder = FFmpegBuilder();      executor = FFmpegExecutor( ffmpeg, ffprobe )
         } catch ( e: Exception ) {
-            printMessage("ffmpeg executables are missing or incompatible!")
+            e.printStackTrace()
+            printMessage("ffmpeg executables are missing or were denied / incompatible!")
         }
 
     }
@@ -236,6 +240,19 @@ fun writeDisplayNameOnNbt( stack: ItemStack, toNbt: NbtCompound ) {
         val displayNbt = formerNbt.getCompound("display")
         toNbt.put("display",  displayNbt)
     }
+}
+
+fun hasMidiSystemSequencer(): Boolean {
+
+    try { MidiSystem.getSequencer() }
+    catch ( e: Exception ) {
+        printMessage("Couldn't get the OS default midi sequencer!")
+        e.printStackTrace()
+        return false
+    }
+
+    return true
+
 }
 
 /**
