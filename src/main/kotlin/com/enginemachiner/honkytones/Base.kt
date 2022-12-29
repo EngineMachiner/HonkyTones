@@ -9,13 +9,14 @@ import com.enginemachiner.honkytones.items.console.DigitalConsoleScreenHandler
 import com.enginemachiner.honkytones.items.console.PickStackScreenHandler
 import com.enginemachiner.honkytones.items.floppy.FloppyDisk
 import com.enginemachiner.honkytones.items.instruments.Instrument
-import com.enginemachiner.honkytones.items.instruments.Instrument.Companion.classesMap
+import com.enginemachiner.honkytones.items.instruments.Instrument.Companion.classes
 import com.enginemachiner.honkytones.items.instruments.RangedEnchantment
 import com.enginemachiner.honkytones.items.storage.MusicalStorage
 import com.enginemachiner.honkytones.items.storage.StorageScreen
 import com.enginemachiner.honkytones.items.storage.StorageScreenHandler
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
@@ -36,37 +37,45 @@ import kotlin.reflect.full.createInstance
 @Suppress("UNUSED")
 
 // ItemGroup
-object HTGroupIcon: Item( Settings() )
+object Icon: Item( Settings() )
 
-private val iconID = Identifier(Base.MOD_NAME, "itemgroup")
-val honkyTonesGroup: ItemGroup = FabricItemGroupBuilder.create( iconID )!!
-    .icon { HTGroupIcon.defaultStack }
+private val iconId = Identifier(Base.MOD_NAME, "itemgroup")
+val itemGroup: ItemGroup = FabricItemGroupBuilder.create( iconId )!!
+    .icon { Icon.defaultStack }
     .build()
 
 fun createDefaultItemSettings(): Item.Settings {
     return Item.Settings()
-        .group( honkyTonesGroup )
+        .group( itemGroup )
         .maxCount( 1 )
 }
 
-// Sound.kt
 val stackLists = mutableMapOf(
     "Instruments" to Instrument.stacks,
     "MusicalStorage" to MusicalStorage.stacks
 )
 
 @JvmField
+@Environment(EnvType.CLIENT)
 val clientConfig = mutableMapOf<String, Any>()
+
+@JvmField
 val serverConfig = mutableMapOf<String, Any>()
 
 class Base : ModInitializer, ClientModInitializer {
 
-    init {
+    init { buildServerConfigMaps() }
 
-        buildClientConfigMaps();        buildServerConfigMaps()
+    override fun onInitialize() {
+        NoteData.buildSoundMap();   register();     registerTickEvents();     networking()
+        println("${MOD_NAME.uppercase()} has been initialized.")
+    }
+
+    override fun onInitializeClient() {
+
+        buildClientConfigMaps()
 
         // Directory creation
-        if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.CLIENT ) paths.clear()
         for ( dir in paths.values ) dir.mkdirs()
 
         // Temp files are deleted on start
@@ -75,19 +84,12 @@ class Base : ModInitializer, ClientModInitializer {
             for ( file in paths["streams"]!!.listFiles()!! ) file.delete()
         }
 
-    }
-
-    override fun onInitialize() {
-        NoteData.addSoundSets();     register();     tick();     networking()
-        println("${MOD_NAME.uppercase()} has been initialized.")
-    }
-
-    override fun onInitializeClient() {
         StorageScreen.register()
         MusicPlayerScreen.register()
         DigitalConsoleScreen.register()
         MusicalStorage.registerRender()
         Commands.client()
+
     }
 
     companion object {
@@ -97,11 +99,13 @@ class Base : ModInitializer, ClientModInitializer {
 
         // Config files
         @JvmField
+        @Environment(EnvType.CLIENT)
         val clientConfigFile = ClientConfigFile("client.txt")
 
         @JvmField
         val serverConfigFile = ServerConfigFile("server.txt")
 
+        @Environment(EnvType.CLIENT)
         var paths = mutableMapOf(
             "streams" to RestrictedFile( "$MOD_NAME/streams/" ),
             "midis" to RestrictedFile( "$MOD_NAME/midi/" )
@@ -114,6 +118,7 @@ class Base : ModInitializer, ClientModInitializer {
             return block
         }
 
+        @Environment(EnvType.CLIENT)
         val clientConfigKeys = mutableMapOf(
 
             Boolean::class to listOf(
@@ -136,6 +141,7 @@ class Base : ModInitializer, ClientModInitializer {
 
         )
 
+        @Environment(EnvType.CLIENT)
         fun buildClientConfigMaps() {
 
             if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.CLIENT ) return
@@ -222,7 +228,7 @@ class Base : ModInitializer, ClientModInitializer {
             // Important elements first
 
             // Register ItemGroup Icon
-            registerItem( "itemgroup", HTGroupIcon )
+            registerItem( "itemgroup", Icon )
 
             MusicPlayerBlock.register()
 
@@ -233,23 +239,19 @@ class Base : ModInitializer, ClientModInitializer {
             registerItem( "screwdriver", Screwdriver() )
 
             // Register items
-            for ( className in classesMap ) {
-                registerItem( className.value, className.key.createInstance() )
-            }
+            for ( className in classes ) registerItem( className.value, className.key.createInstance() )
             Instrument.registerFuel()
 
             // Register sounds
-            for (soundSet in soundsMap) {
-                for (note in soundSet.value) {
-                    registerSounds("${soundSet.key}-${note.lowercase()}")
-                }
-            }
+            for (soundSet in soundsMap) { for (note in soundSet.value) {
+                registerSounds("${ soundSet.key }-${ note.lowercase() }")
+            } }
 
             for ( i in 1..9 ) { registerSounds("hit0$i") }
 
             registerSounds("magic-c3-e3_")
 
-            registerEnchantment("ranged", RangedEnchantment())
+            registerEnchantment( "ranged", RangedEnchantment() )
 
             MusicPlayerCompanion.register()
             NoteProjectileEntity.register()
@@ -269,7 +271,7 @@ class Base : ModInitializer, ClientModInitializer {
 
         }
 
-        private fun tick() {
+        private fun registerTickEvents() {
 
             if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.CLIENT ) return
 

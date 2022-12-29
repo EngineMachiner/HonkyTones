@@ -4,6 +4,7 @@ import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.mixins.ChestBlockEntityAccessor
 import com.enginemachiner.honkytones.mixins.LidAnimatorAccessor
 import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
@@ -39,13 +40,13 @@ class MusicalStorageInventory( stack: ItemStack ) : CustomInventory(stack, invSi
     companion object { const val invSize = 96 /* 16 * 6 */ }
 }
 
-// All the mod items can be stored here, and they should have their functionality
+/** All the mod items can be stored here, and they should have their functionality */
 class MusicalStorage : Item( createDefaultItemSettings() ) {
 
-    override fun inventoryTick(stack: ItemStack?, world: World?,
-                               entity: Entity?, slot: Int, selected: Boolean) {
+    override fun inventoryTick( stack: ItemStack?, world: World?,
+                                entity: Entity?, slot: Int, selected: Boolean ) {
 
-        addRendererBlocks(stack!!, world!!)
+        addRender(stack!!, world!!)
         if ( !world.isClient ) {
 
             var nbt = stack.nbt!!
@@ -76,8 +77,8 @@ class MusicalStorage : Item( createDefaultItemSettings() ) {
         val mainItem = mainStack.item;          val offItem = offStack.item
 
         if ( mainItem is MusicalStorage && offItem is MusicalStorage ) {
-            val msg = menuMsg.replace("%item%", "storages")
-            user.sendMessage(Text.of(msg), true)
+            val msg = menuMessage.replace("%item%", "storages")
+            user.sendMessage( Text.of(msg), true )
             return action
         }
 
@@ -94,10 +95,13 @@ class MusicalStorage : Item( createDefaultItemSettings() ) {
 
     companion object {
 
-        val renderMap = mutableMapOf< Int, MutableList<ChestBlockEntity> >()
+        // This is needed on server as well for animations
+        val chestsMap = mutableMapOf< Int, MutableList<ChestBlockEntity> >()
+
         val stacks = mutableListOf<ItemStack>()
         val itemToRegister = MusicalStorage()
 
+        @Environment(EnvType.CLIENT)
         fun registerRender() {
 
             fun onFirstPerson(matrix: MatrixStack) {
@@ -139,11 +143,11 @@ class MusicalStorage : Item( createDefaultItemSettings() ) {
 
                 var hash = nbt.getInt("hashID")
 
-                val b = !nbt.contains("hashID") || !renderMap.contains(hash)
-                if (b) storage.addRendererBlocks(stack, client.world!!)
+                val b = !nbt.contains("hashID") || !chestsMap.contains(hash)
+                if (b) storage.addRender(stack, client.world!!)
 
                 hash = nbt.getInt("hashID")
-                val blocksList = renderMap[hash]!!
+                val blocksList = chestsMap[hash]!!
                 val renderer = client.blockEntityRenderDispatcher
                 val modeName = mode.name
 
@@ -196,7 +200,7 @@ class MusicalStorage : Item( createDefaultItemSettings() ) {
 
                     client.send {
 
-                        val player = findByUUID(client, uuid) ?: return@send
+                        val player = findByUuid(client, uuid) ?: return@send
                         player as PlayerEntity
                         for ( stack in player.itemsHand ) {
                             val item = stack.item
@@ -216,13 +220,13 @@ class MusicalStorage : Item( createDefaultItemSettings() ) {
             clientsAnimations( "musicalstorage_open" ) {
                     item: MusicalStorage, stack: ItemStack,
                     player: PlayerEntity, world: World ->
-                item.openRenderedChest(stack, player, world)
+                item.open(stack, player, world)
             }
 
             clientsAnimations( "musicalstorage_close" ) {
                     item: MusicalStorage, stack: ItemStack,
                     player: PlayerEntity, world: World ->
-                item.closeRenderedChest(stack, player, world)
+                item.close(stack, player, world)
             }
 
         }
@@ -240,7 +244,8 @@ class MusicalStorage : Item( createDefaultItemSettings() ) {
 
     }
 
-    private fun addRendererBlocks(stack: ItemStack, world: World) {
+    /** Adds rendering blocks and nbt id to the stack. */
+    private fun addRender(stack: ItemStack, world: World) {
 
         var hash = stack.hashCode()
         val nbt = stack.orCreateNbt.getCompound(Base.MOD_NAME)
@@ -248,12 +253,12 @@ class MusicalStorage : Item( createDefaultItemSettings() ) {
         if ( !nbt.contains("hashID") ) nbt.putInt( "hashID", hash )
         else hash = nbt.getInt("hashID")
 
-        if ( renderMap[hash] != null ) return
+        if ( chestsMap[hash] != null ) return
 
         if ( world.isClient ) Network.sendNbtToServer(nbt)
 
-        renderMap[hash] = mutableListOf()
-        val list = renderMap[hash]!!
+        chestsMap[hash] = mutableListOf()
+        val list = chestsMap[hash]!!
 
         for ( i in 0..1 ) {
             list.add( ChestBlockEntity( BlockPos.ORIGIN, Blocks.CHEST.defaultState ) )
@@ -261,16 +266,18 @@ class MusicalStorage : Item( createDefaultItemSettings() ) {
 
     }
 
-    fun openRenderedChest(stack: ItemStack, user: PlayerEntity, world: World) {
+    @Verify("Vanilla way to open chests")
+    fun open(stack: ItemStack, user: PlayerEntity, world: World) {
 
-        addRendererBlocks(stack, world)
+        addRender(stack, world)
         val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
         val hash = nbt.getInt("hashID")
-        val worldRenderedBlock = renderMap[hash]!![0]
-        val accessor = worldRenderedBlock as ChestBlockEntityAccessor
-        val state = worldRenderedBlock.cachedState
+        val render = chestsMap[hash]!![0]
+        val accessor = render as ChestBlockEntityAccessor
+        val state = render.cachedState
+
         accessor.stateManager.openContainer(user, world, user.blockPos, state)
-        worldRenderedBlock.onSyncedBlockEvent(1, 1)
+        render.onSyncedBlockEvent(1, 1)
 
         if ( nbt.getBoolean("stopAnimation") ) return
 
@@ -288,15 +295,17 @@ class MusicalStorage : Item( createDefaultItemSettings() ) {
 
     }
 
-    fun closeRenderedChest( stack: ItemStack, user: PlayerEntity, world: World ) {
+    @Verify("Vanilla way to close chests")
+    fun close(stack: ItemStack, user: PlayerEntity, world: World ) {
 
         val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
         val hash = nbt.getInt("hashID")
-        val worldRenderedBlock = renderMap[hash]!![0]
-        val accessor = worldRenderedBlock as ChestBlockEntityAccessor
-        val state = worldRenderedBlock.cachedState
+        val render = chestsMap[hash]!![0]
+        val accessor = render as ChestBlockEntityAccessor
+        val state = render.cachedState
+
         accessor.stateManager.closeContainer(user, world, user.blockPos, state)
-        worldRenderedBlock.onSyncedBlockEvent(1, 0)
+        render.onSyncedBlockEvent(1, 0)
 
         if ( nbt.getBoolean("stopAnimation") ) return
 
@@ -313,10 +322,11 @@ class MusicalStorage : Item( createDefaultItemSettings() ) {
     }
 
     private fun createMenu(stack: ItemStack): NamedScreenHandlerFactory {
+        val screenTitle = Translation.get("item.honkytones.musicalstorage")
         return SimpleNamedScreenHandlerFactory( {
                 syncID: Int, playerInv: PlayerInventory, _: PlayerEntity ->
             StorageScreenHandler( stack, syncID, playerInv )
-        }, Text.of("Musical Storage") )
+        }, Text.of(screenTitle) )
     }
 
 }

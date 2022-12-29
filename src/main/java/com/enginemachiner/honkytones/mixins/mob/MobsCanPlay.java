@@ -3,10 +3,11 @@ package com.enginemachiner.honkytones.mixins.mob;
 import com.enginemachiner.honkytones.Base;
 import com.enginemachiner.honkytones.HonkyTonesMixinLogic;
 import com.enginemachiner.honkytones.items.instruments.Instrument;
-import net.minecraft.entity.mob.*;
-import net.minecraft.util.Identifier;
 import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.item.*;
+import net.minecraft.entity.mob.*;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.LocalDifficulty;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,12 +32,13 @@ public class MobsCanPlay {
     private void honkyTonesAddChanceToHaveInstruments( LocalDifficulty diff, CallbackInfo callback ) {
 
         MobEntity mob = (MobEntity) (Object) this;
+        Class<MobEntity> mobClass = (Class<MobEntity>) mob.getClass();
+        boolean onRandom = new Random().nextInt(8) + 1 == 8;
+        boolean canPlay = HonkyTonesMixinLogic.canPlay(mobClass);
 
-        boolean chance = new Random().nextInt(8) + 1 == 8;
+        if ( onRandom && canPlay ) {
 
-        if ( chance && HonkyTonesMixinLogic.canPlay( (Class<MobEntity>) mob.getClass() ) ) {
-
-            Object[] names = Instrument.Companion.getClassesMap().values().toArray();
+            Object[] names = Instrument.Companion.getClasses().values().toArray();
             int index = new Random().nextInt(names.length);
             String name = (String) names[index];
 

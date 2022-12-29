@@ -25,15 +25,15 @@ public class MobInstrumentAttack {
 
         if ( item instanceof Instrument ) {
 
-            int keyChance1 = Random.Default.nextInt(2);
-            int keyChance2 = Random.Default.nextInt(2);
+            int random1 = Random.Default.nextInt(2);
+            int random2 = Random.Default.nextInt(2);
 
             // Play minimum 1 note
-            for ( int i = 1; ( i < 2 + keyChance1 + keyChance2 ); i++ ) {
+            for ( int i = 1; ( i < 2 + random1 + random2 ); i++ ) {
                 stack.setHolder(mob);
-                Instrument.Companion.soundOnMob( mob, "play" );
+                Instrument.Companion.mobAction( mob, "play" );
             }
-            Instrument.Companion.soundOnMob( mob, "stop" );
+            Instrument.Companion.mobAction( mob, "stop" );
 
         }
 

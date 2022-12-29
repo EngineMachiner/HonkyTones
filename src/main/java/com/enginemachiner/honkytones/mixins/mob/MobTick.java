@@ -1,6 +1,7 @@
 package com.enginemachiner.honkytones.mixins.mob;
 
 import com.enginemachiner.honkytones.Base;
+import com.enginemachiner.honkytones.BaseKt;
 import com.enginemachiner.honkytones.HonkyTonesMixinLogic;
 import com.enginemachiner.honkytones.items.instruments.Instrument;
 import net.minecraft.entity.mob.MobEntity;
@@ -15,8 +16,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Random;
 
-import static com.enginemachiner.honkytones.BaseKt.getServerConfig;
-
 @Mixin(MobEntity.class)
 public class MobTick {
 
@@ -26,16 +25,17 @@ public class MobTick {
     private void honkyTonesMobPlayOnInterval(CallbackInfo callback) {
 
         MobEntity mob = (MobEntity) (Object) this;
+        Class<MobEntity> mobClass = (Class<MobEntity>) mob.getClass();
         ItemStack stack = mob.getMainHandStack();
         Item item = stack.getItem();
         World world = mob.world;
 
         boolean b = !mob.isAttacking();
-        b = b && HonkyTonesMixinLogic.canPlay( (Class<MobEntity>) mob.getClass() );
+        b = b && HonkyTonesMixinLogic.canPlay(mobClass);
         b = b && mob.isAlive() && !mob.isAiDisabled();
         b = b && !world.isClient;
 
-        if (b && item instanceof Instrument instrument) {
+        if ( b && item instanceof Instrument instrument ) {
 
             if ( !stack.getOrCreateNbt().contains( Base.MOD_NAME ) ) {
                 instrument.loadNbtData(stack);
@@ -43,17 +43,17 @@ public class MobTick {
 
             NbtCompound nbt = stack.getNbt().getCompound( Base.MOD_NAME );
             int timer = nbt.getInt("mobTick");
-            int delay = (int) getServerConfig().get("mobsPlayingDelay");
+            int delay = (int) BaseKt.serverConfig.get("mobsPlayingDelay");
 
             if ( new Random().nextInt(3) == 0 ) {
 
-                if ( timer < delay ) { nbt.putInt("mobTick", timer + 1); }
+                if ( timer < delay ) nbt.putInt("mobTick", timer + 1);
                 else {
 
                     nbt.putInt("mobTick", 0);
                     stack.setHolder(mob);
 
-                    Instrument.Companion.soundOnMob( mob, "" );
+                    Instrument.Companion.mobAction(mob);
 
                 }
 
@@ -62,4 +62,5 @@ public class MobTick {
         }
 
     }
+
 }

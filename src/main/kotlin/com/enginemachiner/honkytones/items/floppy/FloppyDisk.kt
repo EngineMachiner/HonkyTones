@@ -81,7 +81,7 @@ class FloppyDisk : Item( createDefaultItemSettings().maxDamage( seed ) ) {
                         entity as PlayerEntity
                         if ( !entity.inventory.contains(stack) ) return@launch
                         stack.setCustomName( Text.of( info.title ) )
-                        writeDisplayNameOnNbt( stack, nbt )
+                        writeDisplayOnNbt( stack, nbt )
 
                         // Forced Swap
                         var id = Identifier(Base.MOD_NAME, "swap_floppy")
@@ -128,7 +128,8 @@ class FloppyDisk : Item( createDefaultItemSettings().maxDamage( seed ) ) {
         private val coroutine = CoroutineScope( Dispatchers.IO )
 
         fun fileNotFoundMsg(fileName: String): String {
-            return "$fileName was not found or is not a midi file!"
+            val missingMessage = Translation.get("honkytones.error.midi-missing")
+            return "$fileName $missingMessage"
         }
 
         private fun resetSeed() { seed = (2..3).random() }
@@ -149,7 +150,7 @@ class FloppyDisk : Item( createDefaultItemSettings().maxDamage( seed ) ) {
                     val hand = hands[handIndex]
                     val currentStack = player.getStackInHand(hand)
 
-                    var floppy: ItemStack? = null;
+                    var floppy: ItemStack? = null
                     val inv = player.inventory
 
                     var slot = 0

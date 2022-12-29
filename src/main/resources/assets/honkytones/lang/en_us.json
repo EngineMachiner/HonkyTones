@@ -15,13 +15,30 @@
   "item.honkytones.trombone": "Trombone",
 
   "item.honkytones.musicalstorage": "Musical Storage",
+
   "item.honkytones.floppydisk": "Floppy Disk",
-  "item.honkytones.digitalconsole": "Digital Console",
+  "item.honkytones.floppydisk.title": "Floppy Disk Options",
+  "item.honkytones.gui.path": "Path",
+  "item.honkytones.gui.copy": "Copy to clipboard",
+
   "item.honkytones.screwdriver": "Screwdriver",
 
   "block.honkytones.musicplayer": "Music Player",
+  "block.honkytones.musicplayer.rate": "Tempo BPM",
+  "block.honkytones.musicplayer.downloads": "Sync downloads",
 
+  "item.honkytones.digitalconsole": "Digital Console",
   "category.honkytones.digitalconsole": "HonkyTones Digital Console",
+
+  "item.honkytones.gui.octave": "Octave",
+  "item.honkytones.digitalconsole.record": "Record?",
+  "item.honkytones.digitalconsole.select": "Select instrument",
+
+  "item.honkytones.gui.file.name": "MIDI File name",
+  "item.honkytones.gui.cancel": "Cancel",
+  "item.honkytones.gui.file.start": "Start recording",
+  "item.honkytones.gui.file.channel": "MIDI Channel",
+  "item.honkytones.gui.file.overwrite": "overwrite?",
 
   "key.honkytones.octave-up": "Move an octave up",
   "key.honkytones.octave-down": "Move an octave down",
@@ -42,11 +59,75 @@
   "category.honkytones.instrument": "HonkyTones Instrument",
 
   "key.honkytones.play": "Play note",
-  "key.honkytones.menu": "Open sequencer",
+  "key.honkytones.menu": "Open menu",
   "key.honkytones.replay": "Reset sequence",
 
   "entity.honkytones.note-projectile": "HonkyTones Note Projectile",
 
-  "enchantment.honkytones.ranged": "Ranged I"
+  "enchantment.honkytones.ranged": "Ranged I",
+
+  "item.honkytones.gui.sequence": "Sequence",
+  "item.honkytones.gui.action": "Action",
+  "item.honkytones.gui.melee": "Melee",
+  "item.honkytones.gui.push": "Push",
+  "item.honkytones.gui.ranged": "Ranged",
+
+  "item.honkytones.gui.clear": "Clear",
+
+  "item.honkytones.gui.device": "Device",
+
+  "item.honkytones.gui.channel": "Channel",
+
+  "item.honkytones.gui.volume": "Volume",
+
+  "item.honkytones.gui.center": "Center Notes",
+
+  "honkytones.gui.on": "On",  "honkytones.gui.off": "Off",
+
+  "honkytones.error.parse": "There was an error parsing the data.",
+  "honkytones.error.audio_quality": "Number is not between 0 and 10.",
+  "honkytones.error.url": "URL is not valid or request took too long! Timing out.",
+  "honkytones.error.missing_yt-dl": "youtube-dl executable is missing or was denied!",
+  "honkytones.error.denied": "Access Denied.",
+  "honkytones.error.ffmpeg": "ffmpeg executables are missing or were denied / incompatible!",
+  "honkytones.error.midi-sequencer": "Couldn't get the OS default midi sequencer!",
+  "honkytones.error.midi-missing": "was not found or is not a midi file!",
+  "honkytones.error.long_stream": "Stream is longer than X minutes!",
+  "honkytones.error.exec_yt-dl": "Unexpected yt-dlp execution error.",
+  "honkytones.error.file_access": "There was an issue opening the file!",
+  "honkytones.error.file_written": "An unexpected error happened trying to write the MIDI!",
+  "honkytones.error.check_console": "Check console for more details.",
+
+  "honkytones.message.loading": "Loading stream request...",
+  "honkytones.message.done": "Done!",
+  "honkytones.message.file_found": "file was found!",
+  "honkytones.message.file_loaded": "File has been loaded.",
+  "honkytones.message.empty": "Floppy Disk is empty!",
+  "honkytones.message.file_written": "MIDI File (X) has been successfully written!",
+  "honkytones.message.config_restore": "HonkyTones config restored!",
+  "honkytones.message.check_console": "Check console for more details.",
+
+  "honkytones.help.write_device_info": "Overwrite the instrument name with the MIDI device name and channel.",
+  "honkytones.help.mobs_particles": "Enable / Disable mob particles.",
+  "honkytones.help.player_particles": "Enable / Disable player particles.",
+  "honkytones.help.restore_defaults": "Restore commands to their default values.",
+  "honkytones.help.keep_downloads": "Keep downloads permanently when requesting web content.",
+  "honkytones.help.keep_videos": "Keep videos when requesting web content",
+  "honkytones.help.audio_quality": "Choose from 0 to 10.",
+
+  "honkytones.help.debug_mode": "Show debug messages on console and networking stuff.",
+  "honkytones.help.mobs_playing_delay": "Change the delay of mobs playing (Has to be > 120).",
+
+  "honkytones.help.tip1": "If you click the clean button on the menu§2 3 times§f you can reset the instrument's name.",
+  "honkytones.help.tip2": "Instruments might have§2 other uses§f than just playing sounds.",
+  "honkytones.help.tip3": "You can§2 force attack§f interactive mobs by§2 sneaking§f while attacking.",
+  "honkytones.help.tip4": "Floppy disk §2local midi§f files will be localized by the§2 last player§f that picked it up.",
+  "honkytones.help.tip5": "A floppy track can be stopped by dragging it out of the slot in the Music Player.",
+  "honkytones.help.tip6": "Play / pause can be done with redstone trigger.",
+  "honkytones.help.tip7": "Music players can play less than 20 min streams and midi files.",
+  "honkytones.help.tip8": "A digital console can record midi and play with the keyboard keys in case you don't have controller.",
+  "honkytones.help.tip9": "A musical storage can store honkytones stacks and has a couple more internal features.",
+  "honkytones.help.tip10": "You can use the sound settings player slider to change the global mod volume.",
+  "honkytones.help.tip11": "You can use mute players by using an instrument and sneaking."
 
 }

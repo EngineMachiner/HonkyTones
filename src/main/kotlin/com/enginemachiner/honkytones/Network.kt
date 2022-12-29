@@ -24,6 +24,7 @@ import kotlin.math.pow
  Storing item stacks and networking them from client
  is impossible because I think they update a lot and there's not one unique stack
 */
+
 object Network {
 
     /**
@@ -64,6 +65,7 @@ object Network {
         }
 
         ServerPlayNetworking.registerGlobalReceiver(idFrom) {
+
                 server: MinecraftServer, sender: ServerPlayerEntity,
                 _: ServerPlayNetworkHandler, buf: PacketByteBuf,
                 _: PacketSender ->
@@ -90,8 +92,7 @@ object Network {
                         else if ( ply.squaredDistanceTo( radiusEntity ) < radius.pow(2) ) send(ply, newbuf)
 
                         if ( serverConfig["debugMode"]!! as Boolean ) {
-                            println( Base.DEBUG_NAME + "$sender networking " +
-                                    "to $ply with id: $clientHandlerIdFrom" )
+                            println( Base.DEBUG_NAME + "$sender networking to $ply with id: $clientHandlerIdFrom" )
                         }
 
                     }
@@ -106,8 +107,7 @@ object Network {
     fun isValidUrl(s: String): Boolean {
         var s = s
         val b = !s.startsWith("http://") && !s.startsWith("https://")
-        if (b) s = "http://$s"
-        return UrlValidator().isValid(s)
+        if (b) s = "http://$s";         return UrlValidator().isValid(s)
     }
 
     @Environment(EnvType.CLIENT)

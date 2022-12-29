@@ -14,6 +14,7 @@
   "icon": "assets/honkytones/mod-icon.png",
   "environment": "*",
   "entrypoints": {
+
     "main": [
 
       {
@@ -27,12 +28,14 @@
       }
 
     ],
+
     "client": [
       "com.enginemachiner.honkytones.Base",
       "com.enginemachiner.honkytones.Input",
       "com.enginemachiner.honkytones.Particles",
       "com.enginemachiner.honkytones.Projectiles"
     ]
+
   },
   "depends": {
     "fabricloader": ">=0.11.7",

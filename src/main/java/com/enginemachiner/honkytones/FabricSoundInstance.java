@@ -10,8 +10,8 @@ import java.util.concurrent.CompletableFuture;
 
 @Environment(EnvType.CLIENT)
 public interface FabricSoundInstance {
-    default CompletableFuture<AudioStream> getAudioStream(SoundLoader loader, Identifier id,
-                                                          boolean repeatInstantly) {
+    default CompletableFuture<AudioStream> getAudioStream( SoundLoader loader, Identifier id,
+                                                           boolean repeatInstantly ) {
         return loader.loadStreamed(id, repeatInstantly);
     }
 }

@@ -8,12 +8,12 @@ import net.minecraft.recipe.Ingredient
 class MusicalString : MusicalRedstone() {
 
     override var data = mapOf<String, Any>(
-        "Durability" to (ToolMaterials.WOOD.durability * 1.25f).toInt(),
+        "Durability" to ( ToolMaterials.WOOD.durability * 1.25f ).toInt(),
         "MiningSpeed" to ToolMaterials.WOOD.miningSpeedMultiplier,
         "AttackDamage" to ToolMaterials.WOOD.attackDamage + 1.25f,
         "MiningLevel" to ToolMaterials.WOOD.miningLevel,
         "Enchantability" to ToolMaterials.IRON.enchantability + 4,
-        "RepairIngredient" to Ingredient.ofItems(Items.STRING)
+        "RepairIngredient" to Ingredient.ofItems( Items.STRING )
     )
 
 }
@@ -21,12 +21,12 @@ class MusicalString : MusicalRedstone() {
 class MusicalIron : MusicalRedstone() {
 
     override var data = mapOf<String, Any>(
-        "Durability" to (ToolMaterials.IRON.durability * 1.25f).toInt(),
+        "Durability" to ( ToolMaterials.IRON.durability * 1.25f ).toInt(),
         "MiningSpeed" to ToolMaterials.WOOD.miningSpeedMultiplier,
         "AttackDamage" to ToolMaterials.IRON.attackDamage + 0.25f,
         "MiningLevel" to ToolMaterials.WOOD.miningLevel,
         "Enchantability" to ToolMaterials.IRON.enchantability + 1,
-        "RepairIngredient" to Ingredient.ofItems(Items.IRON_INGOT)
+        "RepairIngredient" to Ingredient.ofItems( Items.IRON_INGOT )
     )
 
 }
@@ -34,12 +34,12 @@ class MusicalIron : MusicalRedstone() {
 class MusicalQuartz : MusicalRedstone() {
 
     override var data = mapOf<String, Any>(
-        "Durability" to (ToolMaterials.IRON.durability * 1.5f).toInt(),
+        "Durability" to ( ToolMaterials.IRON.durability * 1.5f ).toInt(),
         "MiningSpeed" to ToolMaterials.WOOD.miningSpeedMultiplier,
         "AttackDamage" to ToolMaterials.IRON.attackDamage + 0.5f,
         "MiningLevel" to ToolMaterials.WOOD.miningLevel,
         "Enchantability" to ToolMaterials.IRON.enchantability + 2,
-        "RepairIngredient" to Ingredient.ofItems(Items.QUARTZ_BLOCK)
+        "RepairIngredient" to Ingredient.ofItems( Items.QUARTZ_BLOCK )
     )
 
 }
@@ -52,7 +52,7 @@ open class MusicalRedstone : ToolMaterial {
         "AttackDamage" to ToolMaterials.IRON.attackDamage + 0.75f,
         "MiningLevel" to ToolMaterials.WOOD.miningLevel,
         "Enchantability" to ToolMaterials.IRON.enchantability + 3,
-        "RepairIngredient" to Ingredient.ofItems(Items.REDSTONE_BLOCK)
+        "RepairIngredient" to Ingredient.ofItems( Items.REDSTONE_BLOCK )
     )
 
     override fun getDurability(): Int { return data["Durability"] as Int }
