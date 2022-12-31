@@ -302,7 +302,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
 
             }
 
-            id = Identifier( Base.MOD_NAME, "add_or_remove_trusted_user" )
+            id = Identifier( Base.MOD_NAME, "add_or_remove_synced_user" )
             ServerPlayNetworking.registerGlobalReceiver(id) {
                     server: MinecraftServer, player: ServerPlayerEntity,
                     _: ServerPlayNetworkHandler, buf: PacketByteBuf, _: PacketSender ->
@@ -486,21 +486,21 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
 
         val nbt = floppyStack.nbt!!.getCompound(Base.MOD_NAME)
 
-        var trustedList = syncedUsers.toMutableSet()
+        var syncedUsers = syncedUsers.toMutableSet()
         val playerList = server.playerManager.playerList
 
         val uuid = nbt.getString("PlayerUUID")
         val player = playerList.find { it.uuidAsString == uuid } ?: return
 
         // If a midi will play, only allow the last user to play it
-        if ( !isStream ) trustedList = mutableSetOf(player)
-        else { if ( !trustedList.contains(player) ) trustedList.add(player) }
+        if ( !isStream ) syncedUsers = mutableSetOf(player)
+        else { if ( !syncedUsers.contains(player) ) syncedUsers.add(player) }
 
         server.send( ServerTask(server.ticks + 1) {
 
             val id = Identifier( Base.MOD_NAME, "play_file" )
 
-            for ( player in trustedList ) {
+            for ( player in syncedUsers ) {
                 val buf = PacketByteBufs.create().writeBlockPos( pos )
                 ServerPlayNetworking.send( player as ServerPlayerEntity?, id, buf )
             }
@@ -538,14 +538,14 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
         for ( i in 0 .. 16 ) buf.writeItemStack( getStack(i) )
 
         val playerList = world!!.players
-        val trustedUsers = syncedUsers.toMutableSet()
+        val syncedUsers = syncedUsers.toMutableSet()
 
         val uuid = nbt.getString("PlayerUUID")
         val player = playerList.find { it.uuidAsString == uuid } ?: return
 
-        if ( !trustedUsers.contains(player) ) trustedUsers.add(player)
+        if ( !syncedUsers.contains(player) ) syncedUsers.add(player)
 
-        for ( player in trustedUsers ) {
+        for ( player in syncedUsers ) {
             val player = player as ServerPlayerEntity
             ServerPlayNetworking.send( player, id, buf )
         }

@@ -237,7 +237,7 @@ class MusicPlayerScreen(
     private val world = handler.world
     private val TEXTURE = Identifier("textures/gui/container/generic_54.png")
     private var optionsWidget = MusicPlayerWidget( 30, 15, 100, 20, handler )
-    private var trustButton: ButtonWidget? = null
+    private var syncButton: ButtonWidget? = null
 
     init { backgroundHeight -= 10;     titleX += 55;     playerInventoryTitleY -= 10 }
 
@@ -262,22 +262,22 @@ class MusicPlayerScreen(
 
         val musicPlayer = world.getBlockEntity(handler.pos) as MusicPlayerEntity
         val switch = mutableMapOf( true to on, false to off )
-        val isTrusting = musicPlayer.isClientOnSync
+        val isClientOnSync = musicPlayer.isClientOnSync
 
-        trustButton = createButton( x, y, - w2 * 1.8f, height * 0.65f, w, h, w2, 10f ) {
+        syncButton = createButton( x, y, - w2 * 1.8f, height * 0.65f, w, h, w2, 10f ) {
 
             musicPlayer.isClientOnSync = !musicPlayer.isClientOnSync
-            val isTrusting = musicPlayer.isClientOnSync
+            val isClientOnSync = musicPlayer.isClientOnSync
 
-            val id = Identifier( Base.MOD_NAME, "add_or_remove_trusted_user" )
+            val id = Identifier( Base.MOD_NAME, "add_or_remove_synced_user" )
             val buf = PacketByteBufs.create().writeBlockPos( handler.pos )
-            buf.writeBoolean(isTrusting)
+            buf.writeBoolean(isClientOnSync)
             ClientPlayNetworking.send( id, buf )
 
-            it.message = Text.of("$downloadsTitle: ${ switch[isTrusting] }")
+            it.message = Text.of("$downloadsTitle: ${ switch[isClientOnSync] }")
 
         }
-        trustButton!!.message = Text.of("$downloadsTitle: ${ switch[isTrusting] }")
+        syncButton!!.message = Text.of("$downloadsTitle: ${ switch[isClientOnSync] }")
 
         super.init()
 
@@ -289,7 +289,7 @@ class MusicPlayerScreen(
     }
 
     override fun mouseClicked( mouseX: Double, mouseY: Double, button: Int ): Boolean {
-        if ( trustButton!!.isHovered ) trustButton!!.mouseClicked(mouseX, mouseY, button)
+        if ( syncButton!!.isHovered ) syncButton!!.mouseClicked(mouseX, mouseY, button)
         return super.mouseClicked(mouseX, mouseY, button)
     }
 
@@ -351,7 +351,7 @@ class MusicPlayerScreen(
             optionsWidget.render(matrices, mouseX, mouseY, delta)
         }
 
-        trustButton!!.render(matrices, mouseX, mouseY, delta)
+        syncButton!!.render(matrices, mouseX, mouseY, delta)
 
     }
 
