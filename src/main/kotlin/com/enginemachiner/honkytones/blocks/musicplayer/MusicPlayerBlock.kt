@@ -331,7 +331,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
 
                 server.send( ServerTask( server.ticks + 1 ) {
                     val world = server.overworld
-                    val entity = world.getBlockEntity(pos) as MusicPlayerEntity
+                    val entity = entities.find { it.pos == pos } ?: return@ServerTask
                     entity.isPlaying = isPlaying
                 } )
 
@@ -715,7 +715,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
             val sequencer = sequencer!!
             lastTickPosition = sequencer.tickPosition
             if (shouldStop) lastTickPosition = 0
-            sequencer.stop()
+            if (sequencer.isOpen) sequencer.stop()
 
             for ( i in 0..15 ) {
                 val stack = getStack(i);    val item = stack.item
