@@ -13,9 +13,11 @@ object FFmpegImpl {
 
     var builder: FFmpegBuilder? = null
     var executor: FFmpegExecutor? = null
-    private val ffmpegPath = clientConfig["ffmpegDir"] as String
+    private var ffmpegPath = clientConfig["ffmpegDir"] as String
 
     init {
+        
+        ffmpegPath = getEnvPath( ffmpegPath, "PATH" )
 
         try {
             val ffmpeg = FFmpeg( ffmpegPath + "ffmpeg" )
