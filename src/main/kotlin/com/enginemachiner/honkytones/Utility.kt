@@ -17,7 +17,10 @@ object FFmpegImpl {
 
     init {
         
-        ffmpegPath = getEnvPath( ffmpegPath, "PATH" )
+        for ( value in mutableListOf("ffmpeg", "ffmpeg.exe") ) {
+            ffmpegPath = getEnvPath( ffmpegPath + value, "PATH" )
+                .replace(value, "")
+        }
 
         try {
             val ffmpeg = FFmpeg( ffmpegPath + "ffmpeg" )
