@@ -11,8 +11,6 @@ import net.minecraft.util.Hand;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.enginemachiner.honkytones.UtilityKt.getHands;
-
 // This is used in for mixins
 public class HonkyTonesMixinLogic {
     static Object[] mobs = {
@@ -29,7 +27,7 @@ public class HonkyTonesMixinLogic {
         return list.size() > 0;
     }
 
-    static public boolean forceAttack(PlayerEntity ply, Hand hand, LivingEntity entity) {
+    static public boolean forceAttack(PlayerEntity ply, LivingEntity entity ) {
 
         ItemStack[] array = { ply.getMainHandStack(), ply.getOffHandStack() };
 
@@ -38,7 +36,7 @@ public class HonkyTonesMixinLogic {
             Item item = stack.getItem();
 
             boolean b = item instanceof Instrument && ply.isInSneakingPose();
-            Hand[] hands = getHands();
+            Hand[] hands = ItemKt.getHands();
             
             int index = 0;
             for ( int i = 0; i < array.length; i++ ) {

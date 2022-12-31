@@ -14,14 +14,15 @@ public class EnchantmentMixin {
 
     /** Allow vanilla enchantments to Instruments */
     @Inject(at = @At("HEAD"), method = "isAcceptableItem", cancellable = true)
-    private void honkyTonesAllowEnchantments(ItemStack stack, CallbackInfoReturnable<Boolean> callback) {
+    private void honkyTonesAllowEnchantments( ItemStack stack,
+                                              CallbackInfoReturnable<Boolean> callback ) {
 
         Multimap<Enchantment, Integer> enchants = Instrument.Companion.getEnchants();
         Enchantment enchantment = ( Enchantment ) ( Object ) this;
 
-        if ( stack.getItem() instanceof Instrument && enchants.containsKey(enchantment) ) {
-            callback.setReturnValue(true);
-        }
+        boolean itemCanPlay = stack.getItem() instanceof Instrument;
+        boolean isInstrumentEnchant = enchants.containsKey(enchantment);
+        if ( itemCanPlay && isInstrumentEnchant ) callback.setReturnValue(true);
 
     }
 

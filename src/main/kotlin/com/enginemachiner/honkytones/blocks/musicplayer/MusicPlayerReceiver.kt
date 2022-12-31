@@ -1,85 +1,59 @@
 package com.enginemachiner.honkytones.blocks.musicplayer
 
-import com.enginemachiner.honkytones.Base
-import com.enginemachiner.honkytones.CanBeMuted
-import com.enginemachiner.honkytones.Network
-import com.enginemachiner.honkytones.items.instruments.DrumSet
+import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.items.instruments.Instrument
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.minecraft.client.MinecraftClient
 import net.minecraft.entity.Entity
-import javax.sound.midi.MidiMessage
-import javax.sound.midi.Receiver
-import javax.sound.midi.ShortMessage
+import net.minecraft.item.ItemStack
 
-class MusicPlayerReceiver( private val musicPlayer: MusicPlayerEntity ) : Receiver {
+@Environment(EnvType.CLIENT)
+class MusicPlayerReceiver( private val musicPlayer: MusicPlayerEntity ) : GenericReceiver() {
 
-    override fun close() {}
+    override fun close() { println( Base.DEBUG_NAME + "[$musicPlayer] device has been closed." ) }
 
-    override fun send( msg: MidiMessage?, timeStamp: Long ) {
+    override fun init() {
+
+        entity = musicPlayer.companion
+
+        val instruments = mutableListOf<ItemStack>()
+        for ( i in 0..15 ) instruments.add( musicPlayer.getStack(i) )
+        this.instruments = instruments
+
+    }
+
+    override fun shouldCancel(): Boolean {
+
+        val sequencer = musicPlayer.sequencer ?: return false
+
+        val isDone = sequencer.tickPosition == sequencer.tickLength
+        if ( isDone && musicPlayer.isPlaying ) {
+            musicPlayer.clientPause(true);      return true
+        }
+
+        return false
+
+    }
+
+    override fun canPlay( stack: ItemStack, channel: Int ): Boolean {
+
+        val instrument = stack.item
+        val index = instruments.indexOf(stack)
+        return instrument is Instrument && index == channel
+
+    }
+
+    override fun onPlay( sound: CustomSoundInstance, stack: ItemStack, entity: Entity ) {
 
         val client = MinecraftClient.getInstance()
+        var skipClient = false;     val instrument = stack.item as Instrument
 
-        if ( msg !is ShortMessage ) return
-
-        client.send {
-
-            val channel = msg.channel
-            val command = msg.command
-
-            val sequencer = musicPlayer.sequencer
-            var b = musicPlayer.isPlaying
-            if ( sequencer.tickPosition == sequencer.tickLength && b ) {
-                musicPlayer.clientPause(true);      return@send
-            }
-
-            val screen = client.currentScreen
-            b = screen != null && screen.shouldPause()
-            if ( b && !Network.isOnline() ) {
-                musicPlayer.clientPause();      return@send
-            }
-
-            for ( i in 0..15 ) {
-
-                val instrumentStack = musicPlayer.getStack(i)
-                val nbt = instrumentStack.orCreateNbt.getCompound( Base.MOD_NAME )
-                val instrument = instrumentStack.item
-
-                if ( instrument is Instrument && i == channel ) {
-
-                    val sounds = instrument.getSounds(instrumentStack, "notes")
-                    val index = instrument.getIndexIfCentered(instrumentStack, msg.data1)
-                    val sound = sounds[index] ?: return@send
-                    val volume = msg.data2 / 127f
-                    val companion = musicPlayer.companion
-
-                    if ( instrumentStack.holder != companion ) {
-                        instrumentStack.holder = companion
-                    }
-
-                    var b = command == ShortMessage.NOTE_OFF
-                    b = b || ( command == ShortMessage.NOTE_ON && volume == 0f )
-                    if ( volume > 0 && command == ShortMessage.NOTE_ON ) {
-
-                        sound.volume = volume * nbt.getFloat("Volume")
-
-                        var skipClient = false
-                        if ( CanBeMuted.blacklist.keys.contains( companion as Entity ) ) {
-                            instrument.stopAllNotes(instrumentStack, client.world)
-                            skipClient = true
-                        }
-
-                        sound.playSound(instrumentStack, skipClient, true)
-
-                    } else if ( instrument !is DrumSet && b ) {
-                        sound.stopSound(instrumentStack)
-                    }
-
-
-                }
-
-            }
-
+        if ( CanBeMuted.blacklist.keys.contains(entity) ) {
+            instrument.stopAllNotes(stack, client.world);   skipClient = true
         }
+
+        sound.playSound(stack, skipClient, true)
 
     }
 
