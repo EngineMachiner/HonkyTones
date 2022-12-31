@@ -248,6 +248,7 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
 
         }
 
+        @Environment(EnvType.CLIENT)
         fun clientRegister() { EntityRendererRegistry.register(type) { Renderer(it) } }
 
         @Environment(EnvType.CLIENT)

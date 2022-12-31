@@ -10,8 +10,6 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.math.Vec3d
 import kotlin.reflect.KClass
 
-object Entity
-
 @Environment(EnvType.CLIENT)
 fun findByUuid(client: MinecraftClient, uuid: String): Entity? {
 

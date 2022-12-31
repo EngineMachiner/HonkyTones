@@ -57,8 +57,7 @@ open class CustomSoundInstance( val s: String )
 
         if ( manager.isPlaying(this) ) { resetOrDone(); timesForcedStopped++ }
 
-        if ( !skipClient ) manager.play(this)
-        else sound = defaultSound
+        if ( !skipClient ) manager.play(this) else sound = defaultSound
 
         if (isOnUse) volume = nbt.getFloat("Volume")
 

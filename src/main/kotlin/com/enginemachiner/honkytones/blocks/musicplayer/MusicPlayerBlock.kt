@@ -152,6 +152,8 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
         val entity = world!!.getBlockEntity(pos) as MusicPlayerEntity
 
         for ( i in 0..16 ) dropStack( world, pos, entity.getStack(i) )
+
+        MusicPlayerEntity.entities.remove(entity)
         entity.companion!!.remove( Entity.RemovalReason.DISCARDED )
 
         if ( world.isClient && entity.hasSequencer() ) entity.sequencer!!.close()
@@ -271,6 +273,8 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
 
         const val inventorySize = 16 + 1
         lateinit var type: BlockEntityType<MusicPlayerEntity>
+
+        val entities = mutableSetOf<MusicPlayerEntity>()
 
         private val coroutine = CoroutineScope( Dispatchers.IO )
 
@@ -589,7 +593,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
 
                 val info = getVideoInfo(path) ?: return
 
-                // Limit to max_length config
+                // Limit to max_length in config
                 val max = clientConfig["max_length"] as Int
                 if ( info.duration > max ) {
 
@@ -786,6 +790,8 @@ class MusicPlayerCompanion( type: EntityType<MusicPlayerCompanion>,
         // Network all the entity server data to the clients
         // Keep track of these entities for use
         entities.add(this)
+        MusicPlayerEntity.entities.add(entity)
+
         if ( world.isClient ) {
             val buf = PacketByteBufs.create()
             buf.writeBlockPos(BlockPos(pos))
@@ -835,10 +841,13 @@ class MusicPlayerCompanion( type: EntityType<MusicPlayerCompanion>,
                 newBuf.writeBlockPos( blockPos )
 
                 server.send( ServerTask( server.ticks + 1 ) {
-                    val world = server.overworld
-                    val musicPlayer = world.getBlockEntity(blockPos) as MusicPlayerEntity
+
+                    val musicPlayer = MusicPlayerEntity.entities
+                        .find { it.pos == blockPos } ?: return@ServerTask
+
                     EntitySpawnS2CPacket(musicPlayer.companion).write(newBuf)
                     ServerPlayNetworking.send( sender, id, newBuf )
+
                 } )
 
             }
