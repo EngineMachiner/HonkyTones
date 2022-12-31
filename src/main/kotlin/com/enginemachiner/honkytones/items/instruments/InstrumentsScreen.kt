@@ -65,7 +65,7 @@ class InstrumentsScreen( private val stack: ItemStack )
         // and clear button is clicked 3 times
         if ( clientConfig["writeDeviceInfo"] as Boolean ) {
             val s = "$instrumentName - $deviceName - $channel"
-            stack.setCustomName(Text.of(s))
+            stack.setCustomName( Text.of(s) )
         }
 
         if ( clearButtonCounter == 3 ) nbt.putBoolean("removeName", true)
