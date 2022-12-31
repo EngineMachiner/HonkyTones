@@ -116,6 +116,7 @@ class InstrumentsScreen( private val stack: ItemStack )
         val actionValues = mapOf(
             "Melee" to Translation.get("item.honkytones.gui.melee"),
             "Push" to Translation.get("item.honkytones.gui.push"),
+            "Thrust" to Translation.get("item.honkytones.gui.thrust"),
             "Ranged" to Translation.get("item.honkytones.gui.ranged")
         )
         var translation = actionValues[action]
