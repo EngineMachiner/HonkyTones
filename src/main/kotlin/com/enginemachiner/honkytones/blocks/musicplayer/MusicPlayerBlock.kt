@@ -647,7 +647,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
 
                     val quality = clientConfig["audio_quality"] as Int
 
-                    val builder = FFmpegImpl.builder ?: return
+                    val builder = FFmpegImpl.builder ?: throw YoutubeDLException("FFmpeg missing!")
 
                     builder.setInput(convertPath)
                         .addOutput(filePath)
@@ -655,7 +655,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
                         .setAudioCodec("libvorbis")
                         .setAudioQuality( quality.toDouble() )
 
-                    val exe = FFmpegImpl.executor ?: return
+                    val exe = FFmpegImpl.executor ?: throw YoutubeDLException("FFmpeg missing!")
                     exe.createJob(builder).run()
 
                     RestrictedFile(convertPath).delete()
