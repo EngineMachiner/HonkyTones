@@ -664,7 +664,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
 
                     printMessage( Translation.get("honkytones.message.done") )
 
-                } catch ( e: YoutubeDLException ) {
+                } catch ( e: Exception ) {
 
                     var s = Translation.get("honkytones.error.exec_yt-dl")
                     s += ": " + Translation.get("honkytones.error.check_console")
