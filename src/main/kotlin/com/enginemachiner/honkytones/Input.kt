@@ -135,9 +135,16 @@ abstract class GenericReceiver : Receiver {
     }
 
     abstract fun init()
-    abstract fun shouldCancel(): Boolean
     abstract fun canPlay( stack: ItemStack, channel: Int ): Boolean
 
+    open fun shouldCancel(): Boolean {
+
+        val client = MinecraftClient.getInstance()
+        val screen = client.currentScreen
+        return screen != null && screen.isPauseScreen
+
+    }
+    
     open fun onPlay( sound: CustomSoundInstance, stack: ItemStack, entity: Entity ) {
         sound.playSound(stack)
     }
