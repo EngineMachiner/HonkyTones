@@ -352,6 +352,9 @@ class DigitalConsoleScreen( handler: DigitalConsoleScreenHandler,
                 recordCheckbox.onPress();       return
             }
 
+            // Release all keys
+            for ( entry in noteKeys ) entry.setValue(false)            
+            
             client!!.setScreen( RecordingOptionsScreen(this) )
             willRecord = true;      timeStamp = 0f
 
