@@ -156,7 +156,10 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
         MusicPlayerEntity.entities.remove(entity)
         entity.companion!!.remove( Entity.RemovalReason.DISCARDED )
 
-        if ( world.isClient && entity.hasSequencer() ) entity.sequencer!!.close()
+        if ( world.isClient ) {
+            if ( entity.hasSequencer() ) entity.sequencer!!.close()
+            entity.clientPause()
+        }
 
         super.onBreak(world, pos, state, player)
 
