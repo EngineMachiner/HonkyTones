@@ -59,14 +59,6 @@ class InstrumentReceiver( private val deviceId: String ) : GenericReceiver() {
         entity = client.player;         instruments = getStacks(client.player!!)
     }
 
-    override fun shouldCancel(): Boolean {
-
-        val client = MinecraftClient.getInstance()
-        val screen = client.currentScreen
-        return screen != null && screen.shouldPause()
-
-    }
-
     override fun canPlay( stack: ItemStack, channel: Int ): Boolean {
         val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
         return channel + 1 == nbt.getInt("MIDI Channel")
