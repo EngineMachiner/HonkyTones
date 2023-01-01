@@ -15,13 +15,11 @@ object NoteData {
         "G#" to "A_",   "A#" to "B_"
     )
 
-    fun addSoundSets() {
+    fun buildSoundMap() {
 
         // Build a single octave with all notes
         for (note in notes) {
-            if (note != "C" && note != "F") {
-                octave.add(note + "_")
-            }
+            if (note != "C" && note != "F") octave.add(note + "_")
             octave.add(note)
         }
 
@@ -39,15 +37,13 @@ object NoteData {
         wholeNoteSet = builder(octave, wholeRange)
 
         // Start adding the set with the sound structure to the map
-
         val soundsSet4 = setOf("B2-D3", "E3_-G3_", "G3-B3_", "B3-D4")
 
         // Drum set setup
         val drumSet = builder(octave, setOf(2)) as MutableSet<String>
         val tempDrumSet = mutableSetOf("C3", "D3_", "D3", "E3_")
-        for (n in tempDrumSet) {
-            drumSet.add(n)
-        }
+
+        for (n in tempDrumSet) drumSet.add(n)
         soundsMap["drumset"] = drumSet
 
         soundsMap["organ"] = setOf("C3-E3_", "E3-G3", "A3_-B3", "B3")
@@ -71,12 +67,17 @@ object NoteData {
     private fun builder(template: Set<String>?, range: Set<Int>): Set<String>{
 
         val newSet = mutableSetOf<String>()
-        for ( r in range ) {
-            val r2 = r.toString()
-            for (t in template!!) {
-                if (t.contains("-")) {
 
-                    val first = template.first().substringAfter("-")[1].toString()
+        for ( r in range ) {
+
+            val r2 = r.toString()
+
+            for ( t in template!! ) {
+
+                if ( t.contains("-") ) {
+
+                    val first = template.first()
+                        .substringAfter("-")[1].toString()
 
                     // Sort the pair values according to the range given
                     val start = t.substringBefore("-")[1].toString()
@@ -102,10 +103,13 @@ object NoteData {
                     newSet.add(s2)
 
                 }
+
             }
+
         }
 
         return newSet
+
     }
 
 }
