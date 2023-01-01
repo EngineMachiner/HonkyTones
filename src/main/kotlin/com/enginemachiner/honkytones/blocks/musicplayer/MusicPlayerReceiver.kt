@@ -25,6 +25,8 @@ class MusicPlayerReceiver( private val musicPlayer: MusicPlayerEntity ) : Generi
 
     override fun shouldCancel(): Boolean {
 
+        val b = super.shouldCancel();       if (b) return true
+        
         val sequencer = musicPlayer.sequencer ?: return false
 
         val isDone = sequencer.tickPosition == sequencer.tickLength
