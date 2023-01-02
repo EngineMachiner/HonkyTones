@@ -141,7 +141,7 @@ abstract class GenericReceiver : Receiver {
 
         val client = MinecraftClient.getInstance()
         val screen = client.currentScreen
-        return screen != null && screen.isPauseScreen
+        return screen != null && screen.shouldPause()
 
     }
     
