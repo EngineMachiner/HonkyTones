@@ -1,38 +1,38 @@
 package com.enginemachiner.honkytones.items.instruments
 
-import com.enginemachiner.honkytones.Base
-import com.enginemachiner.honkytones.clientConfig
-import com.enginemachiner.honkytones.honkyTonesGroup
+import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.items.storage.MusicalStorage
 import com.enginemachiner.honkytones.items.storage.MusicalStorageInventory
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.entity.Entity
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.util.Identifier
 import net.minecraft.util.collection.DefaultedList
-import javax.sound.midi.MidiMessage
-import javax.sound.midi.Receiver
-import javax.sound.midi.ShortMessage
 
-class InstrumentReceiver( private val id: String ) : Receiver {
+@Environment(EnvType.CLIENT)
+class InstrumentReceiver( private val deviceId: String ) : GenericReceiver() {
 
-    private fun checkInventory( inv: DefaultedList<ItemStack>,
-                                list: MutableList<ItemStack> ) {
+    private fun checkInventory( inv: DefaultedList<ItemStack>, list: MutableList<ItemStack> ) {
 
         for ( stack in inv ) {
 
             val item = stack.item
-            if ( item.group == honkyTonesGroup && !list.contains(stack) ) {
+            if ( item.group == itemGroup && !list.contains(stack) ) {
 
                 val nbt = stack.orCreateNbt.getCompound(Base.MOD_NAME)
-                val hasTag = nbt.getString("MIDI Device") == id
+                val hasTag = nbt.getString("MIDI Device") == deviceId
+
                 if ( hasTag ) list.add(stack)
 
                 if ( item is MusicalStorage ) {
-                    val inv = MusicalStorageInventory(stack).getItems()
-                    checkInventory( inv, list )
+                    val inventory = MusicalStorageInventory(stack).getItems()
+                    checkInventory( inventory, list )
                 }
 
             }
@@ -41,7 +41,7 @@ class InstrumentReceiver( private val id: String ) : Receiver {
 
     }
 
-    // Get instrument stacks
+    /** Get instrument stacks */
     private fun getStacks( player: ClientPlayerEntity ): MutableList<ItemStack> {
 
         val list = mutableListOf<ItemStack>()
@@ -52,57 +52,38 @@ class InstrumentReceiver( private val id: String ) : Receiver {
 
     }
 
-    override fun close() { println( Base.DEBUG_NAME + "$id device has been closed." ) }
-    override fun send( msg: MidiMessage?, timeStamp: Long ) {
+    override fun close() { println( Base.DEBUG_NAME + "$deviceId device has been closed." ) }
 
+    override fun init() {
         val client = MinecraftClient.getInstance()
+        entity = client.player;         instruments = getStacks(client.player!!)
+    }
 
-        client.send {
+    override fun canPlay( stack: ItemStack, channel: Int ): Boolean {
+        val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
+        return channel + 1 == nbt.getInt("MIDI Channel")
+    }
 
-            val player = client.player ?: return@send
-            val stacks = getStacks(player)
+    override fun onPlay(sound: CustomSoundInstance, stack: ItemStack, entity: Entity) {
+        spawnPlayerParticleChance( entity as PlayerEntity )
+        super.onPlay(sound, stack, entity)
+    }
 
-            val newMsg = msg as ShortMessage;       val channel = newMsg.channel
-            val command = msg.command
+    companion object {
 
-            val screen = client.currentScreen
-            if ( screen != null && screen.shouldPause() ) return@send
+        fun spawnPlayerParticleChance( player: PlayerEntity ) {
 
-            for ( stack in stacks ) {
+            val key = "playerParticles"
+            val b1 = clientConfig[key] as Boolean
+            if ( (0..4).random() == 0 ) {
 
-                val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
-                val nbtChannel = nbt.getInt("MIDI Channel")
-                val instrument = stack.item as Instrument
-                val sounds = instrument.getSounds(stack, "notes")
+                if (b1) Instrument.spawnNoteParticle(player, "device")
 
-                if ( channel + 1 == nbtChannel ) {
+                val buf = PacketByteBufs.create();      buf.writeInt(player.id)
+                buf.writeString(key).writeString("device")
 
-                    val index = instrument.getIndexIfCentered(stack, newMsg.data1)
-                    val sound = sounds[index] ?: return@send
-                    val volume = newMsg.data2 / 127f
-
-                    if ( command == ShortMessage.NOTE_ON && stack.holder != player ) {
-                        stack.holder = player
-                    }
-
-                    var b = command == ShortMessage.NOTE_OFF
-                    b = b || ( command == ShortMessage.NOTE_ON && volume == 0f )
-                    if ( volume > 0 && command == ShortMessage.NOTE_ON ) {
-
-                        sound.volume = volume * nbt.getFloat("Volume")
-                        sound.playSound(stack)
-
-                        val b1 = clientConfig["playerParticles"] as Boolean
-                        if ( (0..4).random() == 0 ) {
-                            if (b1) Instrument.spawnDeviceNote(player.world, player)
-                            val buf = PacketByteBufs.create().writeString(player.uuidAsString)
-                            val id = Identifier( Base.MOD_NAME, "player_keybind_particle" )
-                            ClientPlayNetworking.send(id, buf)
-                        }
-
-                    } else if ( instrument !is DrumSet && b ) sound.stopSound(stack)
-
-                }
+                val id = Identifier( Base.MOD_NAME, "entity_spawn_particle" )
+                ClientPlayNetworking.send(id, buf)
 
             }
 

@@ -4,6 +4,7 @@ import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerCompanion
 import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerEntity
 import com.enginemachiner.honkytones.items.instruments.Instrument
 import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.PacketSender
@@ -21,24 +22,25 @@ import net.minecraft.sound.SoundEvent
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.floatprovider.FloatSupplier
 import java.io.BufferedInputStream
 import java.io.File
 import java.util.concurrent.CompletableFuture
 import kotlin.math.pow
 
-// Sounds played by stacks
-open class CustomSoundInstance( val s: String ) : MovingSoundInstance
-    ( SoundEvent( Identifier(s) ), SoundCategory.PLAYERS, SoundInstance.createRandom() ) {
+@Environment(EnvType.CLIENT)
+open class CustomSoundInstance( val s: String ) : MovingSoundInstance(
+    SoundEvent( Identifier(s) ), SoundCategory.PLAYERS,
+    SoundInstance.createRandom()
+) {
 
     var index = -1
-    var entity: Entity? = null;   private var timesForcedStopped = 0
+    var entity: Entity? = null;         private var timesForcedStopped = 0
     private var doFadeOut = false;      var isPlaying = false
     var key = "notes";                  var toPitch: Int? = null
-    var playOnce = false
+    private var playOnce = false
 
     fun playSound(stack: ItemStack) {
-        playSound(stack, false, true)
+        playSound( stack, skipClient = false, shouldNetwork = true )
     }
 
     fun playSound(stack: ItemStack, skipClient: Boolean, shouldNetwork: Boolean) {
@@ -53,11 +55,8 @@ open class CustomSoundInstance( val s: String ) : MovingSoundInstance
         val manager = client.soundManager
 
         if ( manager.isPlaying(this) ) { resetOrDone(); timesForcedStopped++ }
-        if ( !skipClient ) manager.play(this)
-        else {
-            sound = Sound( "", { 1f }, { 1f }, 0,
-                Sound.RegistrationType.FILE, false, false, 0 )
-        }
+
+        if ( !skipClient ) manager.play(this) else sound = defaultSound
 
         if (isOnUse) volume = nbt.getFloat("Volume")
 
@@ -66,8 +65,7 @@ open class CustomSoundInstance( val s: String ) : MovingSoundInstance
 
         entity = holder;      setPlayState()
 
-        // Mobs are networked
-        if ( holder is MobEntity || !Network.isOnline() || !shouldNetwork ) return
+        if ( canNetwork( holder, shouldNetwork ) ) return
 
         var netName = "playsound"
         if ( holder is MusicPlayerCompanion ) netName = "play_midi"
@@ -92,7 +90,7 @@ open class CustomSoundInstance( val s: String ) : MovingSoundInstance
 
         setStopState()
 
-        if ( holder is MobEntity || !Network.isOnline() || !shouldNetwork ) return
+        if ( canNetwork( holder, shouldNetwork ) ) return
 
         val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
 
@@ -150,15 +148,29 @@ open class CustomSoundInstance( val s: String ) : MovingSoundInstance
 
             }
 
-            // Moving pos
             if (entity != null && volume > 0) setPos(entity!!.pos)
 
         }
 
     }
 
+    companion object {
+
+        val defaultSound = Sound( "", { 1f }, { 1f }, 0, Sound.RegistrationType.FILE, false, false, 0 )
+
+        /**
+         * Checks all the conditions to allow networking.
+         * Reminder that mobs have their implementation and are already networked in mixins */
+        private fun canNetwork(holder: Entity, shouldNetwork: Boolean ): Boolean {
+            return holder is MobEntity || !Network.isOnline() || !shouldNetwork
+        }
+
+    }
+
 }
 
+/** CustomSoundInstance that can stream audio files */
+@Environment(EnvType.CLIENT)
 class SpecialSoundInstance( var file: File,
                             private val musicPlayer: MusicPlayerEntity
 ) : AudioStreamSoundInstance() {
@@ -169,7 +181,10 @@ class SpecialSoundInstance( var file: File,
     private var buffStream = BufferedInputStream( file.inputStream() )
     private val oggStream = OggAudioStream( buffStream )
 
-    init { key = "";    //val buf = oggStream.buffer
+    init {
+        key = ""
+        // TODO: Mess with the buffer
+        //val buf = oggStream.buffer
         //buf.position( ( buf.limit() * 0.5 ).toInt() )
     }
 
@@ -182,9 +197,11 @@ class SpecialSoundInstance( var file: File,
 
             var nbt = musicPlayer.getStack(16).nbt!!
             nbt = nbt.getCompound(Base.MOD_NAME)
+
             var vol = nbt.getFloat("Volume")
             val minDistance = minDistance * vol
             val dist = player.squaredDistanceTo(companion) * 0.01
+
             if ( dist > minDistance ) {
                 vol = ( minDistance * 0.25f - dist * 0.03f ).toFloat()
             }
@@ -195,24 +212,22 @@ class SpecialSoundInstance( var file: File,
 
         }
 
-        if ( volume == 0f && isStopping() ) {
-            setDone();  buffStream.close()
-        }
+        if ( volume == 0f && isStopping() ) { setDone();  buffStream.close() }
 
     }
 
-    override fun getAudioStream( loader: SoundLoader?, id: Identifier?, shouldLoop: Boolean )
-    : CompletableFuture<AudioStream> {
-        return CompletableFuture.completedFuture( oggStream )
-    }
+    override fun getAudioStream(
+        loader: SoundLoader?, id: Identifier?, shouldLoop: Boolean
+    ): CompletableFuture<AudioStream> { return CompletableFuture.completedFuture( oggStream ) }
 
-    companion object {
-        private const val minDistance = 3f
-    }
+    companion object { private const val minDistance = 3f }
 
 }
 
 object Sound {
+
+    const val minRadius = 25f
+    const val ticksAhead = 18
 
     private fun playSoundWriteBuf( it: PacketByteBuf ): PacketByteBuf {
 
@@ -241,20 +256,19 @@ object Sound {
     fun networking() {
 
         // Play and stop sounds through the net
-
         // All read order and write order must be the same
 
         Network.registerServerToClientsHandler("playsound",
-            25f, 18) { playSoundWriteBuf(it) }
+            minRadius, ticksAhead) { playSoundWriteBuf(it) }
 
         Network.registerServerToClientsHandler("play_midi",
-            "playsound", 25f, 18) { playSoundWriteBuf(it) }
+            "playsound", minRadius, ticksAhead) { playSoundWriteBuf(it) }
 
         Network.registerServerToClientsHandler("stopsound",
-            25f, 18) { stopSoundWriteBuf(it) }
+            minRadius, ticksAhead) { stopSoundWriteBuf(it) }
 
         Network.registerServerToClientsHandler("stop_midi",
-            "stopsound", 25f, 18) { stopSoundWriteBuf(it) }
+            "stopsound", minRadius, ticksAhead) { stopSoundWriteBuf(it) }
 
         if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.CLIENT ) return
 
@@ -267,21 +281,21 @@ object Sound {
             val listName = packet.readString()
             val category = packet.readString();     val soundIndex = packet.readInt()
             val stackIndex = packet.readInt();        val volume = packet.readFloat()
-            val pitch = packet.readFloat();       val itemID = packet.readString()
+            val pitch = packet.readFloat();       val itemId = packet.readString()
 
             client.send {
 
                 // Find entity
-                val entity = findByUUID(client, uuid) ?: return@send
+                val entity = findByUuid(client, uuid) ?: return@send
 
                 // Get instrument
                 val stacks = stackLists[listName]!!
-                createStackIfMissing(stacks, itemID, stackIndex)
+                createStackIfMissing(stacks, itemId, stackIndex)
                 val stack = stacks[stackIndex]
-                val inst = stack.item as Instrument
+                val instrument = stack.item as Instrument
 
                 // Temp storing hash to get the sounds
-                val sounds = inst.getSounds(stack, category)
+                val sounds = instrument.getSounds(stack, category)
                 val sound = sounds.filterNotNull().find { it.index == soundIndex }!!
 
                 var b = CanBeMuted.blacklist.keys.contains(entity)
@@ -291,7 +305,7 @@ object Sound {
                 sound.volume = volume;      sound.pitch = pitch
                 sound.entity = entity;      stack.holder = entity
 
-                sound.playSound(stack, false, false)
+                sound.playSound(stack, skipClient = false, shouldNetwork = false)
 
             }
 

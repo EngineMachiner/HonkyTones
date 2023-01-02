@@ -7,8 +7,6 @@ import net.minecraft.item.ItemStack
 import net.minecraft.util.collection.DefaultedList
 import net.minecraft.util.math.Direction
 
-object InventoryImpl {}
-
 @FunctionalInterface
 interface ImplementedInventory : SidedInventory {
 
@@ -23,11 +21,8 @@ interface ImplementedInventory : SidedInventory {
 
     }
 
-    override fun canInsert(slot: Int, stack: ItemStack?, dir: Direction?):
-            Boolean { return true }
-
-    override fun canExtract(slot: Int, stack: ItemStack?, dir: Direction?):
-            Boolean { return true }
+    override fun canInsert(slot: Int, stack: ItemStack?, dir: Direction?): Boolean { return true }
+    override fun canExtract(slot: Int, stack: ItemStack?, dir: Direction?): Boolean { return true }
 
     override fun size(): Int { return getItems().size }
 
@@ -72,9 +67,13 @@ interface ImplementedInventory : SidedInventory {
         fun of( items: DefaultedList<ItemStack>):
                     () -> DefaultedList<ItemStack> { return { items } }
 
+        /*
+
         fun ofSize(size: Int): () -> DefaultedList<ItemStack> {
             return of( DefaultedList.ofSize(size, ItemStack.EMPTY) )
         }
+
+        */
 
     }
 
