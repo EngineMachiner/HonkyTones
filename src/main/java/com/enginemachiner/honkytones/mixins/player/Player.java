@@ -16,12 +16,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin( PlayerEntity.class )
 public class Player {
 
+    private static final String method = "dropItem(Lnet/minecraft/item/ItemStack;ZZ)Lnet/minecraft/entity/ItemEntity;";
+
     /** If a floppy disk has a stream and the stack is dropped,
      * this method can keep track, so it updates the name on next pick up  */
-    @Inject( at = @At("HEAD"), method = "dropItem(Lnet/minecraft/item/ItemStack;ZZ)Lnet/minecraft/entity/ItemEntity;" )
-    private void honkyTonesKeepTrackOfFloppyQuery( ItemStack stack, boolean throwRandomly,
-                                                   boolean retainOwnership,
-                                                   CallbackInfoReturnable<ItemEntity> callback ) {
+    @Inject( at = @At("HEAD"), method = method )
+    private void honkyTonesKeepTrackOfFloppyQuery(
+            ItemStack stack, boolean throwRandomly, boolean retainOwnership,
+            CallbackInfoReturnable<ItemEntity> callback
+    ) {
 
         NbtCompound nbt = stack.getOrCreateNbt().getCompound( Base.MOD_NAME );
         if ( stack.getItem() instanceof FloppyDisk && nbt.contains("onQuery") ) {

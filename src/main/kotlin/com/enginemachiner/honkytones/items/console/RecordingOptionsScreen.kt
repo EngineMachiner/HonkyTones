@@ -1,9 +1,8 @@
 package com.enginemachiner.honkytones.items.console
 
-import com.enginemachiner.honkytones.Base
-import com.enginemachiner.honkytones.ChannelTextFieldWidget
-import com.enginemachiner.honkytones.Network
-import com.enginemachiner.honkytones.RestrictedFile
+import com.enginemachiner.honkytones.*
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.TextFieldWidget
@@ -11,6 +10,7 @@ import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.text.Text
 import javax.sound.midi.*
 
+@Environment(EnvType.CLIENT)
 class RecordingOptionsScreen( private val screen: DigitalConsoleScreen )
 : Screen( Text.of("") ) {
 
@@ -23,25 +23,18 @@ class RecordingOptionsScreen( private val screen: DigitalConsoleScreen )
 
     override fun init() {
 
+        fileNameTitle = Translation.get("item.honkytones.gui.file.name")
+        cancelTitle = Translation.get("item.honkytones.gui.cancel")
+        startTitle = Translation.get("item.honkytones.gui.file.start")
+        channelTitle = Translation.get("item.honkytones.gui.file.channel")
+        overwriteTitle = Translation.get("item.honkytones.gui.file.overwrite")
+
         // Based dimensions
         val x = (width * 0.5 - width * 0.75 * 0.5).toInt()
         val y = (height * 0.08 * 1.5).toInt()
         val w = (width * 0.75).toInt()
         val h = (240 * 0.08).toInt()
         val w2 = (w * 0.35).toInt()
-
-        // Button template creation function
-        fun createButton(
-            x2: Float, y2: Float, w3:
-            Float, func: (butt: ButtonWidget) -> Unit
-        ): ButtonWidget {
-            return ButtonWidget(
-                (x + w * 0.5 + w2 * 0.05 + x2).toInt(),
-                (y + h * 1.5 + y2).toInt(),
-                (w2 + w3).toInt(),     (h * 1.1).toInt(),
-                Text.of("")
-            ) { func(it) }
-        }
 
         fileNameField = TextFieldWidget( textRenderer, x, y, w, h, Text.of("") )
         fileNameField!!.setMaxLength(32 * 5);       fileNameField!!.text = ""
@@ -56,7 +49,7 @@ class RecordingOptionsScreen( private val screen: DigitalConsoleScreen )
         channelField!!.text = ""
         addSelectableChild(channelField)
 
-        yesButton = createButton( 0f, 0f, 0f ) {
+        yesButton = createButton( x, y, 0f, 0f, w, h, w2, 0f ) {
 
             client!!.setScreen(screen)
             screen.isRecording = true;          screen.recordCheckbox!!.onPress()
@@ -67,9 +60,9 @@ class RecordingOptionsScreen( private val screen: DigitalConsoleScreen )
 
             screen.channel = channelField!!.text.toInt()
 
-            sequencer.open()
+            sequencer!!.open()
 
-            sequencer.startRecording()
+            sequencer!!.startRecording()
 
             var nbt = screen.screenHandler.consoleStack.nbt!!
             nbt = nbt.getCompound(Base.MOD_NAME)
@@ -77,11 +70,11 @@ class RecordingOptionsScreen( private val screen: DigitalConsoleScreen )
             Network.sendNbtToServer(nbt)
 
         }
-        yesButton!!.message = Text.of("Start recording")
+        yesButton!!.message = Text.of(startTitle)
         addSelectableChild(yesButton)
 
-        noButton = createButton( -125f, 0f, 0f ) { close() }
-        noButton!!.message = Text.of("Cancel")
+        noButton = createButton( x, y, -125f, 0f, w, h, w2, 0f ) { close() }
+        noButton!!.message = Text.of(cancelTitle)
         addSelectableChild(noButton)
 
     }
@@ -91,21 +84,21 @@ class RecordingOptionsScreen( private val screen: DigitalConsoleScreen )
         renderBackground(matrices)
         super.render(matrices, mouseX, mouseY, delta)
 
-        var overwrite = ""
+        var overwriteString = ""
         var filePath = fileNameField!!.text
         if ( !filePath.endsWith(".mid") ) filePath += ".mid"
         val path = Base.paths["midis"]!!.path + "/$filePath"
-        if ( RestrictedFile(path).isFile ) overwrite = "(overwrite?)"
+        if ( RestrictedFile(path).isFile ) overwriteString = "($overwriteTitle)"
 
         textRenderer.draw(
-            matrices, "MIDI File Name: $overwrite",
+            matrices, "$fileNameTitle: $overwriteString",
             fileNameField!!.x.toFloat(), fileNameField!!.y.toFloat() - 12,
             0xFFFFFF
         )
         fileNameField!!.render(matrices, mouseX, mouseY, delta)
 
         textRenderer.draw(
-            matrices, "MIDI Channel:",
+            matrices, "$channelTitle:",
             channelField!!.x.toFloat(), channelField!!.y.toFloat() - 12,
             0xFFFFFF
         )
@@ -123,7 +116,13 @@ class RecordingOptionsScreen( private val screen: DigitalConsoleScreen )
 
     companion object {
 
-        val sequencer: Sequencer = MidiSystem.getSequencer()
+        private var fileNameTitle = ""
+        private var cancelTitle = ""
+        private var startTitle = ""
+        private var channelTitle = ""
+        private var overwriteTitle = ""
+
+        var sequencer: Sequencer? = null
         private var sequence = Sequence( Sequence.PPQ, 4 )
 
         private class RecordingReceiver : Receiver {
@@ -135,13 +134,21 @@ class RecordingOptionsScreen( private val screen: DigitalConsoleScreen )
 
         init {
 
-            sequence.createTrack()
-            sequencer.sequence = sequence
+            if ( hasMidiSystemSequencer() ) {
 
-            val transmitters = sequencer.transmitters
-            for ( transmitter in transmitters ) transmitter.receiver = RecordingReceiver()
+                sequencer = MidiSystem.getSequencer()
 
-            for ( i in 0..15 ) sequencer.recordEnable( sequence.tracks[0], i )
+                val sequencer = sequencer!!
+
+                sequence.createTrack()
+                sequencer.sequence = sequence
+
+                val transmitters = sequencer.transmitters
+                for ( transmitter in transmitters ) transmitter.receiver = RecordingReceiver()
+
+                for ( i in 0..15 ) sequencer.recordEnable( sequence.tracks[0], i )
+
+            }
 
         }
 
