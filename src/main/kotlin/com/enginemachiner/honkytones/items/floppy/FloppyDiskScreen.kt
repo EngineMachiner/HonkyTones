@@ -92,7 +92,7 @@ class FloppyDiskScreen( private val stack: ItemStack )
         searchField!!.text = path
         addSelectableChild(searchField)
 
-        copyButton = createButton( x, y, -130f, 0f, w, h, w2, 0f ) {
+        copyButton = createButton( x, y, - w * 0.4f, 0f, w, h, w2, 0f ) {
             clipboard.setClipboard( window.handle, searchField!!.text )
         }
         copyButton!!.message = Text.of(copyTitle)

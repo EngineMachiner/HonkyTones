@@ -22,6 +22,8 @@ object FFmpegImpl {
                 .replace(value, "")
         }
 
+        if ( ffmpegPath == "/" ) ffmpegPath = ""
+
         try {
             val ffmpeg = FFmpeg( ffmpegPath + "ffmpeg" )
             val ffprobe = FFprobe( ffmpegPath + "ffprobe" )

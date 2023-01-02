@@ -73,7 +73,7 @@ class RecordingOptionsScreen( private val screen: DigitalConsoleScreen )
         yesButton!!.message = Text.of(startTitle)
         addSelectableChild(yesButton)
 
-        noButton = createButton( x, y, -125f, 0f, w, h, w2, 0f ) { onClose() }
+        noButton = createButton( x, y, - w * 0.38f, 0f, w, h, w2, 0f ) { onClose() }
         noButton!!.message = Text.of(cancelTitle)
         addSelectableChild(noButton)
 
