@@ -58,7 +58,7 @@ open class RestrictedFile( s: String ) : File(s) {
 
 }
 
-open class ConfigFile( s: String ): RestrictedFile( configPath + s ) {
+open class ConfigFile( s: String ): File( configPath + s ) {
 
     val properties = Properties()
     private var shouldCreate = true
@@ -69,7 +69,7 @@ open class ConfigFile( s: String ): RestrictedFile( configPath + s ) {
 
     private fun creation() {
 
-        val dir = RestrictedFile(configPath)
+        val dir = File(configPath)
         if ( !dir.exists() ) dir.mkdirs()
 
         if ( !shouldCreate ) return
@@ -112,7 +112,7 @@ class ClientConfigFile(path: String) : ConfigFile(path) {
     override fun setDefaultProperties() {
 
         val default = mapOf(
-            "ffmpegDir" to "",       "ytdlPath" to "yt-dlp",
+            "ffmpegDir" to "",       "ytdlPath" to "youtube-dl",
             "mobsParticles" to "true",       "writeDeviceInfo" to "true",
             "playerParticles" to "true",     "keep_downloads" to "false",
             "keep_videos" to "false",       "audio_quality" to "5",
