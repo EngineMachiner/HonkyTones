@@ -55,6 +55,7 @@ import java.util.*
 import javax.sound.midi.MidiSystem
 import kotlin.math.abs
 import kotlin.math.pow
+import kotlin.random.Random
 
 @Environment(EnvType.CLIENT)
 class HitSounds {
@@ -480,7 +481,9 @@ open class Instrument( private val damage: Float, val speed: Float, material: To
             val world = entity.world
             world.addParticle(
                 Particles.DEVICE_NOTE,
-                entity.x, entity.y + 3, entity.z,
+                entity.x + Random.nextInt(-15, 25) * 0.1f,
+                entity.y + 3 + Random.nextInt(15) * 0.1f,
+                entity.z + Random.nextInt(-15, 25) * 0.1f,
                 0.0, 0.0, 0.0
             )
         }
