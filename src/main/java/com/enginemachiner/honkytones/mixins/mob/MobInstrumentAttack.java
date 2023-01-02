@@ -1,14 +1,11 @@
 package com.enginemachiner.honkytones.mixins.mob;
 
-import com.enginemachiner.honkytones.Network;
 import com.enginemachiner.honkytones.items.instruments.Instrument;
 import kotlin.random.Random;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -22,26 +19,21 @@ public class MobInstrumentAttack {
     private void honkyTonesPlayInstrumentOnAttack( Entity target,
                                                    CallbackInfoReturnable<Boolean> callback ) {
 
-        World world = MinecraftClient.getInstance().world;
         MobEntity mob = (MobEntity) (Object) this;
         ItemStack stack = mob.getMainHandStack();
         Item item = stack.getItem();
-        boolean b = Network.INSTANCE.canNetwork();
 
-        if ( item instanceof Instrument inst && b ) {
+        if ( item instanceof Instrument ) {
 
-            MinecraftClient client = MinecraftClient.getInstance();
-
-            int keyChance1 = Random.Default.nextInt(2);
-            int keyChance2 = Random.Default.nextInt(2);
+            int random1 = Random.Default.nextInt(2);
+            int random2 = Random.Default.nextInt(2);
 
             // Play minimum 1 note
-            for ( int i = 1; ( i < 2 + keyChance1 + keyChance2 ); i++ ) {
+            for ( int i = 1; ( i < 2 + random1 + random2 ); i++ ) {
                 stack.setHolder(mob);
-                inst.spawnNoteParticle(world, mob);
-                client.send( () -> inst.playRandomSound(stack) );
+                Instrument.Companion.mobAction( mob, "play" );
             }
-            client.send( () -> inst.stopAllNotes(stack, world) );
+            Instrument.Companion.mobAction( mob, "stop" );
 
         }
 

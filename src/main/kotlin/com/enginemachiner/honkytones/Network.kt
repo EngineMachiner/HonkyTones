@@ -18,11 +18,13 @@ import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.util.Hand
 import net.minecraft.util.Identifier
 import org.apache.commons.validator.routines.UrlValidator
+import kotlin.math.pow
 
 /*
  Storing item stacks and networking them from client
  is impossible because I think they update a lot and there's not one unique stack
 */
+
 object Network {
 
     /**
@@ -58,11 +60,12 @@ object Network {
         val idFrom = Identifier( Base.MOD_NAME, clientHandlerIdFrom )
         val idTo = Identifier( Base.MOD_NAME, clientHandlerIdTo )
 
-        fun send(receiver: ServerPlayerEntity, buf: PacketByteBuf) {
-            ServerPlayNetworking.send(receiver, idTo, buf)
+        fun send( receiver: ServerPlayerEntity, buf: PacketByteBuf ) {
+            ServerPlayNetworking.send( receiver, idTo, buf )
         }
 
         ServerPlayNetworking.registerGlobalReceiver(idFrom) {
+
                 server: MinecraftServer, sender: ServerPlayerEntity,
                 _: ServerPlayNetworkHandler, buf: PacketByteBuf,
                 _: PacketSender ->
@@ -86,11 +89,10 @@ object Network {
                     if ( ply != sender ) {
 
                         if ( radius == 0f ) send(ply, newbuf)
-                        else if ( ply.distanceTo( radiusEntity ) < radius ) send(ply, newbuf)
+                        else if ( ply.squaredDistanceTo( radiusEntity ) < radius.pow(2) ) send(ply, newbuf)
 
                         if ( serverConfig["debugMode"]!! as Boolean ) {
-                            println( Base.DEBUG_NAME + "$sender networking " +
-                                    "to $ply with id: $clientHandlerIdFrom" )
+                            println( Base.DEBUG_NAME + "$sender networking to $ply with id: $clientHandlerIdFrom" )
                         }
 
                     }
@@ -105,8 +107,7 @@ object Network {
     fun isValidUrl(s: String): Boolean {
         var s = s
         val b = !s.startsWith("http://") && !s.startsWith("https://")
-        if (b) s = "http://$s"
-        return UrlValidator().isValid(s)
+        if (b) s = "http://$s";         return UrlValidator().isValid(s)
     }
 
     @Environment(EnvType.CLIENT)

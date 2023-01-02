@@ -12,8 +12,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.io.File;
 
-import static com.enginemachiner.honkytones.BaseKt.getServerConfig;
-
 @Mixin( CrashReport.class )
 public class CrashReportMixin {
 
@@ -24,7 +22,7 @@ public class CrashReportMixin {
 
         if ( FabricLoaderImpl.INSTANCE.getEnvironmentType() == EnvType.CLIENT ) {
             Base.clientConfigFile.updateProperties( BaseKt.clientConfig );
-        } else Base.serverConfigFile.updateProperties( getServerConfig() );
+        } else Base.serverConfigFile.updateProperties( BaseKt.serverConfig );
 
     }
 

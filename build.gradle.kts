@@ -32,9 +32,12 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api", "fabric-api", fabricVersion)
     val fabricKotlinVersion: String by project
     modImplementation("net.fabricmc", "fabric-language-kotlin", fabricKotlinVersion)
-    implementation("com.github.sapher:youtubedl-java:1.+")
-    implementation("net.bramp.ffmpeg:ffmpeg:0.7.0")
-    implementation("commons-validator:commons-validator:1.7")
+    include( implementation("com.fasterxml.jackson.core:jackson-annotations:2.14.1")!! )
+    include( implementation("com.fasterxml.jackson.core:jackson-core:2.14.1")!! )
+    include( implementation("com.fasterxml.jackson.core:jackson-databind:2.14.1")!! )
+    include( implementation("com.github.sapher:youtubedl-java:1.1")!! )
+    include( implementation("net.bramp.ffmpeg:ffmpeg:0.7.0")!! )
+    include( implementation("commons-validator:commons-validator:1.7")!! )
 }
 
 tasks {

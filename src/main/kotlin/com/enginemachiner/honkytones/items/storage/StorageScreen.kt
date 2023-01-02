@@ -3,6 +3,8 @@ package com.enginemachiner.honkytones.items.storage
 import com.enginemachiner.honkytones.Base
 import com.enginemachiner.honkytones.isModItem
 import com.mojang.blaze3d.systems.RenderSystem
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.screen.ingame.HandledScreens
 import net.minecraft.client.render.GameRenderer
@@ -44,40 +46,42 @@ class StorageScreenHandler( syncID: Int,
 
         if ( stack == player.offHandStack ) isOffHand = true
 
-        storage.openRenderedChest(stack, player, world)
+        storage.open(stack, player, world)
 
-        checkSize(inv, inv.size())
+        checkSize( inv, inv.size() )
         inv.onOpen(player)
 
         val w = 18;     val x = 8;      val y = - w;      val x2 = - w * 4
 
         // Chest inventory
         for ( i in 0 .. 5 ) { for ( j in 0 .. 15 ) {
-            val index = j + i * 16
-            addSlot( Slot( inv, index, w * j + x + x2 + 9, w * i - y ) )
+            val index = j + i * 16;     val x = w * j + x + x2 + 9
+            val y = w * i - y
+            addSlot( Slot( inv, index, x, y ) )
         } }
 
         // Player Inventory
         for ( i in 0 .. 2 ) { for ( j in 0 .. 8 ) {
-            val index = j + i * 9 + 9
-            addSlot( Slot( playerInv, index, w * j + x, w * ( i + 6 ) - y + 13 ) )
+            val index = j + i * 9 + 9;      val x = w * j + x
+            val y = w * ( i + 6 ) - y + 13
+            addSlot( Slot( playerInv, index, x, y ) )
         } }
 
         for ( j in 0 .. 8 ) {
-            addSlot( Slot( playerInv, j, w * j + x, w * 10 - y - 1 ) )
+            val x = w * j + x;      val y = w * 10 - y - 1
+            addSlot( Slot( playerInv, j, x, y ) )
         }
 
     }
 
     override fun close( player: PlayerEntity? ) {
-        super.close(player)
-        storage.closeRenderedChest(stack, player!!, world)
+        super.close(player);        storage.close(stack, player!!, world)
         inv.markDirty()
     }
 
     override fun canUse(player: PlayerEntity?): Boolean { return inv.canPlayerUse(player) }
 
-    override fun transferSlot(player: PlayerEntity?, index: Int): ItemStack {
+    override fun transferSlot( player: PlayerEntity?, index: Int ): ItemStack {
 
         var currentStack = ItemStack.EMPTY;    val currentSlot = slots[index]
 
@@ -131,7 +135,6 @@ class StorageScreenHandler( syncID: Int,
     companion object {
 
         private val id = Identifier(Base.MOD_NAME, "musicalstorage")
-
         lateinit var type: ScreenHandlerType<StorageScreenHandler>
 
         fun register() {
@@ -143,6 +146,7 @@ class StorageScreenHandler( syncID: Int,
 
 }
 
+@Environment(EnvType.CLIENT)
 class StorageScreen(handler: StorageScreenHandler, playerInv: PlayerInventory, text: Text)
     : HandledScreen<StorageScreenHandler>( handler, playerInv, text ) {
 
@@ -192,8 +196,8 @@ class StorageScreen(handler: StorageScreenHandler, playerInv: PlayerInventory, t
         drawMouseoverTooltip(matrices, mouseX, mouseY)
     }
 
-    override fun isClickOutsideBounds(mouseX: Double, mouseY: Double, left: Int, top: Int,
-                                      button: Int): Boolean {
+    override fun isClickOutsideBounds( mouseX: Double, mouseY: Double, left: Int, top: Int,
+                                       button: Int ): Boolean {
 
         val centerX = ( width - backgroundWidth ) / 2
         val centerY = ( height - backgroundHeight ) / 2
@@ -212,7 +216,6 @@ class StorageScreen(handler: StorageScreenHandler, playerInv: PlayerInventory, t
 
     companion object {
 
-        // Client
         fun register() {
             HandledScreens.register(StorageScreenHandler.type, ::StorageScreen)
         }
