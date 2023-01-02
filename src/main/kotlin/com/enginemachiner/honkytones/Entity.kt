@@ -29,7 +29,7 @@ interface CanBeMuted {
 
     // Default offset
     fun shouldBlacklist( player: PlayerEntity, entity: Entity ): Boolean {
-        return shouldBlacklist( player, entity, Vec3d(0.5, -1.0, 0.5) )
+        return shouldBlacklist( player, entity, Vec3d(0.0, -1.0, 0.0) )
     }
 
     fun shouldBlacklist( player: PlayerEntity, entity: Entity, offset: Vec3d ): Boolean {

@@ -8,6 +8,7 @@ import com.sapher.youtubedl.YoutubeDLException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import net.bramp.ffmpeg.builder.FFmpegBuilder
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
@@ -651,7 +652,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
 
                     val quality = clientConfig["audio_quality"] as Int
 
-                    val builder = FFmpegImpl.builder ?: throw YoutubeDLException("FFmpeg missing!")
+                    val builder = FFmpegImpl.builder ?: throw YoutubeDLException("ffmpeg missing!")
 
                     builder.setInput(convertPath)
                         .addOutput(filePath)
@@ -659,7 +660,9 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
                         .setAudioCodec("libvorbis")
                         .setAudioQuality( quality.toDouble() )
 
-                    val exe = FFmpegImpl.executor ?: throw YoutubeDLException("FFmpeg missing!")
+                    FFmpegImpl.builder = FFmpegBuilder()
+
+                    val exe = FFmpegImpl.executor ?: throw YoutubeDLException("ffmpeg missing!")
                     exe.createJob(builder).run()
 
                     RestrictedFile(convertPath).delete()
