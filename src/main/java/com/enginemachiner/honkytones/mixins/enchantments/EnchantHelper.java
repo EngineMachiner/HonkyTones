@@ -23,13 +23,15 @@ import java.util.List;
 public class EnchantHelper {
 
     /** Allow vanilla enchantments to Instruments on the enchanting table pool */
-    @Verify
+    @Verify(reason = "Vanilla method")
     @Inject(at = @At("RETURN"), method = "getPossibleEntries", cancellable = true)
     private static void honkyTonesAddInstrumentsEnchantPool(
             int power, ItemStack stack, boolean treasureAllowed,
-            CallbackInfoReturnable< List<EnchantmentLevelEntry> > callback) {
+            CallbackInfoReturnable< List<EnchantmentLevelEntry> > callback
+    ) {
 
-        if (!(stack.getItem() instanceof Instrument)) { callback.cancel(); return; }
+        boolean isInstrument = stack.getItem() instanceof Instrument;
+        if ( !isInstrument ) { callback.cancel(); return; }
 
         Multimap<Enchantment, Integer> enchants = Instrument.Companion.getEnchants();
 
@@ -38,7 +40,6 @@ public class EnchantHelper {
         boolean bl = stack.isOf(Items.BOOK);
         Iterator<Enchantment> var6 = Registry.ENCHANTMENT.iterator();
 
-        while(true) {
             while(true) {
                 Enchantment enchantment;
                 boolean b;
@@ -64,7 +65,6 @@ public class EnchantHelper {
                     }
                 }
             }
-        }
 
     }
 

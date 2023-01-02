@@ -6,15 +6,13 @@ import java.io.File
 import java.nio.file.Paths
 import java.util.*
 
-object FileImpl {}
-
-private fun iterateDirs( key: String, formerPath: String, dirs: List<String> ): String? {
+private fun findFilePath( key: String, formerPath: String, dirs: List<String> ): String? {
 
     for ( dir in dirs ) {
 
-        val iterPath = Paths.get( dir, formerPath )
+        val path = Paths.get( dir, formerPath )
 
-        val temp = "$iterPath"
+        var temp = "$path"
             .replace("\$$key\\", "")
             .replace("\$$key/", "")
 
@@ -26,7 +24,8 @@ private fun iterateDirs( key: String, formerPath: String, dirs: List<String> ): 
 
 }
 
-fun getEnvPath(path: String, envKey: String ): String {
+/** Get the environment / system path of. */
+fun getEnvPath( path: String, envKey: String ): String {
 
     if ( path.startsWith( "\$" + envKey ) ) {
 
@@ -35,7 +34,7 @@ fun getEnvPath(path: String, envKey: String ): String {
         // Windows and Linux separators
         for ( separator in listOf( ";", ":" ) ) {
             val dirs = sysPath.split(separator)
-            val envPath = iterateDirs( envKey, path, dirs )
+            val envPath = findFilePath( envKey, path, dirs )
             if ( envPath != null ) return envPath
         }
 
@@ -51,7 +50,7 @@ open class RestrictedFile( s: String ) : File(s) {
 
         val parse = s.replace("/", "\\")
         if ( !parse.startsWith(Base.MOD_NAME + "\\") && parse.isNotEmpty() ) {
-            printMessage( "Access Denied" )
+            printMessage( Translation.get("honkytones.error.denied") )
             setExecutable(false);     setReadable(false);     setWritable(false)
         }
 
@@ -90,15 +89,15 @@ open class ConfigFile( s: String ): RestrictedFile( configPath + s ) {
         private const val configPath = Base.MOD_NAME + "/config/"
     }
 
-    open fun setDefaultProperties() {
+    private fun store() {
         properties.store( outputStream(), "\n HonkyTones main configuration \n" )
     }
 
-    fun updateProperties( map: Map<String, Any> ) {
+    open fun setDefaultProperties() { store() }
 
+    fun updateProperties(map: Map<String, Any> ) {
         for ( entry in map ) properties.setProperty(entry.key, "${entry.value}")
-        properties.store( outputStream(), "\n HonkyTones main configuration \n" )
-
+        store()
     }
 
 }
@@ -113,7 +112,7 @@ class ClientConfigFile(path: String) : ConfigFile(path) {
     override fun setDefaultProperties() {
 
         val default = mapOf(
-            "ffmpegDir" to "", "ytdlPath" to "yt-dlp",
+            "ffmpegDir" to "",       "ytdlPath" to "yt-dlp",
             "mobsParticles" to "true",       "writeDeviceInfo" to "true",
             "playerParticles" to "true",     "keep_downloads" to "false",
             "keep_videos" to "false",       "audio_quality" to "5",

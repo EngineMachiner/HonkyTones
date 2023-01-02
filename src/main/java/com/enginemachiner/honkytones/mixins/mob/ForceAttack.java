@@ -18,11 +18,14 @@ public class ForceAttack {
 
     /** Skip opening a screen to allow attacks using Instruments */
     @Inject(at = @At("HEAD"), method = "interactMob", cancellable = true)
-    private void honkyTonesSkipScreenToAttack(
-            PlayerEntity ply, Hand hand, CallbackInfoReturnable<ActionResult> callback) {
+    private void honkyTonesSkipScreenToAttack( PlayerEntity ply, Hand hand,
+                                               CallbackInfoReturnable<ActionResult> callback ) {
+
         LivingEntity base = ( LivingEntity ) ( Object ) this;
         ActionResult action = ActionResult.PASS;
-        if ( HonkyTonesMixinLogic.forceAttack(ply, hand, base) ) callback.setReturnValue(action);
+
+        if ( HonkyTonesMixinLogic.forceAttack(ply, base) ) callback.setReturnValue(action);
+
     }
 
 }

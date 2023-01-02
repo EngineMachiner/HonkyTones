@@ -76,9 +76,9 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
         val sounds = inst.getSounds(stack, "notes")
         val list = sounds.filterNotNull();      val sound = list.random()
 
-        val nbt = stack.tag!!.getCompound(Base.MOD_NAME)
-        nbt.putString( "projectileSound", sound.id.toString() )
-        Network.sendNbtToServer(nbt)
+        val tag = stack.tag!!.getCompound(Base.MOD_NAME)
+        tag.putString( "projectileSound", sound.id.toString() )
+        Network.sendNbtToServer(tag)
 
     }
 
@@ -92,9 +92,10 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
     private var speedData = mutableListOf( 0.0, 0.1 )
 
     private val randomPattern = (0..4).random()
-    private val patterns =
-        mutableListOf( this::patternOne, this::patternTwo, this::patternThree,
-        this::patternFour, this::patternFive )
+    private val patterns = mutableListOf(
+        this::patternOne, this::patternTwo, this::patternThree,
+        this::patternFour, this::patternFive
+    )
 
     init {
         if ( (0..1).random() == 1 ) speedData[1] = - speedData[1]
@@ -114,34 +115,34 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
         val stack = stack ?: return
         if ( stack.item !is Instrument ) return
 
-        val inst = stack.item as Instrument
+        val instrument = stack.item as Instrument
         val entity = entityHitResult.entity
 
         if ( entity is LivingEntity ) {
 
             Instrument.spawnHitParticles( entity, Particles.NOTE_IMPACT )
 
-            var num = 30 - inst.material.enchantability;        num = (num * 0.5f).toInt()
-            if ( (0..num).random() == 0 ) {
-                entity.addVelocity(0.0, 0.625 * 0.5f, 0.0)
-            }
+            var num = 30 - instrument.material.enchantability
+            num = (num * 0.5f).toInt()
+
+            if ( (0..num).random() == 0 ) entity.addVelocity(0.0, 0.625 * 0.5f, 0.0)
 
         }
 
         damage = 2.0
         super.onEntityHit(entityHitResult)
 
-        val nbt = stack.tag!!.getCompound(Base.MOD_NAME)
+        val tag = stack.tag!!.getCompound(Base.MOD_NAME)
 
         val pitch = (5..15).random() * 0.1f
-        var volume = nbt.getFloat("Volume")
+        var volume = tag.getFloat("Volume")
         if (volume == 0f) volume = 0.25f
 
         val players = world.players
         val id = Identifier( Base.MOD_NAME, "projectile_sound" )
         val buf = PacketByteBufs.create()
 
-        buf.writeString( nbt.getString("projectileSound") )
+        buf.writeString( tag.getString("projectileSound") )
         buf.writeFloat( volume );   buf.writeFloat( pitch )
         buf.writeBlockPos(blockPos)
 
@@ -217,14 +218,19 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
 
                 val id = buf.readString();      val volume = buf.readFloat()
                 val pitch = buf.readFloat();    val pos = buf.readBlockPos()
+
                 client.send {
+
                     val sound = CustomSoundInstance(id)
+
                     client.soundManager.play(sound)
                     sound.volume = volume * 0.5f;      sound.pitch = pitch
                     sound.setPos(pos);      sound.setPlayState()
+
                     Timer().schedule( (0..3).random() * 150L ) {
                         sound.setStopState(true)
                     }
+
                 }
 
             }
@@ -232,13 +238,17 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
         }
 
         fun register() {
+
             val typeBuilt = FabricEntityTypeBuilder.create(SpawnGroup.MISC, ::NoteProjectileEntity)
                 .dimensions( EntityDimensions.fixed(0.25f, 0.25f) )
                 .trackRangeBlocks(4).trackedUpdateRate(10)
                 .build()
+
             type = Registry.register( Registry.ENTITY_TYPE, id, typeBuilt )
+
         }
 
+        @Environment(EnvType.CLIENT)
         fun clientRegister() { EntityRendererRegistry.INSTANCE.register(type) { Renderer(it) } }
 
         @Environment(EnvType.CLIENT)
@@ -248,7 +258,7 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
             override fun getTexture( entity: NoteProjectileEntity? ): Identifier {
                 var s = ""
                 if ( entity!!.randomTexture ) s = "-2"
-                return Identifier(Base.MOD_NAME, "textures/particle/note/projectile$s.png")
+                return Identifier( Base.MOD_NAME, "textures/particle/note/projectile$s.png" )
             }
 
             override fun render(

@@ -1,9 +1,6 @@
 package com.enginemachiner.honkytones.items.console
 
-import com.enginemachiner.honkytones.Base
-import com.enginemachiner.honkytones.createDefaultItemSettings
-import com.enginemachiner.honkytones.sendStatus
-import com.enginemachiner.honkytones.trackHandOnNbt
+import com.enginemachiner.honkytones.*
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
@@ -33,29 +30,29 @@ class DigitalConsole : Item( createDefaultItemSettings().maxDamage(6) ) {
 
     }
 
-    override fun inventoryTick(stack: ItemStack?, world: World?, entity: Entity?,
-                               slot: Int, selected: Boolean) {
+    override fun inventoryTick( stack: ItemStack?, world: World?, entity: Entity?,
+                                slot: Int, selected: Boolean ) {
 
         if ( !world!!.isClient ) {
 
-            var nbt = stack!!.orCreateTag
+            var tag = stack!!.orCreateTag
 
-            if ( !nbt.contains( Base.MOD_NAME ) ) loadNbtData(nbt)
+            if ( !tag.contains( Base.MOD_NAME ) ) loadNbtData(tag)
 
-            nbt = nbt.getCompound( Base.MOD_NAME )
+            tag = tag.getCompound( Base.MOD_NAME )
 
-            trackHandOnNbt(stack, entity!!)
+            trackHandOnNbt( stack, entity!! )
 
-            if ( nbt.contains("shouldDamage") && entity is PlayerEntity ) {
+            if ( tag.contains("shouldDamage") && entity is PlayerEntity ) {
                 stack.damage( 1, entity ) { sendStatus(entity, stack) }
-                nbt.remove("shouldDamage")
+                tag.remove("shouldDamage")
             }
 
         }
 
     }
 
-    private fun loadNbtData(nbt: NbtCompound) {
+    private fun loadNbtData( nbt: NbtCompound ) {
 
         val innerNbt = NbtCompound()
         innerNbt.putInt("Octave", 4)
@@ -65,10 +62,13 @@ class DigitalConsole : Item( createDefaultItemSettings().maxDamage(6) ) {
     }
 
     fun createMenu(stack: ItemStack ): NamedScreenHandlerFactory {
+
+        val title = Translation.get("item.honkytones.digitalconsole")
         return SimpleNamedScreenHandlerFactory( {
                 syncID: Int, inv: PlayerInventory, _: PlayerEntity ->
             DigitalConsoleScreenHandler( stack, syncID, inv )
-        }, Text.of("§fDigital Console") )
+        }, Text.of("§f$title") )
+
     }
 
 }

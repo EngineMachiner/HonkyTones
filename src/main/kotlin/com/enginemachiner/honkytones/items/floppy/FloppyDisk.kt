@@ -38,55 +38,55 @@ class FloppyDisk : Item( createDefaultItemSettings().maxDamage( seed ) ) {
 
             if ( !world!!.isClient ) {
 
-                var nbt = stack!!.orCreateTag
-                if ( !nbt.contains(Base.MOD_NAME) ) {
+                var tag = stack!!.orCreateTag
+                if ( !tag.contains(Base.MOD_NAME) ) {
                     resetSeed();   loadNbtData(stack, entity)
                 }
 
-                nbt = nbt.getCompound(Base.MOD_NAME)
+                tag = tag.getCompound(Base.MOD_NAME)
 
                 trackHandOnNbt(stack, entity)
-                trackPlayerOnNbt(nbt, entity, world)
+                trackPlayerOnNbt(tag, entity, world)
 
-                if ( nbt.contains("isDone") && entity is LivingEntity ) {
-                    nbt.remove("isDone")
+                if ( tag.contains("isDone") && entity is LivingEntity ) {
+                    tag.remove("isDone")
                     stack.damage( 5, entity ) { sendStatus(it, stack) }
                 }
 
             } else {
 
-                var nbt = stack!!.orCreateTag
-                nbt = nbt.getCompound(Base.MOD_NAME)
+                var tag = stack!!.orCreateTag
+                tag = tag.getCompound(Base.MOD_NAME)
 
                 // Name sync
-                if ( nbt.contains("queryInterrupted") || nbt.contains("yt-dlp") ) {
+                if ( tag.contains("queryInterrupted") || tag.contains("yt-dlp") ) {
 
                     //println( "yt-dlp " + nbt.contains("yt-dlp") )
                     //println( "queryInterrupted " + nbt.contains("queryInterrupted") )
 
-                    if ( nbt.contains("yt-dlp") ) nbt.remove("yt-dlp")
-                    if ( nbt.contains("queryInterrupted") ) nbt.remove("queryInterrupted")
+                    if ( tag.contains("yt-dlp") ) tag.remove("yt-dlp")
+                    if ( tag.contains("queryInterrupted") ) tag.remove("queryInterrupted")
 
-                    nbt.putBoolean("onQuery", true)
-                    Network.sendNbtToServer(nbt)
+                    tag.putBoolean("onQuery", true)
+                    Network.sendNbtToServer(tag)
 
-                    val handIndex = nbt.getInt("hand")
+                    val handIndex = tag.getInt("hand")
                     coroutine.launch {
 
                         Thread.currentThread().name = "FloppyQuery thread"
 
-                        val path = nbt.getString("path")
+                        val path = tag.getString("path")
                         val info = getVideoInfo(path) ?: return@launch
 
                         entity as PlayerEntity
                         if ( !entity.inventory.contains(stack) ) return@launch
                         stack.setCustomName( Text.of( info.title ) )
-                        writeDisplayNameOnNbt( stack, nbt )
+                        writeDisplayOnNbt( stack, tag )
 
                         // Forced Swap
                         var id = Identifier(Base.MOD_NAME, "swap_floppy")
                         val buf = PacketByteBufs.create()
-                        buf.writeInt( nbt.getInt("id") )
+                        buf.writeInt( tag.getInt("id") )
                         buf.writeInt(handIndex)
                         ClientPlayNetworking.send( id, buf )
 
@@ -96,8 +96,8 @@ class FloppyDisk : Item( createDefaultItemSettings().maxDamage( seed ) ) {
                             ClientPlayNetworking.send( id, PacketByteBufs.empty() )
                         }
 
-                        nbt.remove("onQuery")
-                        Network.sendNbtToServer(nbt)
+                        tag.remove("onQuery")
+                        Network.sendNbtToServer(tag)
 
                     }
 
@@ -128,7 +128,8 @@ class FloppyDisk : Item( createDefaultItemSettings().maxDamage( seed ) ) {
         private val coroutine = CoroutineScope( Dispatchers.IO )
 
         fun fileNotFoundMsg(fileName: String): String {
-            return "$fileName was not found or is not a midi file!"
+            val missingMessage = Translation.get("honkytones.error.midi-missing")
+            return "$fileName $missingMessage"
         }
 
         private fun resetSeed() { seed = (2..3).random() }
@@ -149,14 +150,14 @@ class FloppyDisk : Item( createDefaultItemSettings().maxDamage( seed ) ) {
                     val hand = hands[handIndex]
                     val currentStack = player.getStackInHand(hand)
 
-                    var floppy: ItemStack? = null;
+                    var floppy: ItemStack? = null
                     val inv = player.inventory
 
                     var slot = 0
                     for ( i in 0 until inv.size() ) {
                         val stack = inv.getStack(i)
-                        val nbt = stack.orCreateTag.getCompound( Base.MOD_NAME )
-                        if ( nbt.getInt("id") == hashId ) {
+                        val tag = stack.orCreateTag.getCompound( Base.MOD_NAME )
+                        if ( tag.getInt("id") == hashId ) {
                             slot = i;   floppy = stack
                         }
                     }

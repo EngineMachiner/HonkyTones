@@ -1,6 +1,8 @@
 package com.enginemachiner.honkytones.items.instruments
 
 import com.enginemachiner.honkytones.*
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.SliderWidget
@@ -11,30 +13,11 @@ import net.minecraft.nbt.NbtCompound
 import net.minecraft.text.Text
 import java.awt.Color
 import javax.sound.midi.MidiSystem
-import kotlin.math.roundToInt
-
-private class CustomSlider(
-    x: Int, y: Int, w: Int, h: Int,
-    private val name: String, float: Float,
-) : SliderWidget(x, y, w, h, null, float.toDouble()) {
-
-    init {
-        val int = (value * 100).roundToInt()
-        message = Text.of("$name: $int%")
-    }
-
-    override fun updateMessage() {
-        val int = (value * 100).roundToInt()
-        message = Text.of("$name: $int%")
-    }
-
-    override fun applyValue() {}
-
-}
 
 // Client screen
+@Environment(EnvType.CLIENT)
 class InstrumentsScreen( private val stack: ItemStack )
-    : Screen( Text.of( title + stack.name.asString() ) ) {
+    : Screen( Text.of("") ) {
 
     private var sequenceField: TextFieldWidget? = null
     private var channelField: ChannelTextFieldWidget? = null
@@ -47,20 +30,20 @@ class InstrumentsScreen( private val stack: ItemStack )
 
     private var volumeSlider: SliderWidget? = null
 
-    private val inst = stack.item as Instrument
-    private var nbt = stack.tag!!.getCompound(Base.MOD_NAME)
+    private val instrument = stack.item as Instrument
+    private var tag = stack.tag!!.getCompound(Base.MOD_NAME)
     private val devices = MidiSystem.getMidiDeviceInfo()
     private val devicesNames = mutableSetOf<String>()
     private val actions = mutableSetOf("Melee", "Push")
-    private val defName = inst.getName().string
+    private val instrumentName = instrument.getName().string
 
     // Former stored values
-    private var sequence = nbt.getString("Sequence")
-    private var action = nbt.getString("Action")
-    private var name = nbt.getString("MIDI Device")
-    private var channel = nbt.getInt("MIDI Channel")
-    private var volume = nbt.getFloat("Volume")
-    private var shouldCenter = nbt.getBoolean("Center Notes")
+    private var sequence = tag.getString("Sequence")
+    private var action = tag.getString("Action")
+    private var deviceName = tag.getString("MIDI Device")
+    private var channel = tag.getInt("MIDI Channel")
+    private var volume = tag.getFloat("Volume")
+    private var shouldCenter = tag.getBoolean("Center Notes")
 
     override fun isPauseScreen(): Boolean { return false }
 
@@ -70,34 +53,34 @@ class InstrumentsScreen( private val stack: ItemStack )
         val vol = v.filter { it.isDigit() }.toFloat()
         val channel = channelField!!.text
 
-        nbt.putString("Sequence", sequenceField!!.text)
-        nbt.putString("TempSequence", sequenceField!!.text)
-        nbt.putString("Action", action)
-        nbt.putString("MIDI Device", name)
-        nbt.putInt( "MIDI Channel", channel.toInt() )
-        nbt.putFloat("Volume", vol * 0.01f)
-        nbt.putBoolean("Center Notes", shouldCenter)
+        tag.putString("Sequence", sequenceField!!.text)
+        tag.putString("TempSequence", sequenceField!!.text)
+        tag.putString("Action", action)
+        tag.putString("MIDI Device", deviceName)
+        tag.putInt( "MIDI Channel", channel.toInt() )
+        tag.putFloat("Volume", vol * 0.01f)
+        tag.putBoolean("Center Notes", shouldCenter)
 
         // Clear stack custom name when command enabled
         // and clear button is clicked 3 times
         if ( clientConfig["writeDeviceInfo"] as Boolean ) {
-            val s = "$defName - $name - $channel"
-            stack.setCustomName(Text.of(s))
+            val s = "$instrumentName - $deviceName - $channel"
+            stack.setCustomName( Text.of(s) )
         }
 
-        if ( clearButtonCounter == 3 ) nbt.putBoolean("removeName", true)
+        if ( clearButtonCounter == 3 ) tag.putBoolean("removeName", true)
 
-        writeDisplayNameOnNbt( stack, nbt )
+        writeDisplayOnNbt( stack, tag )
 
         // Send nbt to server
-        Network.sendNbtToServer(nbt)
+        Network.sendNbtToServer(tag)
         super.onClose()
 
     }
 
     override fun init() {
 
-        if ( inst is Trombone ) actions.add("Thrust")
+        if ( instrument is Trombone ) actions.add("Thrust")
         for ( enchantNbt in stack.enchantments ) {
             val nbt = enchantNbt as NbtCompound
             if ( nbt.getString("id") == Base.MOD_NAME + ":ranged" ) {
@@ -109,24 +92,11 @@ class InstrumentsScreen( private val stack: ItemStack )
         for ( device in devices ) { devicesNames.add(device.name) }
 
         // Based dimensions
-        val x = (width * 0.5 - width * 0.75 * 0.5).toInt()
-        val y = (height * 0.08 * 1.5).toInt()
-        val w = (width * 0.75).toInt()
-        val h = (240 * 0.08).toInt()
-        val w2 = (w * 0.35).toInt()
-
-        // Button template creation function
-        fun createButton(
-            x2: Float, y2: Float, w3:
-            Float, func: (butt: ButtonWidget) -> Unit
-        ): ButtonWidget {
-            return ButtonWidget(
-                (x + w * 0.5 + w2 * 0.05 + x2).toInt(),
-                (y + h * 1.5 + y2).toInt(),
-                (w2 + w3).toInt(),     (h * 1.1).toInt(),
-                Text.of("")
-            ) { func(it) }
-        }
+        val x = (width * 0.5f - width * 0.75f * 0.5f).toInt()
+        val y = (height * 0.08f * 1.5f).toInt()
+        val w = (width * 0.75f).toInt()
+        val h = (240 * 0.08f).toInt()
+        val w2 = (w * 0.35f).toInt()
 
         // Sequence field
         sequenceField = TextFieldWidget( textRenderer, x, y, w, h, Text.of(sequence) )
@@ -134,32 +104,40 @@ class InstrumentsScreen( private val stack: ItemStack )
         sequenceField!!.text = sequence
         addSelectableChild(sequenceField)
 
-
-        // Clear button
-        clearButton = createButton( 0f, 0f, 0f ) {
+        val clearTitle = Translation.get("item.honkytones.gui.clear")
+        clearButton = createButton( x, y, 0f, 0f, w, h, w2, 0f ) {
             sequenceField!!.text = "";      clearButtonCounter++
         }
-        clearButton!!.message = Text.of("Clear")
+        clearButton!!.message = Text.of(clearTitle)
         addSelectableChild(clearButton)
 
 
-        // Action button
-        actionButton = createButton( - w2.toFloat(), 0f, 0f ) {
-            action = next(action, actions)
-            it.message = Text.of("Action: $action")
+        val actionTitle = Translation.get("item.honkytones.gui.action")
+        val actionValues = mapOf(
+            "Melee" to Translation.get("item.honkytones.gui.melee"),
+            "Push" to Translation.get("item.honkytones.gui.push"),
+            "Thrust" to Translation.get("item.honkytones.gui.thrust"),
+            "Ranged" to Translation.get("item.honkytones.gui.ranged")
+        )
+        var translation = actionValues[action]
+        actionButton = createButton( x, y, - w2.toFloat(), 0f, w, h, w2, 0f ) {
+            action = getValueAfterValue(action, actions)
+            translation = actionValues[action]
+            it.message = Text.of("$actionTitle: $translation")
         }
-        actionButton!!.message = Text.of("Action: $action")
+        actionButton!!.message = Text.of("$actionTitle: $translation")
         addSelectableChild(actionButton)
 
 
         // MIDI device button
         val charLim = ( w2 * 0.125f ).toInt()
-        deviceButton = createButton( - w2.toFloat(), h * 1.25f, 0f ) {
+        val deviceTitle = Translation.get("item.honkytones.gui.device")
+        deviceButton = createButton( x, y, - w2.toFloat(), h * 1.25f, w, h, w2, 0f ) {
             resetTween( tweenStack["deviceName"]!! )
-            name = next(name, devicesNames)
-            it.message = Text.of( stringCut( "Device: $name", charLim ) )
+            deviceName = getValueAfterValue(deviceName, devicesNames)
+            it.message = Text.of( stringCut( "$deviceTitle: $deviceName", charLim ) )
         }
-        deviceButton!!.message = Text.of( stringCut( "Device: $name", charLim ) )
+        deviceButton!!.message = Text.of( stringCut( "$deviceTitle: $deviceName", charLim ) )
         addSelectableChild(deviceButton)
 
 
@@ -175,22 +153,28 @@ class InstrumentsScreen( private val stack: ItemStack )
         addSelectableChild(channelField)
 
 
+        val volumeTitle = Translation.get("item.honkytones.gui.volume")
         volumeSlider = CustomSlider(
             (x + w * 0.5 + w2 * 0.05 - w2 * 0.5f).toInt(),
             (y + h * 1.5 + h * 1.25f * 2f).toInt(),
             w2, (h * 1.1f).toInt(),
-            "Volume", volume
+            volumeTitle, volume
         )
         addSelectableChild(volumeSlider)
 
 
         // Find missing notes the nearest range note
-        val switch = mutableMapOf( true to "On", false to "Off")
-        centerNotesButton = createButton( - w2 * 0.5f, h * 1.25f * 3f, 0f ) {
+        val on = Translation.get("honkytones.gui.on")
+        val off = Translation.get("honkytones.gui.off")
+        val centerTitle = Translation.get("item.honkytones.gui.center")
+
+        val switch = mutableMapOf( true to on, false to off )
+
+        centerNotesButton = createButton( x, y, - w2 * 0.5f, h * 1.25f * 3f, w, h, w2, 0f ) {
             shouldCenter = !shouldCenter
-            it.message = Text.of("Center notes: ${switch[shouldCenter]}")
+            it.message = Text.of("$centerTitle: ${ switch[shouldCenter] }")
         }
-        centerNotesButton!!.message = Text.of("Center notes: ${switch[shouldCenter]}")
+        centerNotesButton!!.message = Text.of("$centerTitle: ${ switch[shouldCenter] }")
         addSelectableChild(centerNotesButton)
 
     }
@@ -205,22 +189,21 @@ class InstrumentsScreen( private val stack: ItemStack )
         channelField!!.render(matrices, mouseX, mouseY, delta)
         volumeSlider!!.render(matrices, mouseX, mouseY, delta)
         clearButton!!.render(matrices, mouseX, mouseY, delta)
-        if (inst.name != "drumset") {
-            centerNotesButton!!.render(matrices, mouseX, mouseY, delta)
-        }
+
+        if ( instrument.name != "drumset" ) centerNotesButton!!.render(matrices, mouseX, mouseY, delta)
 
         val b = sequenceField!!.text.isNotEmpty() && clearButtonCounter > 0
         if (b) clearButtonCounter = 0
 
         // Subtitles
         textRenderer.draw(
-            matrices, "Sequence:",
+            matrices, "$sequenceTitle:",
             sequenceField!!.x.toFloat(), sequenceField!!.y.toFloat() - 12,
             0xFFFFFF
         )
 
         textRenderer.draw(
-            matrices, "Channel: ",
+            matrices, "$channelTitle: ",
             channelField!!.x.toFloat() - 45, channelField!!.y.toFloat() + 5,
             0xFFFFFF
         )
@@ -228,22 +211,26 @@ class InstrumentsScreen( private val stack: ItemStack )
         // Show device name on change
         val tween = tweenStack["deviceName"]!!
         if ( tween[1] < 400 ) {
+
             if (tween[0] < 255 && tween[1] > 200) tween[0]++
-            val s = name; tween[1]++
+
+            val string = deviceName; tween[1]++
             val color = Color( 255 - tween[0], 255 - tween[0], 255 - tween[0] )
+
+            val x = ( width * 0.5f - string.length * 2.5f )
             textRenderer.drawWithShadow(
-                matrices, s,
-                ( width * 0.5f - s.length * 2.5f ), height - 60f,
+                matrices, string,
+                x, height - 60f,
                 color.rgb
             )
+
         }
 
     }
 
     companion object {
-
-        private const val title = "\n Instrument Options \n"
-
+        val sequenceTitle = Translation.get("item.honkytones.gui.sequence")
+        val channelTitle = Translation.get("item.honkytones.gui.channel")
     }
 
     // 1st -> incremental, 2nd -> frame-time
@@ -251,16 +238,6 @@ class InstrumentsScreen( private val stack: ItemStack )
 
     private fun resetTween(list: MutableList<Int>) {
         for ( i in 0 until list.size) { list[i] = 0 }
-    }
-
-    private fun stringCut(s: String, lim: Int): String {
-        if (s.length > lim) { return s.substring( 0, lim ) + "..." }
-        return s
-    }
-
-    private fun <T: Any> next(value: T, col: Collection<T>): T {
-        var i = col.indexOf(value) + 1;   if (i > col.size - 1) { i = 0 }
-        return col.elementAt(i)
     }
 
 }

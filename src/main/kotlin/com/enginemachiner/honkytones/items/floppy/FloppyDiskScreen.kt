@@ -1,8 +1,8 @@
 package com.enginemachiner.honkytones.items.floppy
 
 import com.enginemachiner.honkytones.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.TextFieldWidget
@@ -11,15 +11,16 @@ import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.item.ItemStack
 import net.minecraft.text.Text
 
+@Environment(EnvType.CLIENT)
 class FloppyDiskScreen( private val stack: ItemStack )
-    : Screen( Text.of( title ) ) {
+    : Screen( Text.of("") ) {
 
     private var searchField: TextFieldWidget? = null
     private var copyButton: ButtonWidget? = null
     private var clearButton: ButtonWidget? = null
 
-    private val nbt = stack.tag!!.getCompound(Base.MOD_NAME)
-    private var path = nbt.getString("path")
+    private val tag = stack.tag!!.getCompound(Base.MOD_NAME)
+    private var path = tag.getString("path")
     private val lastPath = path
 
     override fun isPauseScreen(): Boolean { return false }
@@ -34,7 +35,7 @@ class FloppyDiskScreen( private val stack: ItemStack )
 
             if ( Network.isValidUrl(path) ) {
 
-                nbt.putBoolean("yt-dlp", true)
+                tag.putBoolean("yt-dlp", true)
                 stack.setCustomName( Text.of( path ) )
                 // Check FloppyDisk inventoryTick()
 
@@ -42,8 +43,8 @@ class FloppyDiskScreen( private val stack: ItemStack )
 
                 if ( !hasMidiSystemSequencer() ) { super.onClose(); return }
 
-                nbt.remove("yt-dlp")
-                nbt.remove("queryInterrupted")
+                tag.remove("yt-dlp")
+                tag.remove("queryInterrupted")
 
                 var prePath = path
                 if ( !path.startsWith(Base.MOD_NAME) ) path = Base.MOD_NAME + "/$path"
@@ -54,23 +55,28 @@ class FloppyDiskScreen( private val stack: ItemStack )
 
             }
 
-        } else nbt.putBoolean("removeName", true)
+        } else tag.putBoolean("removeName", true)
 
-        val times = nbt.getInt("timesWritten")
-        nbt.putInt( "timesWritten", times + 1 )
+        val times = tag.getInt("timesWritten")
+        tag.putInt( "timesWritten", times + 1 )
 
-        if ( times + 1 > nbt.getInt("seed") ) nbt.putBoolean( "isDone", true )
+        if ( times + 1 > tag.getInt("seed") ) tag.putBoolean( "isDone", true )
 
-        writeDisplayNameOnNbt( stack, nbt )
+        writeDisplayOnNbt( stack, tag )
 
-        nbt.putString("path", path)
-        Network.sendNbtToServer(nbt)
+        tag.putString("path", path)
+        Network.sendNbtToServer(tag)
 
         super.onClose()
 
     }
 
     override fun init() {
+
+        screenTitle = Translation.get("item.honkytones.floppydisk.title")
+        pathTitle = Translation.get("item.honkytones.gui.path")
+        copyTitle = Translation.get("item.honkytones.gui.copy")
+        clearTitle = Translation.get("item.honkytones.gui.clear")
 
         val window = client!!.window
 
@@ -81,31 +87,19 @@ class FloppyDiskScreen( private val stack: ItemStack )
         val h = (240 * 0.08).toInt()
         val w2 = (w * 0.35).toInt()
 
-        fun createButton(
-            x2: Float, y2: Float, w3:
-            Float, func: (butt: ButtonWidget) -> Unit
-        ): ButtonWidget {
-            return ButtonWidget(
-                (x + w * 0.5 + w2 * 0.05 + x2).toInt(),
-                (y + h * 1.5 + y2).toInt(),
-                (w2 + w3).toInt(),     (h * 1.1).toInt(),
-                Text.of("")
-            ) { func(it) }
-        }
-
         searchField = TextFieldWidget( textRenderer, x, y, w, h, Text.of(path) )
         searchField!!.setMaxLength(75 * 2)
         searchField!!.text = path
         addSelectableChild(searchField)
 
-        copyButton = createButton( -130f, 0f, 0f ) {
+        copyButton = createButton( x, y, -130f, 0f, w, h, w2, 0f ) {
             clipboard.setClipboard( window.handle, searchField!!.text )
         }
-        copyButton!!.message = Text.of("Copy to clipboard")
+        copyButton!!.message = Text.of(copyTitle)
         addSelectableChild(copyButton)
 
-        clearButton = createButton( 0f, 0f, 0f ) { searchField!!.text = "" }
-        clearButton!!.message = Text.of("Clear")
+        clearButton = createButton( x, y, 0f, 0f, w, h, w2, 0f ) { searchField!!.text = "" }
+        clearButton!!.message = Text.of(clearTitle)
         addSelectableChild(clearButton)
 
     }
@@ -119,7 +113,7 @@ class FloppyDiskScreen( private val stack: ItemStack )
         copyButton!!.render(matrices, mouseX, mouseY, delta)
         clearButton!!.render(matrices, mouseX, mouseY, delta)
 
-        var s = Companion.title
+        var s = screenTitle
         textRenderer.draw( matrices, s, width * 0.5f - s.length * 0.5f * 5.9f,
             15f, 0xFFFFFF
         )
@@ -130,7 +124,7 @@ class FloppyDiskScreen( private val stack: ItemStack )
         )
 
         textRenderer.draw(
-            matrices, "Path:",
+            matrices, "$pathTitle:",
             searchField!!.x.toFloat(), searchField!!.y.toFloat() - 12,
             0xFFFFFF
         )
@@ -138,8 +132,10 @@ class FloppyDiskScreen( private val stack: ItemStack )
     }
 
     companion object {
-        private val coroutine = CoroutineScope( Dispatchers.IO )
-        private const val title = "Floppy Disk Options"
+        private var screenTitle = ""
+        private var pathTitle = ""
+        private var copyTitle = ""
+        private var clearTitle = ""
         private val clipboard = Clipboard()
     }
 

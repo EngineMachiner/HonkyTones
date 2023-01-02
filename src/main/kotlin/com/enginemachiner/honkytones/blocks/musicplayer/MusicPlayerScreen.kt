@@ -1,17 +1,16 @@
 package com.enginemachiner.honkytones.blocks.musicplayer
 
-import com.enginemachiner.honkytones.Base
-import com.enginemachiner.honkytones.Network
-import com.enginemachiner.honkytones.SpecificItemToSlotScreenHandler
-import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerEntity.Companion.invSize
+import com.enginemachiner.honkytones.*
+import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerEntity.Companion.inventorySize
 import com.enginemachiner.honkytones.items.floppy.FloppyDisk
 import com.enginemachiner.honkytones.items.instruments.Instrument
-import com.enginemachiner.honkytones.printMessage
 import com.mojang.blaze3d.systems.RenderSystem
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.client.screenhandler.v1.ScreenRegistry
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.fabricmc.fabric.api.screenhandler.v1.ScreenHandlerRegistry
+import net.fabricmc.fabric.impl.screenhandler.ExtendedScreenHandlerType
 import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.SliderWidget
@@ -29,18 +28,20 @@ import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
 import kotlin.math.roundToInt
 
-class MusicPlayerScreenHandler( syncID: Int, val playerInv: PlayerInventory, val inv: Inventory )
-    : SpecificItemToSlotScreenHandler( type, syncID ) {
+class MusicPlayerScreenHandler(
+    syncID: Int, val playerInv: PlayerInventory, val inv: Inventory
+) : SpecialSlotScreenHandler( type, syncID ) {
 
     private val player = playerInv.player
     val world: World = player.world
     var pos: BlockPos? = null
 
     constructor( syncID: Int, playerInv: PlayerInventory, buf: PacketByteBuf )
-            : this( syncID, playerInv, SimpleInventory(invSize) ) {
+            : this( syncID, playerInv, SimpleInventory(inventorySize) ) {
         pos = buf.readBlockPos()
     }
 
@@ -57,18 +58,21 @@ class MusicPlayerScreenHandler( syncID: Int, val playerInv: PlayerInventory, val
 
         // Player Inventory
         for ( i in 0 .. 2 ) { for ( j in 0 .. 8 ) {
-            val index = j + i * 9 + 9
-            addSlot( Slot( playerInv, index, w * j + x, w * ( i + 6 ) - y + 13 ) )
+            val index = j + i * 9 + 9;      val x = w * j + x
+            val y = w * ( i + 6 ) - y + 13
+            addSlot( Slot( playerInv, index, x, y ) )
         } }
 
         for ( j in 0 .. 8 ) {
-            addSlot( Slot( playerInv, j, w * j + x, w * 10 - y - 1 ) )
+            val x = w * j + x;      val y = w * 10 - y - 1
+            addSlot( Slot( playerInv, j, x, y ) )
         }
 
-        update()
+        updateData()
 
     }
 
+    @Verify("More UI actions")
     override fun transferSlot( player: PlayerEntity?, index: Int ): ItemStack {
 
         var currentStack = ItemStack.EMPTY;    val currentSlot = slots[index]
@@ -97,8 +101,8 @@ class MusicPlayerScreenHandler( syncID: Int, val playerInv: PlayerInventory, val
 
                 }
 
-                printIfEmptyFloppy(slots[16].stack, world, 16)
-                update();       return ItemStack.EMPTY
+                messageOnEmptyFloppy( slots[16].stack, world, 16 )
+                updateData();       return ItemStack.EMPTY
 
             }
 
@@ -111,7 +115,7 @@ class MusicPlayerScreenHandler( syncID: Int, val playerInv: PlayerInventory, val
                     && !insertItem(stack, inv.size(), slots.size, true)
                     || !insertItem(stack, 0, inv.size(), false)
 
-            update()
+            updateData()
 
             if ( isNotAllowed ) return ItemStack.EMPTY
 
@@ -125,7 +129,7 @@ class MusicPlayerScreenHandler( syncID: Int, val playerInv: PlayerInventory, val
     }
 
     override fun onSlotClick( slotIndex: Int, button: Int, actionType: SlotActionType?,
-                             player: PlayerEntity? ) {
+                              player: PlayerEntity? ) {
 
         // Should add instruments and floppy disk only but can move inventory freely
 
@@ -143,10 +147,10 @@ class MusicPlayerScreenHandler( syncID: Int, val playerInv: PlayerInventory, val
         // Only allow MIDI Channel instruments slots and Floppy Disk slot
         val b1 = isAllowed(slotItem, cursorItem, Instrument::class, slotIndex != 16)
         val b2 = isAllowed(slotItem, cursorItem, FloppyDisk::class, slotIndex >= 16)
-        val b3 = b1 || b2;
+        val b3 = b1 || b2
 
+        // Can move all other items in PlayerInventory
         if ( !b3 ) {
-            // Can move all other items in PlayerInventory
             val b = slotIndex > 16
             if ( actionType == SlotActionType.PICKUP && b ) {
                 super.onSlotClick(slotIndex, button, actionType, player)
@@ -154,12 +158,17 @@ class MusicPlayerScreenHandler( syncID: Int, val playerInv: PlayerInventory, val
             return
         }
 
-        printIfEmptyFloppy(cursorStack, world, slotIndex)
+        messageOnEmptyFloppy(cursorStack, world, slotIndex)
 
         super.onSlotClick(slotIndex, button, actionType, player)
 
+        val isPickUp = actionType == SlotActionType.PICKUP
+
         // Sync clients on changes
-        if ( slotIndex <= 16 && actionType == SlotActionType.PICKUP ) update()
+        if ( slotIndex <= 16 && isPickUp ) updateData()
+
+        // When the player picks up the floppy
+        if ( !cursorStack.isEmpty && slotIndex == 16 && isPickUp ) updateData(true)
 
     }
 
@@ -171,29 +180,47 @@ class MusicPlayerScreenHandler( syncID: Int, val playerInv: PlayerInventory, val
         lateinit var type: ScreenHandlerType<MusicPlayerScreenHandler>
 
         fun register() {
-            type = ScreenHandlerRegistry.registerExtended(id, ::MusicPlayerScreenHandler)
+
+            type = ExtendedScreenHandlerType {
+                    syncId: Int, inventory: PlayerInventory, buf: PacketByteBuf ->
+                MusicPlayerScreenHandler(syncId, inventory, buf)
+            }
+
+            Registry.register( Registry.SCREEN_HANDLER, id, type )
+
         }
 
     }
 
-    private fun printIfEmptyFloppy( stack: ItemStack, world: World, index: Int ) {
-        val nbt = stack.orCreateTag.getCompound(Base.MOD_NAME)
-        if ( stack.item is FloppyDisk && index == 16
-            && nbt.getString("path").isEmpty() && world.isClient ) {
-            printMessage("Floppy Disk is empty!")
+    private fun messageOnEmptyFloppy( stack: ItemStack, world: World, index: Int ) {
+
+        val tag = stack.orCreateTag.getCompound(Base.MOD_NAME)
+
+        var b = stack.item is FloppyDisk && index == 16
+        b = b && tag.getString("path").isBlank() && world.isClient
+
+        if (b) {
+            val s = Translation.get("honkytones.message.empty")
+            printMessage(s)
         }
+
     }
 
-    private fun update() {
+    private fun updateData() { updateData(false) }
+
+    private fun updateData( checkCursor: Boolean ) {
 
         if ( !world.isClient ) {
 
-            val entity = inv as MusicPlayerEntity;      entity.networkOnClients()
+            val entity = inv as MusicPlayerEntity
+            var floppyStack = entity.getStack(16)
+            if (checkCursor) floppyStack = cursorStack
+            entity.networkOnClients(floppyStack)
 
-            var nbt = entity.getStack(16).tag ?: return
-            nbt = nbt.getCompound(Base.MOD_NAME)
+            var tag = entity.getStack(16).tag ?: return
+            tag = tag.getCompound(Base.MOD_NAME)
 
-            entity.currentPath = nbt.getString("path")
+            entity.currentPath = tag.getString("path")
             entity.isStream = Network.isValidUrl(entity.currentPath)
 
         }
@@ -202,79 +229,76 @@ class MusicPlayerScreenHandler( syncID: Int, val playerInv: PlayerInventory, val
 
 }
 
-class MusicPlayerScreen( handler: MusicPlayerScreenHandler,
-                         playerInv: PlayerInventory, text: Text
+@Environment(EnvType.CLIENT)
+class MusicPlayerScreen(
+    handler: MusicPlayerScreenHandler, playerInv: PlayerInventory, text: Text
 ) : HandledScreen<MusicPlayerScreenHandler>( handler, playerInv, text ) {
 
     private val world = handler.world
     private val TEXTURE = Identifier("textures/gui/container/generic_54.png")
     private var optionsWidget = MusicPlayerWidget( 30, 15, 100, 20, handler )
-    private var trustButton: ButtonWidget? = null
+    private var syncButton: ButtonWidget? = null
 
     init { backgroundHeight -= 10;     titleX += 55;     playerInventoryTitleY -= 10 }
 
     // This is run each time the window resizes
     override fun init() {
 
+        rateTitle = Translation.get("block.honkytones.musicplayer.rate")
+        volumeTitle = Translation.get("item.honkytones.gui.volume")
+
         addSelectableChild(optionsWidget)
 
         // Based dimensions
-        val x = (width * 0.5 - width * 0.75 * 0.5).toInt()
-        val y = (height * 0.08 * 1.5).toInt()
-        val w = (width * 0.75).toInt()
-        val h = (240 * 0.08).toInt()
-        val w2 = (w * 0.35).toInt()
+        val x = ( width * 0.5f - width * 0.75f * 0.5f ).toInt()
+        val y = ( height * 0.08f * 1.5f ).toInt()
+        val w = ( width * 0.75f ).toInt()
+        val h = ( 240 * 0.08f ).toInt()
+        val w2 = ( w * 0.35f ).toInt()
 
-        fun createButton(
-            x2: Float, y2: Float, w3:
-            Float, func: (butt: ButtonWidget) -> Unit
-        ): ButtonWidget {
-            return ButtonWidget(
-                (x + w * 0.5 + w2 * 0.05 + x2).toInt(),
-                (y + h * 1.5 + y2).toInt(),
-                (w2 + w3).toInt(),     (h * 1.1).toInt(),
-                Text.of("")
-            ) { func(it) }
-        }
+        val on = Translation.get("honkytones.gui.on")
+        val off = Translation.get("honkytones.gui.off")
+        val downloadsTitle = Translation.get("block.honkytones.musicplayer.downloads")
 
         val musicPlayer = world.getBlockEntity(handler.pos) as MusicPlayerEntity
-        val switch = mutableMapOf( true to "On", false to "Off")
-        val isTrusting = musicPlayer.isUserTrusting
-        trustButton = createButton( - (w2 * 1.8).toFloat(), height * 0.65f, 10f ) {
+        val switch = mutableMapOf( true to on, false to off )
+        val isClientOnSync = musicPlayer.isClientOnSync
 
-            musicPlayer.isUserTrusting = !musicPlayer.isUserTrusting
-            val isTrusting = musicPlayer.isUserTrusting
+        syncButton = createButton( x, y, - w2 * 1.8f, height * 0.65f, w, h, w2, 10f ) {
 
-            val id = Identifier( Base.MOD_NAME, "add_or_remove_trusted_user" )
+            musicPlayer.isClientOnSync = !musicPlayer.isClientOnSync
+            val isClientOnSync = musicPlayer.isClientOnSync
+
+            val id = Identifier( Base.MOD_NAME, "add_or_remove_synced_user" )
             val buf = PacketByteBufs.create().writeBlockPos( handler.pos )
-            buf.writeBoolean(isTrusting)
+            buf.writeBoolean(isClientOnSync)
             ClientPlayNetworking.send( id, buf )
 
-            it.message = Text.of("Sync downloads: ${switch[isTrusting]}")
+            it.message = Text.of("$downloadsTitle: ${ switch[isClientOnSync] }")
 
         }
-        trustButton!!.message = Text.of("Sync downloads: ${switch[isTrusting]}")
+        syncButton!!.message = Text.of("$downloadsTitle: ${ switch[isClientOnSync] }")
 
         super.init()
 
     }
 
-    override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
+    override fun mouseReleased( mouseX: Double, mouseY: Double, button: Int ): Boolean {
         optionsWidget.mouseReleased(mouseX, mouseY, button)
         return super.mouseReleased(mouseX, mouseY, button)
     }
 
-    override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        if ( trustButton!!.isHovered ) trustButton!!.mouseClicked(mouseX, mouseY, button)
+    override fun mouseClicked( mouseX: Double, mouseY: Double, button: Int ): Boolean {
+        if ( syncButton!!.isHovered ) syncButton!!.mouseClicked(mouseX, mouseY, button)
         return super.mouseClicked(mouseX, mouseY, button)
     }
 
-    override fun mouseDragged(mouseX: Double, mouseY: Double, button: Int, deltaX: Double, deltaY: Double): Boolean {
+    override fun mouseDragged( mouseX: Double, mouseY: Double, button: Int, deltaX: Double, deltaY: Double ): Boolean {
         optionsWidget.mouseDragged(mouseX, mouseY, button, deltaX, deltaY)
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY)
     }
 
-    override fun drawBackground(matrices: MatrixStack?, delta: Float, mouseX: Int, mouseY: Int) {
+    override fun drawBackground( matrices: MatrixStack?, delta: Float, mouseX: Int, mouseY: Int ) {
 
         RenderSystem.setShader( GameRenderer::getPositionTexShader )
         RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
@@ -318,22 +342,22 @@ class MusicPlayerScreen( handler: MusicPlayerScreenHandler,
 
         val musicPlayer = world.getBlockEntity(handler.pos) as MusicPlayerEntity
         val floppyStack = musicPlayer.getStack(16)
-        val path = floppyStack.orCreateTag
-            .getCompound(Base.MOD_NAME)
-            .getString("path")
+        val tag = floppyStack.orCreateTag.getCompound(Base.MOD_NAME)
+        val path = tag.getString("path")
 
-        var exists = path.isNotBlank() && !Network.isValidUrl(path)
+        var exists = path.isNotBlank() && !Network.isValidUrl(path) && musicPlayer.hasSequencer()
         exists = exists || musicPlayer.isStream
         if ( floppyStack.item is FloppyDisk && exists ) {
             optionsWidget.render(matrices, mouseX, mouseY, delta)
         }
 
-        trustButton!!.render(matrices, mouseX, mouseY, delta)
+        syncButton!!.render(matrices, mouseX, mouseY, delta)
 
     }
 
-    override fun isClickOutsideBounds(mouseX: Double, mouseY: Double, left: Int, top: Int,
-                                      button: Int): Boolean {
+    override fun isClickOutsideBounds(
+        mouseX: Double, mouseY: Double, left: Int, top: Int, button: Int
+    ): Boolean {
 
         val centerX = ( width - backgroundWidth ) / 2
         val centerY = ( height - backgroundHeight ) / 2
@@ -354,6 +378,9 @@ class MusicPlayerScreen( handler: MusicPlayerScreenHandler,
 
     companion object {
 
+        var rateTitle = ""
+        var volumeTitle = ""
+
         fun register() {
             ScreenRegistry.register(MusicPlayerScreenHandler.type, ::MusicPlayerScreen)
         }
@@ -363,8 +390,8 @@ class MusicPlayerScreen( handler: MusicPlayerScreenHandler,
             private val handler: MusicPlayerScreenHandler,
         ) : SliderWidget(x, y, w, h, Text.of(""), 1.0 ) {
 
-            var name = ""
-            private var nbtName = "";       private var proportion = 2f;
+            var title = ""
+            private var nbtKey = "";       private var proportion = 2f
             private val world = handler.playerInv.player.world
             private val entity = world.getBlockEntity(handler.pos) as MusicPlayerEntity
             private var stack = entity.getStack(16)
@@ -372,44 +399,45 @@ class MusicPlayerScreen( handler: MusicPlayerScreenHandler,
 
             init { update() }
 
-            override fun mouseDragged(mouseX: Double, mouseY: Double, button: Int, deltaX: Double,
-                deltaY: Double ): Boolean {
+            override fun mouseDragged( mouseX: Double, mouseY: Double, button: Int, deltaX: Double, deltaY: Double ): Boolean {
                 if ( !isFocused ) return false
                 return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY)
             }
 
-            override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
+            override fun mouseReleased( mouseX: Double, mouseY: Double, button: Int ): Boolean {
                 if ( !isFocused ) return false;   isFocused = false
                 return super.mouseReleased(mouseX, mouseY, button)
             }
 
-            override fun onClick(mouseX: Double, mouseY: Double) {
+            override fun onClick( mouseX: Double, mouseY: Double ) {
                 if ( !visible ) return
                 isFocused = true;   super.onClick(mouseX, mouseY)
             }
 
-            override fun updateMessage() { message = Text.of("$name: $notation%") }
+            override fun updateMessage() { message = Text.of("$title: $notation%") }
 
             override fun applyValue() {
 
-                val nbt = stack.orCreateTag.getCompound(Base.MOD_NAME)
+                val tag = stack.orCreateTag.getCompound(Base.MOD_NAME)
                 val value = value * proportion
 
-                var b = nbt.getFloat(nbtName).toDouble() != value
-                b = b && nbtName.isNotBlank()
+                var b = tag.getFloat(nbtKey).toDouble() != value
+                b = b && nbtKey.isNotBlank()
 
                 if ( !stack.isEmpty && b ) {
 
                     val value = value.toFloat()
 
-                    if ( nbtName == "Rate" ) entity.sequencer.tempoFactor = value
+                    if ( nbtKey == "Rate" && entity.hasSequencer() ) {
+                        entity.sequencer!!.tempoFactor = value
+                    }
 
-                    nbt.putFloat(nbtName, value)
+                    tag.putFloat(nbtKey, value)
 
                     val id = Identifier( Base.MOD_NAME, "musicplayer_slider_data" )
                     val buf = PacketByteBufs.create()
                     buf.writeBlockPos(entity.pos);      buf.writeFloat(value)
-                    buf.writeString(nbtName)
+                    buf.writeString(nbtKey)
                     ClientPlayNetworking.send(id, buf)
 
                 }
@@ -418,16 +446,16 @@ class MusicPlayerScreen( handler: MusicPlayerScreenHandler,
 
             }
 
-            override fun render(matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float) {
+            override fun render( matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float ) {
 
                 super.render(matrices, mouseX, mouseY, delta)
 
                 val tempStack = handler.inv.getStack(16)
 
-                val tempNbt = tempStack.orCreateTag.getCompound(Base.MOD_NAME)
-                val nbt = stack.orCreateTag.getCompound(Base.MOD_NAME)
+                val tempTag = tempStack.orCreateTag.getCompound(Base.MOD_NAME)
+                val tag = stack.orCreateTag.getCompound(Base.MOD_NAME)
 
-                if ( nbt.getInt("id") != tempNbt.getInt("id") ) {
+                if ( tag.getInt("id") != tempTag.getInt("id") ) {
                     stack = tempStack;  update()
                 }
 
@@ -435,13 +463,13 @@ class MusicPlayerScreen( handler: MusicPlayerScreenHandler,
 
                 val hasStream = entity.isStream
 
-                if ( !hasStream && nbtName != "Rate" ) {
-                    nbtName = "Rate";      name = "BPM Rate"
+                if ( !hasStream && nbtKey != "Rate" ) {
+                    nbtKey = "Rate";      title = rateTitle
                     proportion = 2f;        update()
                 }
 
-                if ( hasStream && nbtName != "Volume" ) {
-                    nbtName = "Volume";      name = "Volume"
+                if ( hasStream && nbtKey != "Volume" ) {
+                    nbtKey = "Volume";      title = volumeTitle
                     proportion = 1f;        update()
                 }
 
@@ -457,9 +485,9 @@ class MusicPlayerScreen( handler: MusicPlayerScreenHandler,
             private fun getChange(): Double {
 
                 var change = 1.0
-                val nbt = stack.orCreateTag.getCompound(Base.MOD_NAME)
+                val tag = stack.orCreateTag.getCompound(Base.MOD_NAME)
 
-                if ( nbt!!.contains(nbtName) ) change = nbt.getFloat(nbtName).toDouble()
+                if ( tag!!.contains(nbtKey) ) change = tag.getFloat(nbtKey).toDouble()
 
                 return change
 

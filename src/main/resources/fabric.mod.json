@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "honkytones",
-  "version": "3.0.0",
+  "version": "3.0.2",
   "name": "HonkyTones",
   "description": "Mod that reads MIDI stuff and does other things.",
   "authors": [ "Engine_Machiner" ],
@@ -14,6 +14,7 @@
   "icon": "assets/honkytones/mod-icon.png",
   "environment": "*",
   "entrypoints": {
+
     "main": [
 
       {
@@ -27,18 +28,20 @@
       }
 
     ],
+
     "client": [
       "com.enginemachiner.honkytones.Base",
       "com.enginemachiner.honkytones.Input",
       "com.enginemachiner.honkytones.Particles",
       "com.enginemachiner.honkytones.Projectiles"
     ]
+
   },
   "depends": {
     "fabricloader": ">=0.11.7",
     "fabric": "*",
     "fabric-language-kotlin": ">=1.7.4+kotlin.1.6.21",
-    "minecraft": "1.17",
+    "minecraft": "1.17.x",
     "java": ">=16"
   },
   "mixins": [
