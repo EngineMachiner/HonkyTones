@@ -8,6 +8,7 @@ import com.sapher.youtubedl.YoutubeDLException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import net.bramp.ffmpeg.builder.FFmpegBuilder
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
@@ -88,18 +89,18 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
                         player: PlayerEntity?, hand: Hand?, hit: BlockHitResult? ): ActionResult {
 
         // ActionResults help to block other actions
-        if (world!!.isClient) return ActionResult.SUCCESS
 
+        val player = player!!
         val action = ActionResult.CONSUME
+        val entity = world!!.getBlockEntity(pos) as MusicPlayerEntity
 
-        val entity = world.getBlockEntity(pos) as MusicPlayerEntity
-
-        val willMute = shouldBlacklist( player!!, entity.companion!! )
+        val willMute = shouldBlacklist( player, entity.companion!! )
         if (willMute) return action
 
         if ( world.isClient ) {
             val stack = player.getStackInHand(hand);      val item = stack.item
             if ( item is Instrument ) item.stopAllNotes(stack, world)
+            return ActionResult.SUCCESS
         }
 
         player.openHandledScreen( entity )
@@ -650,7 +651,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
 
                     val quality = clientConfig["audio_quality"] as Int
 
-                    val builder = FFmpegImpl.builder ?: throw YoutubeDLException("FFmpeg missing!")
+                    val builder = FFmpegImpl.builder ?: throw YoutubeDLException("ffmpeg missing!")
 
                     builder.setInput(convertPath)
                         .addOutput(filePath)
@@ -658,7 +659,9 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
                         .setAudioCodec("libvorbis")
                         .setAudioQuality( quality.toDouble() )
 
-                    val exe = FFmpegImpl.executor ?: throw YoutubeDLException("FFmpeg missing!")
+                    FFmpegImpl.builder = FFmpegBuilder()
+
+                    val exe = FFmpegImpl.executor ?: throw YoutubeDLException("ffmpeg missing!")
                     exe.createJob(builder).run()
 
                     RestrictedFile(convertPath).delete()
