@@ -13,7 +13,7 @@ object FFmpegImpl {
 
     var builder: FFmpegBuilder? = null
     var executor: FFmpegExecutor? = null
-    private var ffmpegPath = clientConfig["ffmpegDir"] as String
+    private var ffmpegPath = clientConfig["ffmpegDir"] as String + "/"
 
     init {
         
