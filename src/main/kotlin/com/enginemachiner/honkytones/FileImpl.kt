@@ -46,30 +46,35 @@ fun getEnvPath( path: String, envKey: String ): String {
 
 open class RestrictedFile( s: String ) : File(s) {
 
+    private fun setPerms() {
+        setExecutable(false);     setReadable(false);     setWritable(false)
+    }
+
     init {
 
         val parse = s.replace("/", "\\")
         if ( !parse.startsWith(Base.MOD_NAME + "\\") && parse.isNotEmpty() ) {
-            printMessage( Translation.get("honkytones.error.denied") )
-            setExecutable(false);     setReadable(false);     setWritable(false)
+            printMessage( Translation.get("honkytones.error.denied") );  setPerms()
         }
 
     }
 
 }
 
-open class ConfigFile( s: String ): File( configPath + s ) {
+open class ConfigFile( s: String ): File( CONFIG_PATH + s ) {
 
     val properties = Properties()
     private var shouldCreate = true
 
-    init { shouldCreate = verify(shouldCreate);    creation() }
+    init { creation() }
 
     open fun verify( shouldCreate: Boolean ): Boolean { return shouldCreate }
 
     private fun creation() {
 
-        val dir = File(configPath)
+        shouldCreate = verify(shouldCreate)
+
+        val dir = File(CONFIG_PATH)
         if ( !dir.exists() ) dir.mkdirs()
 
         if ( !shouldCreate ) return
@@ -86,7 +91,7 @@ open class ConfigFile( s: String ): File( configPath + s ) {
     }
 
     companion object {
-        private const val configPath = "config/" + Base.MOD_NAME + "/"
+        private const val CONFIG_PATH = "config/" + Base.MOD_NAME + "/"
     }
 
     private fun store() {
@@ -112,7 +117,7 @@ class ClientConfigFile(path: String) : ConfigFile(path) {
     override fun setDefaultProperties() {
 
         val default = mapOf(
-            "ffmpegDir" to "",       "ytdlPath" to "youtube-dl",
+            "ffmpegDir" to "",       "ytdl-Path" to "youtube-dl",
             "mobsParticles" to "true",       "writeDeviceInfo" to "true",
             "playerParticles" to "true",     "keep_downloads" to "false",
             "keep_videos" to "false",       "audio_quality" to "5",

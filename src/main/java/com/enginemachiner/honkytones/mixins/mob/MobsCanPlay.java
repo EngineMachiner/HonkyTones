@@ -7,8 +7,8 @@ import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.mob.*;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.world.LocalDifficulty;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -45,7 +45,7 @@ public class MobsCanPlay {
             String name = (String) names[index];
 
             Identifier id = new Identifier(Base.MOD_NAME + ":" + name);
-            Item inst = Registry.ITEM.get(id);
+            Item inst = Registries.ITEM.get(id);
 
             mob.equipStack( EquipmentSlot.MAINHAND, new ItemStack(inst) );
 

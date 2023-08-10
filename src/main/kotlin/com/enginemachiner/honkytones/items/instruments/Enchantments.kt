@@ -5,8 +5,6 @@ import net.minecraft.enchantment.EnchantmentTarget
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.item.ItemStack
 
-object Enchantments
-
 class RangedEnchantment : Enchantment(
     Rarity.RARE, EnchantmentTarget.BREAKABLE,
     EquipmentSlot.values()

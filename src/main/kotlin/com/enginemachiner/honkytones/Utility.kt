@@ -5,7 +5,7 @@ import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.builder.FFmpegBuilder
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
-import net.minecraft.util.math.Vec3f
+import org.joml.Vector3f
 import javax.sound.midi.MidiSystem
 
 @Environment(EnvType.CLIENT)
@@ -38,10 +38,10 @@ object FFmpegImpl {
 
 }
 
-fun getRandomColor(): Vec3f {
+fun getRandomColor(): Vector3f {
     val randomList = mutableListOf<Float>()
     for ( i in 0..3 ) randomList.add( (0..255).random().toFloat() )
-    return Vec3f( randomList[0], randomList[1], randomList[2] )
+    return Vector3f( randomList[0], randomList[1], randomList[2] )
 }
 
 fun hasMidiSystemSequencer(): Boolean {

@@ -41,17 +41,16 @@ import net.minecraft.nbt.NbtCompound
 import net.minecraft.network.PacketByteBuf
 import net.minecraft.particle.ParticleEffect
 import net.minecraft.particle.ParticleTypes
+import net.minecraft.registry.tag.BlockTags
 import net.minecraft.screen.slot.Slot
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
-import net.minecraft.tag.BlockTags
 import net.minecraft.text.Text
 import net.minecraft.util.*
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import net.minecraft.world.World
 import org.lwjgl.glfw.GLFW
-import java.util.*
 import javax.sound.midi.MidiSystem
 import kotlin.math.abs
 import kotlin.math.pow
@@ -284,7 +283,7 @@ open class Instrument( private val damage: Float, val speed: Float, material: To
 
             val world = mob.world
             var list: List<PlayerEntity> = world.players
-            list = list.filter { it.squaredDistanceTo(mob) < Sound.minRadius.pow(2) }
+            list = list.filter { it.squaredDistanceTo(mob) < Sound.MIN_RADIUS.pow(2) }
             val id = Identifier( Base.MOD_NAME, "mob_instrument_action" )
 
             for ( player in list ) {
@@ -417,7 +416,7 @@ open class Instrument( private val damage: Float, val speed: Float, material: To
                 Network.registerServerToClientsHandler(
 
                     "entity_spawn_particle",
-                    Particles.minRadius, Sound.ticksAhead,
+                    Particles.MIN_RADIUS, Sound.TICKS_AHEAD,
                     serverConfig["playerParticles"] as Boolean
 
                 ) {

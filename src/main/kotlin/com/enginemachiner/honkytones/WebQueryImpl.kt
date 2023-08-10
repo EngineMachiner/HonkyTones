@@ -71,7 +71,7 @@ class YTDLRequest(s: String) : YoutubeDLRequest(s) {
 @Environment(EnvType.CLIENT)
 fun executeYTDL( request: YTDLRequest ): String {
 
-    var path = clientConfig["ytdlPath"] as String
+    var path = clientConfig["ytdl-Path"] as String
     path = getEnvPath( path, "PATH" )
 
     var command = listOf( "\"$path\"" )

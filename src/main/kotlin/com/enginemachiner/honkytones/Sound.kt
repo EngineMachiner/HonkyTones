@@ -29,7 +29,7 @@ import kotlin.math.pow
 
 @Environment(EnvType.CLIENT)
 open class CustomSoundInstance( val s: String ) : MovingSoundInstance(
-    SoundEvent( Identifier(s) ), SoundCategory.PLAYERS,
+    SoundEvent.of( Identifier(s) ), SoundCategory.PLAYERS,
     SoundInstance.createRandom()
 ) {
 
@@ -199,7 +199,7 @@ class SpecialSoundInstance( var file: File,
             nbt = nbt.getCompound(Base.MOD_NAME)
 
             var vol = nbt.getFloat("Volume")
-            val minDistance = minDistance * vol
+            val minDistance = MIN_DISTANCE * vol
             val dist = player.squaredDistanceTo(companion) * 0.01
 
             if ( dist > minDistance ) {
@@ -220,14 +220,14 @@ class SpecialSoundInstance( var file: File,
         loader: SoundLoader?, id: Identifier?, shouldLoop: Boolean
     ): CompletableFuture<AudioStream> { return CompletableFuture.completedFuture( oggStream ) }
 
-    companion object { private const val minDistance = 3f }
+    companion object { private const val MIN_DISTANCE = 3f }
 
 }
 
 object Sound {
 
-    const val minRadius = 25f
-    const val ticksAhead = 18
+    const val MIN_RADIUS = 25f
+    const val TICKS_AHEAD = 18
 
     private fun playSoundWriteBuf( it: PacketByteBuf ): PacketByteBuf {
 
@@ -259,16 +259,16 @@ object Sound {
         // All read order and write order must be the same
 
         Network.registerServerToClientsHandler("playsound",
-            minRadius, ticksAhead) { playSoundWriteBuf(it) }
+            MIN_RADIUS, TICKS_AHEAD) { playSoundWriteBuf(it) }
 
         Network.registerServerToClientsHandler("play_midi",
-            "playsound", minRadius, ticksAhead) { playSoundWriteBuf(it) }
+            "playsound", MIN_RADIUS, TICKS_AHEAD) { playSoundWriteBuf(it) }
 
         Network.registerServerToClientsHandler("stopsound",
-            minRadius, ticksAhead) { stopSoundWriteBuf(it) }
+            MIN_RADIUS, TICKS_AHEAD) { stopSoundWriteBuf(it) }
 
         Network.registerServerToClientsHandler("stop_midi",
-            "stopsound", minRadius, ticksAhead) { stopSoundWriteBuf(it) }
+            "stopsound", MIN_RADIUS, TICKS_AHEAD) { stopSoundWriteBuf(it) }
 
         if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.CLIENT ) return
 

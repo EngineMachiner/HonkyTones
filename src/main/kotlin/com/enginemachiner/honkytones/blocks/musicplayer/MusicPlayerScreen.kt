@@ -1,7 +1,7 @@
 package com.enginemachiner.honkytones.blocks.musicplayer
 
 import com.enginemachiner.honkytones.*
-import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerEntity.Companion.inventorySize
+import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerEntity.Companion.INVENTORY_SIZE
 import com.enginemachiner.honkytones.items.floppy.FloppyDisk
 import com.enginemachiner.honkytones.items.instruments.Instrument
 import com.mojang.blaze3d.systems.RenderSystem
@@ -22,13 +22,14 @@ import net.minecraft.inventory.Inventory
 import net.minecraft.inventory.SimpleInventory
 import net.minecraft.item.ItemStack
 import net.minecraft.network.PacketByteBuf
+import net.minecraft.registry.Registries
+import net.minecraft.registry.Registry
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
 import kotlin.math.roundToInt
 
@@ -41,7 +42,7 @@ class MusicPlayerScreenHandler(
     var pos: BlockPos? = null
 
     constructor( syncID: Int, playerInv: PlayerInventory, buf: PacketByteBuf )
-            : this( syncID, playerInv, SimpleInventory(inventorySize) ) {
+            : this( syncID, playerInv, SimpleInventory(INVENTORY_SIZE) ) {
         pos = buf.readBlockPos()
     }
 
@@ -73,7 +74,7 @@ class MusicPlayerScreenHandler(
     }
 
     @Verify("More UI actions")
-    override fun transferSlot( player: PlayerEntity?, index: Int ): ItemStack {
+    override fun quickMove( player: PlayerEntity?, index: Int ): ItemStack {
 
         var currentStack = ItemStack.EMPTY;    val currentSlot = slots[index]
 
@@ -186,7 +187,7 @@ class MusicPlayerScreenHandler(
                 MusicPlayerScreenHandler(syncId, inventory, buf)
             }
 
-            Registry.register( Registry.SCREEN_HANDLER, id, type )
+            Registry.register( Registries.SCREEN_HANDLER, id, type )
 
         }
 
@@ -235,7 +236,6 @@ class MusicPlayerScreen(
 ) : HandledScreen<MusicPlayerScreenHandler>( handler, playerInv, text ) {
 
     private val world = handler.world
-    private val TEXTURE = Identifier("textures/gui/container/generic_54.png")
     private var optionsWidget = MusicPlayerWidget( 30, 15, 100, 20, handler )
     private var syncButton: ButtonWidget? = null
 
@@ -300,7 +300,7 @@ class MusicPlayerScreen(
 
     override fun drawBackground( matrices: MatrixStack?, delta: Float, mouseX: Int, mouseY: Int ) {
 
-        RenderSystem.setShader( GameRenderer::getPositionTexShader )
+        RenderSystem.setShader( GameRenderer::getPositionTexProgram )
         RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
         RenderSystem.setShaderTexture( 0, TEXTURE )
 
@@ -377,6 +377,8 @@ class MusicPlayerScreen(
     override fun shouldPause(): Boolean { return false }
 
     companion object {
+
+        private val TEXTURE = Identifier("textures/gui/container/generic_54.png")
 
         var rateTitle = ""
         var volumeTitle = ""

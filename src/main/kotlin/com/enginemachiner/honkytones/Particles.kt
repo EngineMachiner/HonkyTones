@@ -10,9 +10,10 @@ import net.minecraft.client.particle.*
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.Entity
 import net.minecraft.particle.DefaultParticleType
+import net.minecraft.registry.Registries
+import net.minecraft.registry.Registry
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.Vec3d
-import net.minecraft.util.registry.Registry
 
 class NoteProjectileParticle(clientWorld: ClientWorld, x: Double, y: Double, z: Double) : MuteParticle(clientWorld, x, y, z) {
 
@@ -218,7 +219,7 @@ class Particles : ModInitializer, ClientModInitializer {
 
     companion object {
 
-        const val minRadius = 40f
+        const val MIN_RADIUS = 40f
 
         val MUTE: DefaultParticleType = FabricParticleTypes.simple()
         val NOTE_PROJECTILE: DefaultParticleType = FabricParticleTypes.simple()
@@ -231,7 +232,7 @@ class Particles : ModInitializer, ClientModInitializer {
 
     private fun register(path: String, particle: DefaultParticleType) {
         val id = Identifier(Base.MOD_NAME, path)
-        Registry.register(Registry.PARTICLE_TYPE, id, particle)
+        Registry.register(Registries.PARTICLE_TYPE, id, particle)
     }
 
     override fun onInitialize() {

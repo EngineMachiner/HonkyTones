@@ -20,6 +20,8 @@ import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventory
 import net.minecraft.inventory.SimpleInventory
 import net.minecraft.item.ItemStack
+import net.minecraft.registry.Registries
+import net.minecraft.registry.Registry
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory
@@ -27,7 +29,6 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
-import net.minecraft.util.registry.Registry
 import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import javax.sound.midi.MidiSystem
@@ -82,7 +83,7 @@ class DigitalConsoleScreenHandler( syncID: Int, playerInv: PlayerInventory,
 
     override fun canUse(player: PlayerEntity?): Boolean { return true }
 
-    override fun transferSlot(player: PlayerEntity?, index: Int): ItemStack { return slots[index].stack }
+    override fun quickMove(player: PlayerEntity?, index: Int): ItemStack { return slots[index].stack }
 
     override fun onSlotClick( slotIndex: Int, button: Int, actionType: SlotActionType?,
                               player: PlayerEntity? ) {
@@ -104,7 +105,7 @@ class DigitalConsoleScreenHandler( syncID: Int, playerInv: PlayerInventory,
 
         fun register() {
             type = ScreenHandlerType(::DigitalConsoleScreenHandler)
-            Registry.register( Registry.SCREEN_HANDLER, id, type )
+            Registry.register( Registries.SCREEN_HANDLER, id, type )
         }
 
     }
@@ -115,16 +116,6 @@ class DigitalConsoleScreenHandler( syncID: Int, playerInv: PlayerInventory,
 class DigitalConsoleScreen( handler: DigitalConsoleScreenHandler,
                             playerInv: PlayerInventory, title: Text
 ) : HandledScreen<DigitalConsoleScreenHandler>( handler, playerInv, title ) {
-
-    private val path = Base.MOD_NAME + ":textures/item/console/"
-    private val TEXTURE = Identifier("textures/gui/container/generic_54.png")
-    private val CONSOLE_BACK_TEX = Identifier(path + "back.png")
-    private val FIRST_KEY_TEX = Identifier(path + "0.png")
-    private val MIDDLE_KEY_TEX = Identifier(path + "1.png")
-    private val LAST_KEY_TEX = Identifier(path + "2.png")
-    private val LAST_KEY_FLIP_TEX = Identifier(path + "3.png")
-    private val FIRST_KEY_FLIP_TEX = Identifier(path + "4.png")
-    private val FLAT_TEX = Identifier(path + "flat.png")
 
     private val player = playerInv.player
     private var consoleNbt = handler.consoleStack.nbt!!.getCompound(Base.MOD_NAME)
@@ -174,7 +165,7 @@ class DigitalConsoleScreen( handler: DigitalConsoleScreenHandler,
     override fun drawBackground( matrices: MatrixStack?, delta: Float, mouseX: Int,
                                  mouseY: Int ) {
 
-        RenderSystem.setShader(GameRenderer::getPositionTexShader)
+        RenderSystem.setShader(GameRenderer::getPositionTexProgram)
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
         RenderSystem.setShaderTexture(0, TEXTURE)
 
@@ -426,6 +417,16 @@ class DigitalConsoleScreen( handler: DigitalConsoleScreenHandler,
 
     companion object {
 
+        private val PATH = Base.MOD_NAME + ":textures/item/console/"
+        private val TEXTURE = Identifier("textures/gui/container/generic_54.png")
+        private val CONSOLE_BACK_TEX = Identifier(PATH + "back.png")
+        private val FIRST_KEY_TEX = Identifier(PATH + "0.png")
+        private val MIDDLE_KEY_TEX = Identifier(PATH + "1.png")
+        private val LAST_KEY_TEX = Identifier(PATH + "2.png")
+        private val LAST_KEY_FLIP_TEX = Identifier(PATH + "3.png")
+        private val FIRST_KEY_FLIP_TEX = Identifier(PATH + "4.png")
+        private val FLAT_TEX = Identifier(PATH + "flat.png")
+
         val sequencer = RecordingOptionsScreen.sequencer
         var sequence: Sequence? = null
 
@@ -524,7 +525,7 @@ class PickStackScreenHandler( syncID: Int, playerInv: PlayerInventory ) : Screen
 
     override fun canUse(player: PlayerEntity?): Boolean { return true }
 
-    override fun transferSlot(player: PlayerEntity?, index: Int): ItemStack { return ItemStack.EMPTY }
+    override fun quickMove(player: PlayerEntity?, index: Int): ItemStack { return ItemStack.EMPTY }
 
     override fun onSlotClick( slotIndex: Int, button: Int, actionType: SlotActionType?, player: PlayerEntity? ) {
 
@@ -552,7 +553,7 @@ class PickStackScreenHandler( syncID: Int, playerInv: PlayerInventory ) : Screen
 
         fun register() {
             type = ScreenHandlerType(::PickStackScreenHandler)
-            Registry.register( Registry.SCREEN_HANDLER, id, type )
+            Registry.register( Registries.SCREEN_HANDLER, id, type )
         }
 
     }
@@ -563,8 +564,6 @@ class PickStackScreenHandler( syncID: Int, playerInv: PlayerInventory ) : Screen
 class PickStackScreen( handler: PickStackScreenHandler, playerInv: PlayerInventory, title: Text )
     : HandledScreen<PickStackScreenHandler>(handler, playerInv, title) {
 
-    private val TEXTURE = Identifier("textures/gui/container/generic_54.png")
-
     init {
         titleY += 17
         playerInventoryTitleY -= 1000;      backgroundHeight -= 20
@@ -574,7 +573,7 @@ class PickStackScreen( handler: PickStackScreenHandler, playerInv: PlayerInvento
 
     override fun drawBackground(matrices: MatrixStack?, delta: Float, mouseX: Int, mouseY: Int) {
 
-        RenderSystem.setShader( GameRenderer::getPositionTexShader )
+        RenderSystem.setShader( GameRenderer::getPositionTexProgram )
         RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
         RenderSystem.setShaderTexture( 0, TEXTURE )
 
@@ -594,9 +593,11 @@ class PickStackScreen( handler: PickStackScreenHandler, playerInv: PlayerInvento
     }
 
     companion object {
-        fun register() {
-            HandledScreens.register(PickStackScreenHandler.type, ::PickStackScreen)
-        }
+
+        private val TEXTURE = Identifier("textures/gui/container/generic_54.png")
+
+        fun register() { HandledScreens.register(PickStackScreenHandler.type, ::PickStackScreen) }
+
     }
 
 }

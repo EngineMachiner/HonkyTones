@@ -10,7 +10,7 @@ import net.minecraft.enchantment.EnchantmentLevelEntry;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.registry.Registries;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -38,7 +38,7 @@ public class EnchantHelper {
         List<EnchantmentLevelEntry> list = Lists.newArrayList();
         Item item = stack.getItem();
         boolean bl = stack.isOf(Items.BOOK);
-        Iterator<Enchantment> var6 = Registry.ENCHANTMENT.iterator();
+        Iterator<Enchantment> var6 = Registries.ENCHANTMENT.iterator();
 
             while(true) {
                 Enchantment enchantment;

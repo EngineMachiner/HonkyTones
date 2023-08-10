@@ -23,7 +23,7 @@ class InstrumentReceiver( private val deviceId: String ) : GenericReceiver() {
         for ( stack in inv ) {
 
             val item = stack.item
-            if ( item.group == itemGroup && !list.contains(stack) ) {
+            if ( itemGroup.contains(stack) && !list.contains(stack) ) {
 
                 val nbt = stack.orCreateNbt.getCompound(Base.MOD_NAME)
                 val hasTag = nbt.getString("MIDI Device") == deviceId

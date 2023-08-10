@@ -33,11 +33,11 @@ import net.minecraft.util.Hand
 import net.minecraft.util.Identifier
 import net.minecraft.util.TypedActionResult
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Quaternion
 import net.minecraft.world.World
+import org.joml.Quaternionf
 
-class MusicalStorageInventory( stack: ItemStack ) : CustomInventory(stack, invSize) {
-    companion object { const val invSize = 96 /* 16 * 6 */ }
+class MusicalStorageInventory( stack: ItemStack ) : CustomInventory(stack, INVENTORY_SIZE) {
+    companion object { const val INVENTORY_SIZE = 96 /* 16 * 6 */ }
 }
 
 /** All the mod items can be stored here, and they should have their functionality */
@@ -112,19 +112,18 @@ class MusicalStorage : Item( createDefaultItemSettings() ) {
             fun onThirdPerson(matrix: MatrixStack) {
                 matrix.translate(0.3, 0.65, 0.3)
                 matrix.scale( 0.4f, 0.4f, 0.4f )
-                matrix.multiply( Quaternion.fromEulerXyz(0.75f, 0.0f, 0f) )
+                matrix.multiply( Quaternionf().rotateXYZ(0.75f, 0.0f, 0f) )
             }
 
             fun onGUI(matrix: MatrixStack) {
                 matrix.translate(0.075, 0.23, 0.0)
                 matrix.scale( 0.625f, 0.625f, 0.625f )
-                matrix.multiply( Quaternion.fromEulerXyz(0.55f, 0.8f, 0f) )
+                matrix.multiply( Quaternionf().rotateXYZ(0.55f, 0.8f, 0f) )
             }
 
             fun onGround(matrix: MatrixStack) {
                 matrix.translate(0.25, 0.25, 0.25)
                 matrix.scale( 0.5f, 0.5f, 0.5f )
-                matrix.multiply( Quaternion.fromEulerXyz(0.0f, 0.0f, 0.0f) )
             }
 
             val dynamicRenderer = BuiltinItemRendererRegistry.DynamicItemRenderer {

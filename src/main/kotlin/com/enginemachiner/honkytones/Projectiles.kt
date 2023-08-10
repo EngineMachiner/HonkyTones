@@ -21,6 +21,8 @@ import net.minecraft.entity.*
 import net.minecraft.entity.projectile.PersistentProjectileEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.PacketByteBuf
+import net.minecraft.registry.Registries
+import net.minecraft.registry.Registry
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvent
@@ -28,12 +30,12 @@ import net.minecraft.sound.SoundEvents
 import net.minecraft.util.Identifier
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult
-import net.minecraft.util.math.Matrix3f
-import net.minecraft.util.math.Matrix4f
+import net.minecraft.util.math.RotationAxis
 import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.Vec3f
-import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
+import org.joml.Matrix3f
+import org.joml.Matrix4f
+import org.joml.Vector3f
 import java.util.*
 import kotlin.concurrent.schedule
 
@@ -53,9 +55,6 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
 
     constructor(entityType: EntityType<out PersistentProjectileEntity>, world: World)
             : super(entityType, world)
-
-    constructor(world: World, x: Double, y: Double, z: Double)
-            : super(Companion.type, x, y, z, world)
 
     constructor(world: World, entity: LivingEntity)
             : super(Companion.type, entity, world)
@@ -83,7 +82,7 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
     }
 
     private var stack: ItemStack? = null
-    private val color: Vec3f = getRandomColor()
+    private val color: Vector3f = getRandomColor()
     private var tickCount = 0
     private val tickLimit = 100
     private val randomTexture = (0..1).random() == 0
@@ -161,7 +160,7 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
 
     override fun getSoundCategory(): SoundCategory { return SoundCategory.PLAYERS }
 
-    override fun getHitSound(): SoundEvent { return SoundEvents.BLOCK_NOTE_BLOCK_COW_BELL }
+    override fun getHitSound(): SoundEvent? { return SoundEvents.BLOCK_NOTE_BLOCK_COW_BELL.value() }
 
     override fun asItemStack(): ItemStack { return ItemStack.EMPTY }
 
@@ -244,7 +243,7 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
                 .trackRangeBlocks(4).trackedUpdateRate(10)
                 .build()
 
-            type = Registry.register( Registry.ENTITY_TYPE, id, typeBuilt )
+            type = Registry.register( Registries.ENTITY_TYPE, id, typeBuilt )
 
         }
 
@@ -279,9 +278,9 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
                 val front = vertexConsumers!!.getBuffer( layer )
                 val rot = dispatcher.rotation
 
-                matrices.scale(scale, scale, scale)
+                matrices.scale(SCALE, SCALE, SCALE)
                 matrices.multiply( rot )
-                matrices.multiply( Vec3f.POSITIVE_X.getDegreesQuaternion(180.0f) )
+                matrices.multiply( RotationAxis.POSITIVE_X.rotationDegrees(180.0f) )
                 matrices.translate( -1.0, 0.0, -1.0 )
 
                 vertex(mMat, nMat, front, 0f, 1f, 0f, 0f, 1f, 0, 0, 1, light, entity.color)
@@ -295,13 +294,13 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
 
             companion object {
 
-                const val scale = 1.25f
+                const val SCALE = 1.25f
 
                 private fun vertex(
                     modelMatrix: Matrix4f, normalMatrix: Matrix3f, vertexConsumer: VertexConsumer,
                     x: Float, y: Float, z: Float, u: Float, v: Float,
                     normalX: Int, normalY: Int, normalZ: Int, light: Int,
-                    color: Vec3f
+                    color: Vector3f
                 ) {
                     vertexConsumer.vertex(modelMatrix, x, y, z)
                         .color(color.x.toInt(), color.y.toInt(), color.z.toInt(), 255)

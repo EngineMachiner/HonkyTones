@@ -13,7 +13,7 @@ import java.util.List;
 
 // This is used in for mixins
 public class HonkyTonesMixinLogic {
-    static Object[] mobs = {
+    static final Object[] mobs = {
             ZombieEntity.class, ZombieVillagerEntity.class,
             HuskEntity.class, DrownedEntity.class,
             SkeletonEntity.class, StrayEntity.class,
@@ -24,7 +24,7 @@ public class HonkyTonesMixinLogic {
 
     static public boolean canPlay(Class<MobEntity> classy) {
         List<Object> list = Arrays.stream(mobs).filter((p) -> p.equals(classy)).toList();
-        return list.size() > 0;
+        return !list.isEmpty();
     }
 
     static public boolean forceAttack(PlayerEntity ply, LivingEntity entity ) {

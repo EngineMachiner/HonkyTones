@@ -14,13 +14,14 @@ import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventory
 import net.minecraft.inventory.SimpleInventory
 import net.minecraft.item.ItemStack
+import net.minecraft.registry.Registries
+import net.minecraft.registry.Registry
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
-import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
 
 class StorageScreenHandler( syncID: Int,
@@ -34,7 +35,7 @@ class StorageScreenHandler( syncID: Int,
     private val world: World = player.world
 
     constructor( syncID: Int, playerInv: PlayerInventory )
-            : this( syncID, playerInv, SimpleInventory( MusicalStorageInventory.invSize ) )
+            : this( syncID, playerInv, SimpleInventory( MusicalStorageInventory.INVENTORY_SIZE ) )
 
     constructor( stack: ItemStack, syncID: Int, playerInv: PlayerInventory )
             : this( syncID, playerInv, MusicalStorageInventory(stack) )
@@ -81,7 +82,7 @@ class StorageScreenHandler( syncID: Int,
 
     override fun canUse(player: PlayerEntity?): Boolean { return inv.canPlayerUse(player) }
 
-    override fun transferSlot( player: PlayerEntity?, index: Int ): ItemStack {
+    override fun quickMove( player: PlayerEntity?, index: Int ): ItemStack {
 
         var currentStack = ItemStack.EMPTY;    val currentSlot = slots[index]
 
@@ -139,7 +140,7 @@ class StorageScreenHandler( syncID: Int,
 
         fun register() {
             type = ScreenHandlerType(::StorageScreenHandler)
-            Registry.register( Registry.SCREEN_HANDLER, id, type )
+            Registry.register( Registries.SCREEN_HANDLER, id, type )
         }
 
     }
@@ -150,7 +151,6 @@ class StorageScreenHandler( syncID: Int,
 class StorageScreen(handler: StorageScreenHandler, playerInv: PlayerInventory, text: Text)
     : HandledScreen<StorageScreenHandler>( handler, playerInv, text ) {
 
-    private val TEXTURE = Identifier("textures/gui/container/generic_54.png")
     private val storageRows = 6
 
     init {
@@ -160,7 +160,7 @@ class StorageScreen(handler: StorageScreenHandler, playerInv: PlayerInventory, t
 
     override fun drawBackground(matrices: MatrixStack?, delta: Float, mouseX: Int, mouseY: Int) {
 
-        RenderSystem.setShader( GameRenderer::getPositionTexShader )
+        RenderSystem.setShader( GameRenderer::getPositionTexProgram )
         RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
         RenderSystem.setShaderTexture( 0, TEXTURE )
 
@@ -216,9 +216,9 @@ class StorageScreen(handler: StorageScreenHandler, playerInv: PlayerInventory, t
 
     companion object {
 
-        fun register() {
-            HandledScreens.register(StorageScreenHandler.type, ::StorageScreen)
-        }
+        private val TEXTURE = Identifier("textures/gui/container/generic_54.png")
+
+        fun register() { HandledScreens.register(StorageScreenHandler.type, ::StorageScreen) }
 
     }
 

@@ -20,8 +20,9 @@ import net.fabricmc.api.Environment
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.fabricmc.fabric.api.client.itemgroup.FabricItemGroupBuilder
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
+import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup
+import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents
 import net.fabricmc.loader.impl.FabricLoaderImpl
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
@@ -29,9 +30,10 @@ import net.minecraft.enchantment.Enchantment
 import net.minecraft.item.BlockItem
 import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
+import net.minecraft.registry.Registries
+import net.minecraft.registry.Registry
 import net.minecraft.sound.SoundEvent
 import net.minecraft.util.Identifier
-import net.minecraft.util.registry.Registry
 import kotlin.reflect.full.createInstance
 
 @Suppress("UNUSED")
@@ -40,15 +42,11 @@ import kotlin.reflect.full.createInstance
 object Icon: Item( Settings() )
 
 private val iconId = Identifier(Base.MOD_NAME, "itemgroup")
-val itemGroup: ItemGroup = FabricItemGroupBuilder.create( iconId )!!
+val itemGroup: ItemGroup = FabricItemGroup.builder( iconId )!!
     .icon { Icon.defaultStack }
     .build()
 
-fun createDefaultItemSettings(): Item.Settings {
-    return Item.Settings()
-        .group( itemGroup )
-        .maxCount( 1 )
-}
+fun createDefaultItemSettings(): Item.Settings { return Item.Settings().maxCount(1) }
 
 val stackLists = mutableMapOf(
     "Instruments" to Instrument.stacks,
@@ -112,9 +110,13 @@ class Base : ModInitializer, ClientModInitializer {
         )
 
         fun registerBlock(path: String, block: Block, itemSettings: Item.Settings ): Block? {
-            val block = Registry.register(Registry.BLOCK, Identifier(MOD_NAME, path), block)
+
+            val block = Registry.register(Registries.BLOCK, Identifier(MOD_NAME, path), block)
             val item = BlockItem(block, itemSettings)
-            Registry.register(Registry.ITEM, Identifier(MOD_NAME, path), item)
+            Registry.register(Registries.ITEM, Identifier(MOD_NAME, path), item)
+
+            ItemGroupEvents.modifyEntriesEvent(itemGroup).register { it.add(block) }
+
             return block
         }
 
@@ -128,7 +130,7 @@ class Base : ModInitializer, ClientModInitializer {
 
             Int::class to listOf( "audio_quality", "max_length" ),
 
-            String::class to listOf( "ffmpegDir", "ytdlPath" )
+            String::class to listOf( "ffmpegDir", "ytdl-Path" )
 
         )
 
@@ -195,17 +197,23 @@ class Base : ModInitializer, ClientModInitializer {
 
         }
 
-        private fun registerItem( path: String, item: Item ) {
-            Registry.register(Registry.ITEM, Identifier(MOD_NAME, path), item)
+
+        private fun registerItem( path: String, item: Item ) { registerItem( path, item, false ) }
+        private fun registerItem( path: String, item: Item, skipEntry: Boolean ) {
+
+            if ( !skipEntry ) ItemGroupEvents.modifyEntriesEvent(itemGroup).register { it.add(item) }
+
+            Registry.register(Registries.ITEM, Identifier(MOD_NAME, path), item)
+
         }
 
         private fun registerSounds(path: String) {
-            val id = Identifier(MOD_NAME, path);      val event = SoundEvent(id)
-            Registry.register(Registry.SOUND_EVENT, id, event)
+            val id = Identifier(MOD_NAME, path);      val event = SoundEvent.of(id)
+            Registry.register(Registries.SOUND_EVENT, id, event)
         }
 
         private fun registerEnchantment(path: String, enchantment: Enchantment) {
-            Registry.register(Registry.ENCHANTMENT, Identifier(MOD_NAME, path), enchantment)
+            Registry.register(Registries.ENCHANTMENT, Identifier(MOD_NAME, path), enchantment)
         }
 
         private fun registerCallbacks() {
@@ -228,7 +236,7 @@ class Base : ModInitializer, ClientModInitializer {
             // Important elements first
 
             // Register ItemGroup Icon
-            registerItem( "itemgroup", Icon )
+            registerItem( "itemgroup", Icon, true )
 
             MusicPlayerBlock.register()
 

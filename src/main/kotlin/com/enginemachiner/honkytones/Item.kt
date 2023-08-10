@@ -9,9 +9,9 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.nbt.NbtCompound
+import net.minecraft.registry.Registries
 import net.minecraft.util.Hand
 import net.minecraft.util.Identifier
-import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
 
 val hands = arrayOf( Hand.MAIN_HAND, Hand.OFF_HAND )
@@ -30,18 +30,18 @@ fun createStackIfMissing( stacks: MutableList<ItemStack>, name: String, index: I
     if ( stack == null || stack.item is AirBlockItem) {
         while ( stacks.size < index ) stacks.add( ItemStack( Items.AIR ) )
         val id = Identifier( Base.MOD_NAME, name )
-        val item = Registry.ITEM.get( id )
+        val item = Registries.ITEM.get( id )
         stacks.add( index, ItemStack( item ) )
     }
 
 }
 
 fun getRegisteredItem( s: String ): Item {
-    return Registry.ITEM.get( Identifier( Base.MOD_NAME, s ) )
+    return Registries.ITEM.get( Identifier( Base.MOD_NAME, s ) )
 }
 
 fun isModItem( item: Item): Boolean {
-    return Registry.ITEM.getId(item).namespace == Base.MOD_NAME
+    return Registries.ITEM.getId(item).namespace == Base.MOD_NAME
 }
 
 fun trackPlayerOnNbt(nbt: NbtCompound, entity: Entity, world: World) {

@@ -83,11 +83,13 @@ fun createButton(
     func: (butt: ButtonWidget) -> Unit
 ): ButtonWidget {
 
-    return ButtonWidget(
+    val builder = ButtonWidget.Builder( Text.of("") ) { func(it) }
+    builder.dimensions(
         ( x + w * 0.5 + w2 * 0.05 + x2 ).toInt(),
         ( y + h * 1.5 + y2 ).toInt(),
-        ( w2 + w3 ).toInt(),     ( h * 1.1 ).toInt(),
-        Text.of("")
-    ) { func(it) }
+        ( w2 + w3 ).toInt(),    ( h * 1.1 ).toInt()
+    )
+
+    return builder.build()
 
 }

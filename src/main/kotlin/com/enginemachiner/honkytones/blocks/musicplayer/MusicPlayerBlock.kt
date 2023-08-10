@@ -38,7 +38,10 @@ import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.network.Packet
 import net.minecraft.network.PacketByteBuf
+import net.minecraft.network.listener.ClientPlayPacketListener
 import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket
+import net.minecraft.registry.Registries
+import net.minecraft.registry.Registry
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.ServerTask
@@ -55,7 +58,6 @@ import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
-import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
 import java.io.File
 import java.util.*
@@ -140,7 +142,7 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
     ): BlockEntityTicker<T>? {
 
         val id = Identifier( Base.MOD_NAME, "musicplayer_entity" )
-        val registered = Registry.BLOCK_ENTITY_TYPE.get(id)
+        val registered = Registries.BLOCK_ENTITY_TYPE.get(id)
 
         return checkType(type, registered) {
                 world: World, blockPos: BlockPos, _: BlockState, _: Any ->
@@ -181,7 +183,7 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
             val id = Identifier( Base.MOD_NAME, "musicplayer_entity" )
             val builder = FabricBlockEntityTypeBuilder.create( ::MusicPlayerEntity, block )
 
-            MusicPlayerEntity.type = Registry.register( Registry.BLOCK_ENTITY_TYPE, id, builder.build() )
+            MusicPlayerEntity.type = Registry.register( Registries.BLOCK_ENTITY_TYPE, id, builder.build() )
 
         }
 
@@ -199,7 +201,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
 
     var isStream = false;       var isTriggered = false;       var isPlaying = false
 
-    private val items = DefaultedList.ofSize( inventorySize, ItemStack.EMPTY )
+    private val items = DefaultedList.ofSize( INVENTORY_SIZE, ItemStack.EMPTY )
 
     @Environment(EnvType.CLIENT)
     var sequencer: Sequencer? = null
@@ -276,7 +278,7 @@ class MusicPlayerEntity(pos: BlockPos, state: BlockState) : BlockEntity(type, po
 
     companion object {
 
-        const val inventorySize = 16 + 1
+        const val INVENTORY_SIZE = 16 + 1
         lateinit var type: BlockEntityType<MusicPlayerEntity>
 
         val entities = mutableSetOf<MusicPlayerEntity>()
@@ -816,7 +818,7 @@ class MusicPlayerCompanion( type: EntityType<MusicPlayerCompanion>,
 
     override fun writeCustomDataToNbt(nbt: NbtCompound?) {}
 
-    override fun createSpawnPacket(): Packet<*> { return EntitySpawnS2CPacket(this) }
+    override fun createSpawnPacket(): Packet<ClientPlayPacketListener> { return EntitySpawnS2CPacket(this) }
 
     companion object {
 
@@ -831,7 +833,7 @@ class MusicPlayerCompanion( type: EntityType<MusicPlayerCompanion>,
                 .build()
 
             val id = Identifier( Base.MOD_NAME, "musicplayer_companion" )
-            type = Registry.register( Registry.ENTITY_TYPE, id, builder )
+            type = Registry.register( Registries.ENTITY_TYPE, id, builder )
 
         }
 
