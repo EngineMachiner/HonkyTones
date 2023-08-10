@@ -69,10 +69,9 @@ object NoteData {
         val newSet = mutableSetOf<String>()
 
         for ( r in range ) {
-
-            val r2 = r.toString()
-
             for ( t in template!! ) {
+
+                var s: String
 
                 if ( t.contains("-") ) {
 
@@ -82,27 +81,25 @@ object NoteData {
                     // Sort the pair values according to the range given
                     val start = t.substringBefore("-")[1].toString()
                     val end = t.substringAfter("-")[1].toString()
-                    var start2 = r2;     var end2 = r2
+                    var start2 = r;     var end2 = r
 
-                    if ( start.toInt() < end.toInt() ) {
-                        start2 = (r2.toInt() - 1).toString()
-                    }
+                    if ( start.toInt() < end.toInt() ) start2 = r - 1
 
                     if ( first.toInt() < end.toInt() ) {
                         val dif = end.toInt() - first.toInt()
-                        start2 = (start2.toInt() + dif).toString()
-                        end2 = (end2.toInt() + dif).toString()
+                        start2 += dif;      end2 += dif
                     }
 
-                    newSet.add( t.replace( start, start2 ).replace( end, end2 ) )
+                    s = t.replace( start, "$start2" ).replace( end, "$end2" )
 
                 } else {
 
-                    val s = t.filter { !it.isDigit() };     var s2 = s + r2
-                    if ( s.contains("_") ) { s2 = s[0] + r2 + s[1] }
-                    newSet.add(s2)
+                    val s2 = t.filter { !it.isDigit() };    s = s2 + r
+                    if ( s2.contains('_') ) { s = t[0] + "$r" + "_" }
 
                 }
+
+                newSet.add(s)
 
             }
 
