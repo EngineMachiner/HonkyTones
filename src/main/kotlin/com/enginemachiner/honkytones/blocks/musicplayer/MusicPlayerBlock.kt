@@ -36,9 +36,9 @@ import net.minecraft.inventory.Inventory
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NbtCompound
-import net.minecraft.network.Packet
 import net.minecraft.network.PacketByteBuf
 import net.minecraft.network.listener.ClientPlayPacketListener
+import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
@@ -83,7 +83,7 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
     }
 
     override fun getPlacementState(ctx: ItemPlacementContext?): BlockState? {
-        val direction = ctx!!.playerFacing.opposite
+        val direction = ctx!!.playerLookDirection.opposite
         return defaultState!!.with( FACING, direction )
     }
 

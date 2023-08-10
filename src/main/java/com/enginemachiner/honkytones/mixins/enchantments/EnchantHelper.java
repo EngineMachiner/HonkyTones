@@ -53,7 +53,7 @@ public class EnchantHelper {
 
                             enchantment = var6.next();
                             b = enchants.containsKey(enchantment);
-                            b = b || enchantment.type.isAcceptableItem(item);
+                            b = b || enchantment.target.isAcceptableItem(item);
                         } while (enchantment.isTreasure() && !treasureAllowed);
                     } while (!enchantment.isAvailableForRandomSelection());
                 } while (!b && !bl);

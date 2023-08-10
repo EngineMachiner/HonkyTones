@@ -700,9 +700,11 @@ open class Instrument( private val damage: Float, val speed: Float, material: To
     private fun attack( stack: ItemStack, ply: PlayerEntity, entity: LivingEntity,
                         cooldown: Float ) {
 
+        val world = ply.world
+
         // Attack
         ply.attack(entity)
-        if (ply.world.isClient) playHitSound(stack)
+        if (world.isClient) playHitSound(stack)
         else {
 
             // Random chance velocity
@@ -716,7 +718,7 @@ open class Instrument( private val damage: Float, val speed: Float, material: To
 
             // Set the attack damage
             var dmg = damage + material.attackDamage;      dmg *= cooldown
-            entity.damage(DamageSource.player(ply), dmg)
+            entity.damage( world.damageSources.playerAttack(ply), dmg )
 
             stack.damage(1, ply) { sendStatus(it, stack) }
 

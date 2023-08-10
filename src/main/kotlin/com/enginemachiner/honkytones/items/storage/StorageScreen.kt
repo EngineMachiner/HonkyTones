@@ -16,6 +16,7 @@ import net.minecraft.inventory.SimpleInventory
 import net.minecraft.item.ItemStack
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
+import net.minecraft.resource.featuretoggle.FeatureFlags
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
@@ -75,8 +76,8 @@ class StorageScreenHandler( syncID: Int,
 
     }
 
-    override fun close( player: PlayerEntity? ) {
-        super.close(player);        storage.close(stack, player!!, world)
+    override fun onClosed( player: PlayerEntity? ) {
+        super.onClosed(player);        storage.close(stack, player!!, world)
         inv.markDirty()
     }
 
@@ -139,7 +140,7 @@ class StorageScreenHandler( syncID: Int,
         lateinit var type: ScreenHandlerType<StorageScreenHandler>
 
         fun register() {
-            type = ScreenHandlerType(::StorageScreenHandler)
+            type = ScreenHandlerType( ::StorageScreenHandler, FeatureFlags.VANILLA_FEATURES )
             Registry.register( Registries.SCREEN_HANDLER, id, type )
         }
 

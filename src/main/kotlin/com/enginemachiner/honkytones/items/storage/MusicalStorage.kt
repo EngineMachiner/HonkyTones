@@ -17,6 +17,7 @@ import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.client.render.VertexConsumerProvider
 import net.minecraft.client.render.model.json.ModelTransformation
+import net.minecraft.client.render.model.json.ModelTransformationMode
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
@@ -127,9 +128,9 @@ class MusicalStorage : Item( createDefaultItemSettings() ) {
             }
 
             val dynamicRenderer = BuiltinItemRendererRegistry.DynamicItemRenderer {
-                        stack: ItemStack, mode: ModelTransformation.Mode,
-                        matrix: MatrixStack, vertex: VertexConsumerProvider,
-                        light: Int, overlay: Int ->
+                    stack: ItemStack, mode: ModelTransformationMode,
+                    matrix: MatrixStack, vertex: VertexConsumerProvider,
+                    light: Int, overlay: Int ->
 
                 val client = MinecraftClient.getInstance()
 

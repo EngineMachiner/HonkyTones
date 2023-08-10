@@ -77,9 +77,11 @@ class FloppyDisk : Item( createDefaultItemSettings().maxDamage( seed ) ) {
 
                         val path = nbt.getString("path")
                         val info = getVideoInfo(path) ?: return@launch
+                        val nbtId = nbt.getInt("id")
 
                         entity as PlayerEntity
-                        if ( !entity.inventory.contains(stack) ) return@launch
+                        val isInInventory = entity.inventory.containsAny { it.orCreateNbt.getCompound(Base.MOD_NAME).getInt("id") == nbtId }
+                        if (!isInInventory) return@launch
                         stack.setCustomName( Text.of( info.title ) )
                         writeDisplayOnNbt( stack, nbt )
 
@@ -177,7 +179,7 @@ class FloppyDisk : Item( createDefaultItemSettings().maxDamage( seed ) ) {
                     _: ServerPlayNetworkHandler, _: PacketByteBuf, _: PacketSender ->
 
                 server.send( ServerTask( server.ticks ) {
-                    player.closeScreenHandler()
+                    player.onHandledScreenClosed()
                     player.closeHandledScreen()
                 } )
 

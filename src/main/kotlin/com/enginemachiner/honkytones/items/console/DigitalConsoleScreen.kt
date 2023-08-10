@@ -22,6 +22,7 @@ import net.minecraft.inventory.SimpleInventory
 import net.minecraft.item.ItemStack
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
+import net.minecraft.resource.featuretoggle.FeatureFlags
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory
@@ -62,7 +63,7 @@ class DigitalConsoleScreenHandler( syncID: Int, playerInv: PlayerInventory,
 
     }
 
-    override fun close(player: PlayerEntity?) {
+    override fun onClosed(player: PlayerEntity?) {
 
         if ( world.isClient ) {
 
@@ -77,7 +78,7 @@ class DigitalConsoleScreenHandler( syncID: Int, playerInv: PlayerInventory,
 
         }
 
-        super.close(player)
+        super.onClosed(player)
 
     }
 
@@ -104,7 +105,7 @@ class DigitalConsoleScreenHandler( syncID: Int, playerInv: PlayerInventory,
         lateinit var type: ScreenHandlerType<DigitalConsoleScreenHandler>
 
         fun register() {
-            type = ScreenHandlerType(::DigitalConsoleScreenHandler)
+            type = ScreenHandlerType( ::DigitalConsoleScreenHandler, FeatureFlags.VANILLA_FEATURES )
             Registry.register( Registries.SCREEN_HANDLER, id, type )
         }
 
@@ -537,7 +538,7 @@ class PickStackScreenHandler( syncID: Int, playerInv: PlayerInventory ) : Screen
             val inv = CustomInventory(this.stack, 1)
             inv.setStack(0, stack);     inv.markDirty()
 
-            close(player)
+            onClosed(player)
 
             val screen = console.createMenu(this.stack)
             player!!.openHandledScreen(screen)
@@ -552,7 +553,7 @@ class PickStackScreenHandler( syncID: Int, playerInv: PlayerInventory ) : Screen
         lateinit var type: ScreenHandlerType<PickStackScreenHandler>
 
         fun register() {
-            type = ScreenHandlerType(::PickStackScreenHandler)
+            type = ScreenHandlerType( ::PickStackScreenHandler, FeatureFlags.VANILLA_FEATURES )
             Registry.register( Registries.SCREEN_HANDLER, id, type )
         }
 
