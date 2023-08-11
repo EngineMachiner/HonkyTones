@@ -183,8 +183,7 @@ class DigitalConsoleScreen( handler: DigitalConsoleScreenHandler,
 
         centerX = ( width - 256 ) / 2;        centerY = ( height - 256 ) / 2
 
-        RenderSystem.setShaderTexture(0, CONSOLE_BACK_TEX)
-        context.drawTexture(TEXTURE, centerX, centerY, 0, 0, 256, 256)
+        context.drawTexture(CONSOLE_BACK_TEX, centerX, centerY, 0, 0, 256, 256)
 
         centerX = ( width - 64 ) / 2;         centerY = ( height - 64 ) / 2
 
