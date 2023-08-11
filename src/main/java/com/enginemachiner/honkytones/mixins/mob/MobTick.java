@@ -28,7 +28,7 @@ public class MobTick {
         Class<MobEntity> mobClass = (Class<MobEntity>) mob.getClass();
         ItemStack stack = mob.getMainHandStack();
         Item item = stack.getItem();
-        World world = mob.world;
+        World world = mob.getWorld();
 
         boolean b = !mob.isAttacking();
         b = b && HonkyTonesMixinLogic.canPlay(mobClass);

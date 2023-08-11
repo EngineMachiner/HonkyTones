@@ -3,11 +3,11 @@ package com.enginemachiner.honkytones.items.floppy
 import com.enginemachiner.honkytones.*
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
+import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.TextFieldWidget
 import net.minecraft.client.util.Clipboard
-import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.item.ItemStack
 import net.minecraft.text.Text
 
@@ -104,29 +104,29 @@ class FloppyDiskScreen( private val stack: ItemStack )
 
     }
 
-    override fun render(matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float) {
+    override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, delta: Float) {
 
-        renderBackground(matrices)
-        super.render(matrices, mouseX, mouseY, delta)
+        renderBackground(context)
+        super.render(context, mouseX, mouseY, delta)
 
-        searchField!!.render(matrices, mouseX, mouseY, delta)
-        copyButton!!.render(matrices, mouseX, mouseY, delta)
-        clearButton!!.render(matrices, mouseX, mouseY, delta)
+        searchField!!.render(context, mouseX, mouseY, delta)
+        copyButton!!.render(context, mouseX, mouseY, delta)
+        clearButton!!.render(context, mouseX, mouseY, delta)
 
         var s = screenTitle
-        textRenderer.draw( matrices, s, width * 0.5f - s.length * 0.5f * 5.9f,
-            15f, 0xFFFFFF
+        context!!.drawText( textRenderer, s, (width * 0.5f - s.length * 0.5f * 5.9f).toInt(),
+            15, 0xFFFFFF, false
         )
 
         s = stack.name.string
-        textRenderer.draw( matrices, s, width * 0.5f - s.length * 0.5f * 5.9f,
-            30f, 0xFFFFFF
+        context.drawText( textRenderer, s, (width * 0.5f - s.length * 0.5f * 5.9f).toInt(),
+            30, 0xFFFFFF, false
         )
 
-        textRenderer.draw(
-            matrices, "$pathTitle:",
-            searchField!!.x.toFloat(), searchField!!.y.toFloat() - 12,
-            0xFFFFFF
+        context.drawText( textRenderer,
+            "$pathTitle:",
+            searchField!!.x, searchField!!.y - 12,
+            0xFFFFFF, false
         )
 
     }

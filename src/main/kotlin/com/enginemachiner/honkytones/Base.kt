@@ -32,19 +32,27 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
+import net.minecraft.registry.RegistryKey
+import net.minecraft.registry.RegistryKeys
 import net.minecraft.sound.SoundEvent
+import net.minecraft.text.Text
 import net.minecraft.util.Identifier
 import kotlin.reflect.full.createInstance
 
 @Suppress("UNUSED")
 
 // ItemGroup
-object Icon: Item( Settings() )
+lateinit var ITEM_GROUP: ItemGroup
+private object ItemGroupData {
 
-private val iconId = Identifier(Base.MOD_NAME, "itemgroup")
-val itemGroup: ItemGroup = FabricItemGroup.builder( iconId )!!
-    .icon { Icon.defaultStack }
-    .build()
+    val ITEM = Item( Item.Settings() )
+    val ID = Identifier( Base.MOD_NAME, "itemgroup" )
+    val REGISTRY: RegistryKey<ItemGroup> = RegistryKey.of( RegistryKeys.ITEM_GROUP, ID )!!
+    val ITEM_GROUP: ItemGroup = FabricItemGroup.builder().displayName( Text.of("HonkyTones") )
+        .icon { ITEM.defaultStack }
+        .build()
+
+}
 
 fun createDefaultItemSettings(): Item.Settings { return Item.Settings().maxCount(1) }
 
@@ -62,7 +70,7 @@ val serverConfig = mutableMapOf<String, Any>()
 
 class Base : ModInitializer, ClientModInitializer {
 
-    init { buildServerConfigMaps() }
+    init { buildServerConfigMaps();     ITEM_GROUP = ItemGroupData.ITEM_GROUP }
 
     override fun onInitialize() {
         NoteData.buildSoundMap();   register();     registerTickEvents();     networking()
@@ -115,7 +123,7 @@ class Base : ModInitializer, ClientModInitializer {
             val item = BlockItem(block, itemSettings)
             Registry.register(Registries.ITEM, Identifier(MOD_NAME, path), item)
 
-            ItemGroupEvents.modifyEntriesEvent(itemGroup).register { it.add(block) }
+            ItemGroupEvents.modifyEntriesEvent( ItemGroupData.REGISTRY ).register { it.add(block) }
 
             return block
         }
@@ -201,7 +209,7 @@ class Base : ModInitializer, ClientModInitializer {
         private fun registerItem( path: String, item: Item ) { registerItem( path, item, false ) }
         private fun registerItem( path: String, item: Item, skipEntry: Boolean ) {
 
-            if ( !skipEntry ) ItemGroupEvents.modifyEntriesEvent(itemGroup).register { it.add(item) }
+            if ( !skipEntry ) ItemGroupEvents.modifyEntriesEvent( ItemGroupData.REGISTRY ).register { it.add(item) }
 
             Registry.register(Registries.ITEM, Identifier(MOD_NAME, path), item)
 
@@ -236,7 +244,9 @@ class Base : ModInitializer, ClientModInitializer {
             // Important elements first
 
             // Register ItemGroup Icon
-            registerItem( "itemgroup", Icon, true )
+            registerItem( "itemgroup", ItemGroupData.ITEM, true )
+
+            Registry.register( Registries.ITEM_GROUP, ItemGroupData.REGISTRY, ITEM_GROUP )
 
             MusicPlayerBlock.register()
 

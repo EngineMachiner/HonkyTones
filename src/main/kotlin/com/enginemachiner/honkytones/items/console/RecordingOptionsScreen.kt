@@ -3,10 +3,10 @@ package com.enginemachiner.honkytones.items.console
 import com.enginemachiner.honkytones.*
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
+import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.TextFieldWidget
-import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.text.Text
 import javax.sound.midi.*
 
@@ -79,10 +79,10 @@ class RecordingOptionsScreen( private val screen: DigitalConsoleScreen )
 
     }
 
-    override fun render(matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float) {
+    override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, delta: Float) {
 
-        renderBackground(matrices)
-        super.render(matrices, mouseX, mouseY, delta)
+        renderBackground(context)
+        super.render(context, mouseX, mouseY, delta)
 
         var overwriteString = ""
         var filePath = fileNameField!!.text
@@ -90,22 +90,22 @@ class RecordingOptionsScreen( private val screen: DigitalConsoleScreen )
         val path = Base.paths["midis"]!!.path + "/$filePath"
         if ( RestrictedFile(path).isFile ) overwriteString = "($overwriteTitle)"
 
-        textRenderer.draw(
-            matrices, "$fileNameTitle: $overwriteString",
-            fileNameField!!.x.toFloat(), fileNameField!!.y.toFloat() - 12,
-            0xFFFFFF
+        context!!.drawText(
+            textRenderer, "$fileNameTitle: $overwriteString",
+            fileNameField!!.x, fileNameField!!.y - 12,
+            0xFFFFFF, false
         )
-        fileNameField!!.render(matrices, mouseX, mouseY, delta)
+        fileNameField!!.render(context, mouseX, mouseY, delta)
 
-        textRenderer.draw(
-            matrices, "$channelTitle:",
-            channelField!!.x.toFloat(), channelField!!.y.toFloat() - 12,
-            0xFFFFFF
+        context.drawText(
+            textRenderer, "$channelTitle:",
+            channelField!!.x, channelField!!.y - 12,
+            0xFFFFFF, false
         )
-        channelField!!.render(matrices, mouseX, mouseY, delta)
+        channelField!!.render(context, mouseX, mouseY, delta)
 
-        yesButton!!.render(matrices, mouseX, mouseY, delta)
-        noButton!!.render(matrices, mouseX, mouseY, delta)
+        yesButton!!.render(context, mouseX, mouseY, delta)
+        noButton!!.render(context, mouseX, mouseY, delta)
 
     }
 

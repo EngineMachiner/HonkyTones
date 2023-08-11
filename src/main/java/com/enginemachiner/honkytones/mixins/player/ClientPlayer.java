@@ -26,7 +26,7 @@ public class ClientPlayer {
 
         ClientPlayerEntity player = (ClientPlayerEntity) (Object) this;
         ItemStack stack = player.getMainHandStack();
-        World world = player.world;
+        World world = player.getWorld();
         if ( stack.getItem() instanceof Instrument instrument ) {
             instrument.onStoppedUsing(stack, world, player, 0);
             Network.INSTANCE.sendNbtToServer( stack.getNbt().getCompound( Base.MOD_NAME ) );

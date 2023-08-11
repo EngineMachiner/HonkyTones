@@ -10,12 +10,12 @@ import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType
+import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.screen.ingame.HandledScreens
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.SliderWidget
 import net.minecraft.client.render.GameRenderer
-import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventory
@@ -298,11 +298,10 @@ class MusicPlayerScreen(
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY)
     }
 
-    override fun drawBackground( matrices: MatrixStack?, delta: Float, mouseX: Int, mouseY: Int ) {
+    override fun drawBackground(context: DrawContext?, delta: Float, mouseX: Int, mouseY: Int) {
 
         RenderSystem.setShader( GameRenderer::getPositionTexProgram )
         RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
-        RenderSystem.setShaderTexture( 0, TEXTURE )
 
         val w = backgroundWidth
         val backgroundHeight = backgroundHeight + 10
@@ -311,34 +310,34 @@ class MusicPlayerScreen(
         val centerY = ( height - w ) / 2
 
         // Top slots
-        drawTexture(matrices, centerX - 62, centerY + 5, 0, 0, w, 35)
-        drawTexture(matrices, centerX + 71, centerY + 5, 7, 0, w - 7, 35)
+        context!!.drawTexture(TEXTURE, centerX - 62, centerY + 5, 0, 0, w, 35)
+        context.drawTexture(TEXTURE, centerX + 71, centerY + 5, 7, 0, w - 7, 35)
 
         // Blank space
-        drawTexture(matrices, centerX - 62, centerY + 40, 0, 4, w, 13)
-        drawTexture(matrices, centerX + 71, centerY + 40, 7, 4, w - 7, 13)
+        context.drawTexture(TEXTURE, centerX - 62, centerY + 40, 0, 4, w, 13)
+        context.drawTexture(TEXTURE, centerX + 71, centerY + 40, 7, 4, w - 7, 13)
 
-        drawTexture(matrices, centerX - 62, centerY + 52, 0, 4, w, 13)
-        drawTexture(matrices, centerX + 71, centerY + 52, 7, 4, w - 7, 13)
-        drawTexture(matrices, centerX, centerY + 64, 0, 4, w, 2)
+        context.drawTexture(TEXTURE, centerX - 62, centerY + 52, 0, 4, w, 13)
+        context.drawTexture(TEXTURE, centerX + 71, centerY + 52, 7, 4, w - 7, 13)
+        context.drawTexture(TEXTURE, centerX, centerY + 64, 0, 4, w, 2)
 
         // Music player slots bottom texture
-        drawTexture(matrices, centerX - 62, centerY + 64, 0, backgroundHeight - 7 + 60, w - 113, 3)
-        drawTexture(matrices, centerX + 71 + 102, centerY + 64, 7 + 102, backgroundHeight - 7 + 60, w - 7 - 102, 3)
+        context.drawTexture(TEXTURE, centerX - 62, centerY + 64, 0, backgroundHeight - 7 + 60, w - 113, 3)
+        context.drawTexture(TEXTURE, centerX + 71 + 102, centerY + 64, 7 + 102, backgroundHeight - 7 + 60, w - 7 - 102, 3)
 
         // Floppy disk slot
-        drawTexture(matrices, centerX + 215, centerY + 44, 7, 17, 18, 18)
+        context.drawTexture(TEXTURE, centerX + 215, centerY + 44, 7, 17, 18, 18)
 
         // Player Inv
-        drawTexture(matrices, centerX, centerY + 66, 0, 126, w, 128)
+        context.drawTexture(TEXTURE, centerX, centerY + 66, 0, 126, w, 128)
 
     }
 
-    override fun render(matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float) {
+    override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, delta: Float) {
 
-        renderBackground(matrices)
-        super.render(matrices, mouseX, mouseY, delta)
-        drawMouseoverTooltip(matrices, mouseX, mouseY)
+        renderBackground(context)
+        super.render(context, mouseX, mouseY, delta)
+        drawMouseoverTooltip(context, mouseX, mouseY)
 
         val musicPlayer = world.getBlockEntity(handler.pos) as MusicPlayerEntity
         val floppyStack = musicPlayer.getStack(16)
@@ -348,10 +347,10 @@ class MusicPlayerScreen(
         var exists = path.isNotBlank() && !Network.isValidUrl(path) && musicPlayer.hasSequencer()
         exists = exists || musicPlayer.isStream
         if ( floppyStack.item is FloppyDisk && exists ) {
-            optionsWidget.render(matrices, mouseX, mouseY, delta)
+            optionsWidget.render(context, mouseX, mouseY, delta)
         }
 
-        syncButton!!.render(matrices, mouseX, mouseY, delta)
+        syncButton!!.render(context, mouseX, mouseY, delta)
 
     }
 
@@ -448,9 +447,9 @@ class MusicPlayerScreen(
 
             }
 
-            override fun render( matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float ) {
+            override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, delta: Float) {
 
-                super.render(matrices, mouseX, mouseY, delta)
+                super.render(context, mouseX, mouseY, delta)
 
                 val tempStack = handler.inv.getStack(16)
 

@@ -5,10 +5,10 @@ import com.enginemachiner.honkytones.isModItem
 import com.mojang.blaze3d.systems.RenderSystem
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
+import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.screen.ingame.HandledScreens
 import net.minecraft.client.render.GameRenderer
-import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventory
@@ -159,7 +159,7 @@ class StorageScreen(handler: StorageScreenHandler, playerInv: PlayerInventory, t
         titleX += 40
     }
 
-    override fun drawBackground(matrices: MatrixStack?, delta: Float, mouseX: Int, mouseY: Int) {
+    override fun drawBackground(context: DrawContext?, delta: Float, mouseX: Int, mouseY: Int) {
 
         RenderSystem.setShader( GameRenderer::getPositionTexProgram )
         RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
@@ -173,28 +173,28 @@ class StorageScreen(handler: StorageScreenHandler, playerInv: PlayerInventory, t
         var h = storageRows * 18 + 17 + 13
 
         // Bottom border
-        drawTexture(matrices, x, centerY + h, 7 + 36, backgroundHeight - 7, w - 3, 3)
+        context!!.drawTexture(TEXTURE, x, centerY + h, 7 + 36, backgroundHeight - 7, w - 3, 3)
 
         x = centerX - spacing + add
-        drawTexture(matrices, x, centerY + h, -3, backgroundHeight - 7, w - 3, 3)
+        context.drawTexture(TEXTURE, x, centerY + h, -3, backgroundHeight - 7, w - 3, 3)
 
         // Player inv
         h = 96
-        drawTexture(matrices, centerX, centerY + storageRows * 18 + 17, 0, 126, w, h)
+        context.drawTexture(TEXTURE, centerX, centerY + storageRows * 18 + 17, 0, 126, w, h)
 
         // Storage inv
         h = storageRows * 18 + 17 + 13
-        drawTexture(matrices, x, centerY, -3, 0, w - 3, h)
+        context.drawTexture(TEXTURE, x, centerY, -3, 0, w - 3, h)
 
         x = centerX + spacing + add
-        drawTexture(matrices, x, centerY, 7 + 36, 0, w - 7 - 36, h)
+        context.drawTexture(TEXTURE, x, centerY, 7 + 36, 0, w - 7 - 36, h)
 
     }
 
-    override fun render(matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float) {
-        renderBackground(matrices)
-        super.render(matrices, mouseX, mouseY, delta)
-        drawMouseoverTooltip(matrices, mouseX, mouseY)
+    override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, delta: Float) {
+        renderBackground(context)
+        super.render(context, mouseX, mouseY, delta)
+        drawMouseoverTooltip(context, mouseX, mouseY)
     }
 
     override fun isClickOutsideBounds( mouseX: Double, mouseY: Double, left: Int, top: Int,

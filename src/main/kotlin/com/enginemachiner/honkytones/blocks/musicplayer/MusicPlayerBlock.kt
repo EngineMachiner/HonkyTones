@@ -175,7 +175,8 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
 
         fun register() {
 
-            val settings = FabricBlockSettings.of( Material.WOOD ).strength(1.0f)
+            val settings = FabricBlockSettings.create()
+                .strength(1.0f)
 
             val musicPlayer = MusicPlayerBlock( settings )
             val block = registerBlock("musicplayer", musicPlayer, createDefaultItemSettings() )

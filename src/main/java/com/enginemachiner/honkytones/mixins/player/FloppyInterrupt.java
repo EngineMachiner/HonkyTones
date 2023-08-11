@@ -32,7 +32,7 @@ public class FloppyInterrupt {
             CallbackInfo info
     ) {
 
-        if ( slotIndex < 0 || player.world.isClient ) return;
+        if ( slotIndex < 0 || player.getWorld().isClient ) return;
 
         ScreenHandler handler = (ScreenHandler) (Object) this;
         DefaultedList<Slot> slots = handler.slots;

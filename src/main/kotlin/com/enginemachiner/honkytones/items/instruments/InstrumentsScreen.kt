@@ -3,11 +3,11 @@ package com.enginemachiner.honkytones.items.instruments
 import com.enginemachiner.honkytones.*
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
+import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.SliderWidget
 import net.minecraft.client.gui.widget.TextFieldWidget
-import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.text.Text
@@ -179,33 +179,33 @@ class InstrumentsScreen( private val stack: ItemStack )
 
     }
 
-    override fun render(matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float) {
+    override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, delta: Float) {
 
-        renderBackground(matrices)
+        renderBackground(context)
 
-        sequenceField!!.render(matrices, mouseX, mouseY, delta)
-        actionButton!!.render(matrices, mouseX, mouseY, delta)
-        deviceButton!!.render(matrices, mouseX, mouseY, delta)
-        channelField!!.render(matrices, mouseX, mouseY, delta)
-        volumeSlider!!.render(matrices, mouseX, mouseY, delta)
-        clearButton!!.render(matrices, mouseX, mouseY, delta)
+        sequenceField!!.render(context, mouseX, mouseY, delta)
+        actionButton!!.render(context, mouseX, mouseY, delta)
+        deviceButton!!.render(context, mouseX, mouseY, delta)
+        channelField!!.render(context, mouseX, mouseY, delta)
+        volumeSlider!!.render(context, mouseX, mouseY, delta)
+        clearButton!!.render(context, mouseX, mouseY, delta)
 
-        if ( instrument.name != "drumset" ) centerNotesButton!!.render(matrices, mouseX, mouseY, delta)
+        if ( instrument.name != "drumset" ) centerNotesButton!!.render(context, mouseX, mouseY, delta)
 
         val b = sequenceField!!.text.isNotEmpty() && clearButtonCounter > 0
         if (b) clearButtonCounter = 0
 
         // Subtitles
-        textRenderer.draw(
-            matrices, "$sequenceTitle:",
-            sequenceField!!.x.toFloat(), sequenceField!!.y.toFloat() - 12,
-            0xFFFFFF
+        context!!.drawText(
+            textRenderer, "$sequenceTitle:",
+            sequenceField!!.x, sequenceField!!.y - 12,
+            0xFFFFFF, false
         )
 
-        textRenderer.draw(
-            matrices, "$channelTitle: ",
-            channelField!!.x.toFloat() - 45, channelField!!.y.toFloat() + 5,
-            0xFFFFFF
+        context.drawText(
+            textRenderer, "$channelTitle: ",
+            channelField!!.x - 45, channelField!!.y + 5,
+            0xFFFFFF, false
         )
 
         // Show device name on change
@@ -217,11 +217,11 @@ class InstrumentsScreen( private val stack: ItemStack )
             val string = deviceName; tween[1]++
             val color = Color( 255 - tween[0], 255 - tween[0], 255 - tween[0] )
 
-            val x = ( width * 0.5f - string.length * 2.5f )
-            textRenderer.drawWithShadow(
-                matrices, string,
-                x, height - 60f,
-                color.rgb
+            val x = ( width * 0.5f - string.length * 2.5f ).toInt()
+            context.drawText(
+                textRenderer, string,
+                x, height - 60,
+                color.rgb, true
             )
 
         }

@@ -8,13 +8,13 @@ import com.mojang.blaze3d.systems.RenderSystem
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
+import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.screen.ingame.HandledScreens
 import net.minecraft.client.gui.widget.CheckboxWidget
 import net.minecraft.client.option.KeyBinding
 import net.minecraft.client.render.GameRenderer
 import net.minecraft.client.util.InputUtil
-import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventory
@@ -163,50 +163,48 @@ class DigitalConsoleScreen( handler: DigitalConsoleScreenHandler,
 
     override fun shouldPause(): Boolean { return false }
 
-    override fun drawBackground( matrices: MatrixStack?, delta: Float, mouseX: Int,
-                                 mouseY: Int ) {
+    override fun drawBackground(context: DrawContext?, delta: Float, mouseX: Int, mouseY: Int) {
 
         RenderSystem.setShader(GameRenderer::getPositionTexProgram)
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
-        RenderSystem.setShaderTexture(0, TEXTURE)
 
         var centerX = (width - 18) / 2;         var centerY = (height - 18) / 2
 
-        drawTexture(matrices, centerX + 140, centerY + 85, 7, 17, 18, 18)
+        context!!.drawTexture(TEXTURE, centerX + 140, centerY + 85, 7, 17, 18, 18)
 
-        drawTexture(matrices, centerX + 140, centerY + 79, 4, 0, 18, 6)
-        drawTexture(matrices, centerX + 140, centerY + 103, 4, 216, 18, 6)
+        context.drawTexture(TEXTURE, centerX + 140, centerY + 79, 4, 0, 18, 6)
+        context.drawTexture(TEXTURE, centerX + 140, centerY + 103, 4, 216, 18, 6)
 
-        drawTexture(matrices, centerX + 134, centerY + 79, 0, 0, 6, 24)
-        drawTexture(matrices, centerX + 158, centerY + 79, 170, 0, 6, 24)
+        context.drawTexture(TEXTURE, centerX + 134, centerY + 79, 0, 0, 6, 24)
+        context.drawTexture(TEXTURE, centerX + 158, centerY + 79, 170, 0, 6, 24)
 
-        drawTexture(matrices, centerX + 134, centerY + 103, 0, 216, 6, 18)
-        drawTexture(matrices, centerX + 158, centerY + 103, 170, 216, 6, 18)
+        context.drawTexture(TEXTURE, centerX + 134, centerY + 103, 0, 216, 6, 18)
+        context.drawTexture(TEXTURE, centerX + 158, centerY + 103, 170, 216, 6, 18)
 
         centerX = ( width - 256 ) / 2;        centerY = ( height - 256 ) / 2
 
         RenderSystem.setShaderTexture(0, CONSOLE_BACK_TEX)
-        drawTexture(matrices, centerX, centerY, 0, 0, 256, 256)
+        context.drawTexture(TEXTURE, centerX, centerY, 0, 0, 256, 256)
 
         centerX = ( width - 64 ) / 2;         centerY = ( height - 64 ) / 2
 
-        renderNoteButton( FIRST_KEY_TEX, noteKeys["c"], matrices, centerX - 83, centerY + 23, 64, 64 )
+        renderNoteButton( FIRST_KEY_TEX, noteKeys["c"], context, centerX - 83, centerY + 23, 64, 64 )
 
         val flatsCenterX = ( width - 32 ) / 2
         val flatsCenterY = ( height - 32 ) / 2
 
-        renderNoteButton( FLAT_TEX, noteKeys["db"], matrices, flatsCenterX - 68, flatsCenterY + 7, 32, 32 )
-        renderNoteButton( MIDDLE_KEY_TEX, noteKeys["d"], matrices, centerX - 55, centerY + 23, 64, 64 )
-        renderNoteButton( FLAT_TEX, noteKeys["eb"], matrices, flatsCenterX - 41, flatsCenterY + 7, 32, 32 )
-        renderNoteButton( LAST_KEY_TEX, noteKeys["e"], matrices, centerX - 27, centerY + 23, 64, 64 )
-        renderNoteButton( LAST_KEY_FLIP_TEX, noteKeys["f"], matrices, centerX + 1, centerY + 23, 64, 64 )
+        renderNoteButton( FLAT_TEX, noteKeys["db"], context, flatsCenterX - 68, flatsCenterY + 7, 32, 32 )
+        renderNoteButton( MIDDLE_KEY_TEX, noteKeys["d"], context, centerX - 55, centerY + 23, 64, 64 )
+        renderNoteButton( FLAT_TEX, noteKeys["eb"], context, flatsCenterX - 41, flatsCenterY + 7, 32, 32 )
+        renderNoteButton( LAST_KEY_TEX, noteKeys["e"], context, centerX - 27, centerY + 23, 64, 64 )
+        renderNoteButton( LAST_KEY_FLIP_TEX, noteKeys["f"], context, centerX + 1, centerY + 23, 64, 64 )
 
         val list = mutableListOf( noteKeys["gb"], noteKeys["ab"], noteKeys["bb"] )
-        for ( i in 0..2 ) renderNoteButton( FLAT_TEX, list[i], matrices, flatsCenterX + 15 + 28 * i, flatsCenterY + 7, 32, 32 )
+        for ( i in 0..2 ) renderNoteButton( FLAT_TEX, list[i], context, flatsCenterX + 15 + 28 * i, flatsCenterY + 7, 32, 32 )
 
-        renderNoteButton( MIDDLE_KEY_TEX, noteKeys["g"], matrices, centerX + 29, centerY + 23, 64, 64 )
-        renderNoteButton( MIDDLE_KEY_TEX, noteKeys["a"], matrices, centerX + 57, centerY + 23, 64, 64 )
-        renderNoteButton( FIRST_KEY_FLIP_TEX, noteKeys["b"], matrices, centerX + 85, centerY + 23, 64, 64 )
+        renderNoteButton( MIDDLE_KEY_TEX, noteKeys["g"], context, centerX + 29, centerY + 23, 64, 64 )
+        renderNoteButton( MIDDLE_KEY_TEX, noteKeys["a"], context, centerX + 57, centerY + 23, 64, 64 )
+        renderNoteButton( FIRST_KEY_FLIP_TEX, noteKeys["b"], context, centerX + 85, centerY + 23, 64, 64 )
 
     }
 
@@ -327,17 +325,17 @@ class DigitalConsoleScreen( handler: DigitalConsoleScreenHandler,
 
     }
 
-    override fun render( matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float ) {
+    override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, delta: Float) {
 
-        renderBackground(matrices)
-        super.render(matrices, mouseX, mouseY, delta)
+        renderBackground(context)
+        super.render(context, mouseX, mouseY, delta)
 
         val octaveTitle = Translation.get("item.honkytones.gui.octave")
         val octaveString = "$octaveTitle: " + consoleNbt.getInt("Octave")
-        textRenderer.draw(matrices, octaveString, width * 0.5f + 10, height * 0.5f - 65, Color(1f, 1f, 1f).rgb )
+        context!!.drawText( textRenderer, octaveString, (width * 0.5f + 10).toInt(), (height * 0.5f - 65).toInt(), Color(1f, 1f, 1f).rgb, false )
 
         val recordCheckbox = recordCheckbox!!
-        recordCheckbox.renderButton(matrices, mouseX, mouseY, delta)
+        recordCheckbox.renderButton(context, mouseX, mouseY, delta)
 
         if ( recordCheckbox.isChecked && !willRecord ) {
 
@@ -365,7 +363,7 @@ class DigitalConsoleScreen( handler: DigitalConsoleScreenHandler,
             val minutes = timeStamp / ( 300f * 60 )
             val seconds = ( timeStamp / 300f ) % 60
             val stringFormat = String.format( "%d:%02d", minutes.toInt(), seconds.toInt() )
-            textRenderer.draw(matrices, stringFormat, width * 0.5f + 3, height * 0.5f - 49, Color(1f, 1f, 1f).rgb )
+            context.drawText(textRenderer, stringFormat, (width * 0.5f + 3).toInt(), (height * 0.5f - 49).toInt(), Color(1f, 1f, 1f).rgb, false )
         }
 
     }
@@ -405,20 +403,19 @@ class DigitalConsoleScreen( handler: DigitalConsoleScreenHandler,
     override fun isClickOutsideBounds( mouseX: Double, mouseY: Double, left: Int, top: Int, button: Int ): Boolean { return false }
 
     private fun renderNoteButton(
-        textureID: Identifier, keyBindBool: Boolean?, matrices: MatrixStack?,
+        textureID: Identifier, keyBindBool: Boolean?, context: DrawContext?,
         x: Int, y: Int, w: Int, h: Int
     ) {
 
-        RenderSystem.setShaderTexture( 0, textureID )
         if ( keyBindBool!! ) RenderSystem.setShaderColor(0.25f, 1f, 0.25f, 1f)
-        drawTexture( matrices, x, y, 0f, 0f, w, h, w, h )
+        context!!.drawTexture( textureID, x, y, 0f, 0f, w, h, w, h )
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
 
     }
 
     companion object {
 
-        private val PATH = Base.MOD_NAME + ":textures/item/console/"
+        private const val PATH = Base.MOD_NAME + ":textures/item/console/"
         private val TEXTURE = Identifier("textures/gui/container/generic_54.png")
         private val CONSOLE_BACK_TEX = Identifier(PATH + "back.png")
         private val FIRST_KEY_TEX = Identifier(PATH + "0.png")
@@ -572,25 +569,24 @@ class PickStackScreen( handler: PickStackScreenHandler, playerInv: PlayerInvento
 
     override fun shouldPause(): Boolean { return false }
 
-    override fun drawBackground(matrices: MatrixStack?, delta: Float, mouseX: Int, mouseY: Int) {
+    override fun drawBackground(context: DrawContext?, delta: Float, mouseX: Int, mouseY: Int) {
 
         RenderSystem.setShader( GameRenderer::getPositionTexProgram )
         RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
-        RenderSystem.setShaderTexture( 0, TEXTURE )
 
         val centerX = ( width - backgroundWidth ) / 2
         val centerY = ( height - backgroundHeight ) / 2
         val w = backgroundWidth;        val h = 6 * 18 + 17
 
-        drawTexture(matrices, centerX, centerY + 20, 0, 126, w, h)
-        drawTexture(matrices, centerX, centerY + 18, 0, 0, w, 3)
+        context!!.drawTexture(TEXTURE, centerX, centerY + 20, 0, 126, w, h)
+        context.drawTexture(TEXTURE, centerX, centerY + 18, 0, 0, w, 3)
 
     }
 
-    override fun render(matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float) {
-        renderBackground(matrices)
-        super.render(matrices, mouseX, mouseY, delta)
-        drawMouseoverTooltip(matrices, mouseX, mouseY)
+    override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, delta: Float) {
+        renderBackground(context)
+        super.render(context, mouseX, mouseY, delta)
+        drawMouseoverTooltip(context, mouseX, mouseY)
     }
 
     companion object {

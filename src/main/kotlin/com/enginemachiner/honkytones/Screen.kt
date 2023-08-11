@@ -3,10 +3,10 @@ package com.enginemachiner.honkytones
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.minecraft.client.font.TextRenderer
+import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.SliderWidget
 import net.minecraft.client.gui.widget.TextFieldWidget
-import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.item.Item
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
@@ -35,7 +35,7 @@ class ChannelTextFieldWidget( textRenderer: TextRenderer, x: Int, y: Int, w: Int
 
     init { setMaxLength(2) }
 
-    override fun render(matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float) {
+    override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, delta: Float) {
 
         // Channel input restrictions
         val b1 = text.isBlank() && !isFocused
@@ -51,7 +51,7 @@ class ChannelTextFieldWidget( textRenderer: TextRenderer, x: Int, y: Int, w: Int
 
         if ( b1 || b2 || b3 ) text = "1"
 
-        super.render(matrices, mouseX, mouseY, delta)
+        super.render(context, mouseX, mouseY, delta)
 
     }
 
