@@ -1,10 +1,10 @@
 package com.enginemachiner.honkytones.items.console
 
 import com.enginemachiner.honkytones.*
+import com.enginemachiner.honkytones.NBT.trackHand
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
-import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.screen.NamedScreenHandlerFactory
@@ -14,15 +14,13 @@ import net.minecraft.util.Hand
 import net.minecraft.util.TypedActionResult
 import net.minecraft.world.World
 
-class DigitalConsole : Item( createDefaultItemSettings().maxDamage(6) ) {
+class DigitalConsole : Item( defaultSettings().maxDamage(6) ), StackMenu {
 
-    override fun use(world: World?, user: PlayerEntity?, hand: Hand?):
-            TypedActionResult<ItemStack> {
+    override fun use( world: World?, user: PlayerEntity?, hand: Hand? ): TypedActionResult<ItemStack> {
 
-        val stack = user!!.getStackInHand(hand)
-        val action = TypedActionResult.pass(stack)
+        val stack = user!!.getStackInHand(hand);        val canOpen = canOpenMenu( user, stack )
 
-        if (world!!.isClient) return action
+        val action = TypedActionResult.pass(stack);     if ( world!!.isClient || !canOpen ) return action
 
         user.openHandledScreen( createMenu(stack) )
 
@@ -30,44 +28,45 @@ class DigitalConsole : Item( createDefaultItemSettings().maxDamage(6) ) {
 
     }
 
-    override fun inventoryTick( stack: ItemStack?, world: World?, entity: Entity?,
-                                slot: Int, selected: Boolean ) {
+    override fun getSetupNBT(stack: ItemStack): NbtCompound {
 
-        if ( !world!!.isClient ) {
-
-            var nbt = stack!!.orCreateNbt
-
-            if ( !nbt.contains( Base.MOD_NAME ) ) loadNbtData(nbt)
-
-            nbt = nbt.getCompound( Base.MOD_NAME )
-
-            trackHandOnNbt( stack, entity!! )
-
-            if ( nbt.contains("shouldDamage") && entity is PlayerEntity ) {
-                stack.damage( 1, entity ) { sendStatus(entity, stack) }
-                nbt.remove("shouldDamage")
-            }
-
-        }
+        val nbt = NbtCompound();    nbt.putInt( "Octave", 4 );      return nbt
 
     }
 
-    private fun loadNbtData( nbt: NbtCompound ) {
+    override fun trackTick( stack: ItemStack, slot: Int ) { trackHand(stack) }
 
-        val innerNbt = NbtCompound()
-        innerNbt.putInt("Octave", 4)
+    override fun inventoryTick(
+        stack: ItemStack?, world: World?, entity: Entity?, slot: Int, selected: Boolean
+    ) {
 
-        nbt.put( Base.MOD_NAME, innerNbt )
+        super.inventoryTick( stack, world, entity, slot, selected )
+
+        val nbt = NBT.get(stack!!)
+
+        if ( world!!.isClient || !nbt.contains("damage") ) return
+
+        entity as PlayerEntity;         nbt.remove("damage")
+
+        stack.damage( 1, entity ) { breakEquipment(entity, stack) }
 
     }
 
-    fun createMenu(stack: ItemStack ): NamedScreenHandlerFactory {
+    fun createMenu(stack: ItemStack): NamedScreenHandlerFactory {
 
-        val title = Translation.get("item.honkytones.digitalconsole")
-        return SimpleNamedScreenHandlerFactory( {
-                syncID: Int, inv: PlayerInventory, _: PlayerEntity ->
-            DigitalConsoleScreenHandler( stack, syncID, inv )
-        }, Text.of("§f$title") )
+        val title = Translation.item("digital_console")
+
+        return SimpleNamedScreenHandlerFactory(
+
+            {
+                syncID: Int, playerInventory: PlayerInventory, _: PlayerEntity ->
+
+                DigitalConsoleScreenHandler( stack, syncID, playerInventory )
+            },
+
+            Text.of("§f$title")
+
+        )
 
     }
 

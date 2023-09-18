@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "  R",
+    " XS",
+    "WN "
+  ],
+  "key": {
+    "S": { "item": "minecraft:red_dye" },
+    "N": { "item": "minecraft:redstone_torch" },
+    "X": { "item": "honkytones:acoustic_guitar" },
+    "W": { "item": "minecraft:redstone_block" },
+    "R": { "item": "minecraft:blaze_rod" }
+  },
+  "result": {
+    "item": "honkytones:electric_guitar",
+    "count": 1
+  }
+}

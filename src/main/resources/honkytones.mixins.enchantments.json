@@ -5,5 +5,5 @@
   "injectors": {
     "defaultRequire": 1
   },
-  "mixins": ["EnchantmentMixin",  "EnchantHelper"]
+  "mixins": ["EnchantmentMixin",  "EnchantmentHelperMixin"]
 }

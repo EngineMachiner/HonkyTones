@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "III",
+    "QPQ",
+    "QPQ"
+  ],
+  "key": {
+    "P": { "item": "minecraft:paper" },
+    "Q": { "item": "minecraft:quartz_block" },
+    "I": { "item": "minecraft:iron_ingot" }
+  },
+  "result": {
+    "item": "honkytones:floppy_disk",
+    "count": 9
+  }
+}

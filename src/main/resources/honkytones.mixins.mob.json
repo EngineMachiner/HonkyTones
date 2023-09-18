@@ -5,5 +5,5 @@
   "injectors": {
     "defaultRequire": 1
   },
-  "mixins": ["MobsCanPlay", "ForceAttack", "MobInstrumentAttack", "MobTick"]
+  "mixins": ["MobsCanPlay", "MenuMob", "MobEntityMixin"]
 }

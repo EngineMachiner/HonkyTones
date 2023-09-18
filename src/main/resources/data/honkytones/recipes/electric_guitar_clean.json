@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "   ",
+    " XS",
+    " N "
+  ],
+  "key": {
+    "S": { "item": "minecraft:blue_dye" },
+    "N": { "item": "minecraft:lever" },
+    "X": { "item": "honkytones:electric_guitar" }
+  },
+  "result": {
+    "item": "honkytones:electric_guitar_clean",
+    "count": 1
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "honkytones:block/music_player/speaker_side",
+    "north": "honkytones:block/music_player/front",
+    "south": "honkytones:block/music_player/speaker_side",
+    "east": "honkytones:block/music_player/speaker_side",
+    "west": "honkytones:block/music_player/speaker_side",
+    "up": "honkytones:block/music_player/lid",
+    "down": "honkytones:block/music_player/lid"
+  }
+}

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "honkytones",
-  "version": "3.0.2",
+  "version": "3.5.0",
   "name": "HonkyTones",
   "description": "Mod that reads MIDI stuff and does other things.",
   "authors": [ "Engine_Machiner" ],
@@ -19,7 +19,7 @@
 
       {
         "adapter": "kotlin",
-        "value": "com.enginemachiner.honkytones.Base"
+        "value": "com.enginemachiner.honkytones.Init"
       },
 
       {
@@ -30,8 +30,7 @@
     ],
 
     "client": [
-      "com.enginemachiner.honkytones.Base",
-      "com.enginemachiner.honkytones.Input",
+      "com.enginemachiner.honkytones.Init",
       "com.enginemachiner.honkytones.Particles",
       "com.enginemachiner.honkytones.Projectiles"
     ]
@@ -48,6 +47,7 @@
 
     "honkytones.mixins.json",
     "honkytones.mixins.mob.json",
+    "honkytones.mixins.chest.json",
     "honkytones.mixins.player.json",
     "honkytones.mixins.enchantments.json"
 

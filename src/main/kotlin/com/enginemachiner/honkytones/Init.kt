@@ -1,0 +1,193 @@
+package com.enginemachiner.honkytones
+
+import com.enginemachiner.honkytones.MusicTheory.instrumentFiles
+import com.enginemachiner.honkytones.blocks.musicplayer.*
+import com.enginemachiner.honkytones.items.console.DigitalConsole
+import com.enginemachiner.honkytones.items.console.DigitalConsoleScreen
+import com.enginemachiner.honkytones.items.console.DigitalConsoleScreenHandler
+import com.enginemachiner.honkytones.items.console.PickStackScreenHandler
+import com.enginemachiner.honkytones.items.floppy.FloppyDisk
+import com.enginemachiner.honkytones.items.instruments.Instrument
+import com.enginemachiner.honkytones.items.instruments.Instrument.Companion.classes
+import com.enginemachiner.honkytones.items.instruments.Instrument.Companion.hitSounds
+import com.enginemachiner.honkytones.items.instruments.RangedEnchantment
+import com.enginemachiner.honkytones.items.storage.MusicalStorage
+import com.enginemachiner.honkytones.items.storage.StorageScreen
+import com.enginemachiner.honkytones.items.storage.StorageScreenHandler
+import com.enginemachiner.honkytones.sound.Sound
+import net.fabricmc.api.ClientModInitializer
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
+import net.fabricmc.api.ModInitializer
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
+import net.minecraft.block.Block
+import net.minecraft.enchantment.Enchantment
+import net.minecraft.item.BlockItem
+import net.minecraft.item.Item
+import net.minecraft.sound.SoundEvent
+import net.minecraft.util.registry.Registry
+import kotlin.reflect.full.createInstance
+
+// TODO: Stop using java.util.Timer.
+// TODO: Check inherited methods on other classes.
+
+class Init : ModInitializer, ClientModInitializer {
+
+    override fun onInitialize() {
+
+        readServerConfig();     MusicTheory.buildSoundData();      register()
+
+        networking();           modPrint("Mod loaded.")
+
+    }
+
+    override fun onInitializeClient() {
+
+        readClientConfig()
+
+        // Directory creation.
+        for ( directory in directories.values ) directory.mkdirs()
+
+        // Downloaded files are deleted on start by default.
+        val keepDownloads = clientConfig["keep_downloads"] as Boolean
+
+        if ( !keepDownloads ) deleteDownloads()
+
+        StorageScreen.register();               MusicPlayerScreen.register()
+        DigitalConsoleScreen.register();        MusicalStorage.registerRender()
+        Commands.client()
+
+        registerKeyBindings();                  Midi.configDevices()
+
+    }
+
+    companion object {
+
+        init { ConfigFile.checkConfigDirectory() }
+
+        const val MOD_NAME = "honkytones";      val chatTitle = "§3 [${ MOD_NAME.uppercase() }]: §f"
+
+        @Environment(EnvType.CLIENT)
+        var directories = mutableMapOf(
+            "streams" to ModFile( "$MOD_NAME/streams/" ),
+            "midis" to ModFile( "$MOD_NAME/midi/" )
+        )
+
+        @Environment(EnvType.CLIENT)
+        fun registerKeyBindings() {
+
+            Instrument.Companion.KeyBindings.register()
+
+            DigitalConsoleScreen.registerKeyBindings()
+
+        }
+
+        fun registerBlock( block: Block, itemSettings: Item.Settings ): Block? {
+
+            val s = ( block as ModID ).className().replace( "_block", "" )
+
+            val id = modID(s);       val block = Registry.register( Registry.BLOCK, id, block )
+
+            val item = BlockItem( block, itemSettings );    Registry.register( Registry.ITEM, id, item )
+
+            return block
+
+        }
+
+        private fun registerItem(item: Item) {
+
+            val id = ( item as ModID ).classID()
+
+            Registry.register( Registry.ITEM, id, item )
+
+        }
+
+        private fun registerSound(path: String): SoundEvent? {
+
+            val id = modID(path);      val event = SoundEvent(id)
+
+            return Registry.register( Registry.SOUND_EVENT, id, event )
+
+        }
+
+        private fun registerEnchantment( enchantment: Enchantment ) {
+
+            val path = ( enchantment as ModID ).className()
+                .replace("_enchantment", "")
+
+            Registry.register( Registry.ENCHANTMENT, modID(path), enchantment )
+
+        }
+
+        private fun registerCallbacks() {
+
+            ServerLifecycleEvents.SERVER_STOPPING.register {
+                serverConfigFile.updateProperties(serverConfig)
+            }
+
+            if ( !isClient() ) return
+
+            ClientLifecycleEvents.CLIENT_STOPPING.register {
+                clientConfigFile.updateProperties(clientConfig)
+            }
+
+        }
+
+        private fun register() {
+
+            // Item group first.
+            registerItem(ItemGroup)
+
+            registerItem( FloppyDisk() );       registerItem( DigitalConsole() )
+
+            MusicPlayerBlock.register();        registerItem( MusicalStorage.registryItem )
+
+            // Register instruments sounds.
+            for ( entry in instrumentFiles ) { for ( note in entry.value ) {
+
+                val name1 = ModID.className( entry.key );   val name2 = note.lowercase()
+
+                registerSound("$name1.$name2")
+
+            } }
+
+            // Register instruments.
+            for ( kclass in classes ) registerItem( kclass.createInstance() )
+
+            Instrument.registerFuel();      NoteProjectileEntity.register()
+
+            for ( i in 1..9 ) hitSounds.add( registerSound("hit0$i")!! )
+
+            registerSound("magic.c3-e3_")
+
+            registerEnchantment( RangedEnchantment() )
+
+            registerScreenHandlers();    registerCallbacks();   Screen.networking()
+
+        }
+
+        private fun registerScreenHandlers() {
+
+            DigitalConsoleScreenHandler.register();     StorageScreenHandler.register()
+            MusicPlayerScreenHandler.register();        PickStackScreenHandler.register()
+
+        }
+
+        //private fun registerTickEvents() {}
+
+        private fun networking() {
+
+            NBT.networking();                       Sound.networking()
+
+            Instrument.networking();                FloppyDisk.networking()
+
+            Projectiles.networking();               MusicalStorage.networking()
+
+            MusicPlayerBlockEntity.networking();    PickStackScreenHandler.networking()
+
+        }
+
+    }
+
+}

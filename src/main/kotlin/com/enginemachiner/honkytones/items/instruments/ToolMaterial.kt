@@ -5,61 +5,67 @@ import net.minecraft.item.ToolMaterial
 import net.minecraft.item.ToolMaterials
 import net.minecraft.recipe.Ingredient
 
-class MusicalString : MusicalRedstone() {
+class MusicalString : InstrumentMaterial() {
 
-    override var data = mapOf<String, Any>(
+    override val data = mapOf<String, Any>(
         "Durability" to ( ToolMaterials.WOOD.durability * 1.25f ).toInt(),
-        "MiningSpeed" to ToolMaterials.WOOD.miningSpeedMultiplier,
-        "AttackDamage" to ToolMaterials.WOOD.attackDamage + 1.25f,
-        "MiningLevel" to ToolMaterials.WOOD.miningLevel,
+        "Mining Speed" to ToolMaterials.WOOD.miningSpeedMultiplier,
+        "Attack Damage" to ToolMaterials.WOOD.attackDamage + 1.25f,
+        "Mining Level" to ToolMaterials.WOOD.miningLevel,
         "Enchantability" to ToolMaterials.IRON.enchantability + 4,
-        "RepairIngredient" to Ingredient.ofItems( Items.STRING )
+        "Repair Ingredient" to Ingredient.ofItems( Items.STRING )
     )
 
 }
 
-class MusicalIron : MusicalRedstone() {
+class MusicalIron : InstrumentMaterial() {
 
-    override var data = mapOf<String, Any>(
+    override val data = mapOf(
         "Durability" to ( ToolMaterials.IRON.durability * 1.25f ).toInt(),
-        "MiningSpeed" to ToolMaterials.WOOD.miningSpeedMultiplier,
-        "AttackDamage" to ToolMaterials.IRON.attackDamage + 0.25f,
-        "MiningLevel" to ToolMaterials.WOOD.miningLevel,
+        "Mining Speed" to ToolMaterials.WOOD.miningSpeedMultiplier,
+        "Attack Damage" to ToolMaterials.IRON.attackDamage + 0.25f,
+        "Mining Level" to ToolMaterials.WOOD.miningLevel,
         "Enchantability" to ToolMaterials.IRON.enchantability + 1,
-        "RepairIngredient" to Ingredient.ofItems( Items.IRON_INGOT )
+        "Repair Ingredient" to Ingredient.ofItems( Items.IRON_INGOT )
     )
 
 }
 
-class MusicalQuartz : MusicalRedstone() {
+class MusicalQuartz : InstrumentMaterial() {
 
-    override var data = mapOf<String, Any>(
+    override val data = mapOf(
         "Durability" to ( ToolMaterials.IRON.durability * 1.5f ).toInt(),
-        "MiningSpeed" to ToolMaterials.WOOD.miningSpeedMultiplier,
-        "AttackDamage" to ToolMaterials.IRON.attackDamage + 0.5f,
-        "MiningLevel" to ToolMaterials.WOOD.miningLevel,
+        "Mining Speed" to ToolMaterials.WOOD.miningSpeedMultiplier,
+        "Attack Damage" to ToolMaterials.IRON.attackDamage + 0.5f,
+        "Mining Level" to ToolMaterials.WOOD.miningLevel,
         "Enchantability" to ToolMaterials.IRON.enchantability + 2,
-        "RepairIngredient" to Ingredient.ofItems( Items.QUARTZ_BLOCK )
+        "Repair Ingredient" to Ingredient.ofItems( Items.QUARTZ_BLOCK )
     )
 
 }
 
-open class MusicalRedstone : ToolMaterial {
+class MusicalRedstone : InstrumentMaterial() {
 
-    open var data = mapOf(
+    override val data = mapOf(
         "Durability" to ToolMaterials.IRON.durability * 2,
-        "MiningSpeed" to ToolMaterials.WOOD.miningSpeedMultiplier * 6,
-        "AttackDamage" to ToolMaterials.IRON.attackDamage + 0.75f,
-        "MiningLevel" to ToolMaterials.WOOD.miningLevel,
+        "Mining Speed" to ToolMaterials.WOOD.miningSpeedMultiplier * 6,
+        "Attack Damage" to ToolMaterials.IRON.attackDamage + 0.75f,
+        "Mining Level" to ToolMaterials.WOOD.miningLevel,
         "Enchantability" to ToolMaterials.IRON.enchantability + 3,
-        "RepairIngredient" to Ingredient.ofItems( Items.REDSTONE_BLOCK )
+        "Repair Ingredient" to Ingredient.ofItems( Items.REDSTONE_BLOCK )
     )
+
+}
+
+abstract class InstrumentMaterial : ToolMaterial {
+
+    protected abstract val data: Map<String, Any>
 
     override fun getDurability(): Int { return data["Durability"] as Int }
-    override fun getMiningSpeedMultiplier(): Float { return data["MiningSpeed"] as Float }
-    override fun getAttackDamage(): Float { return data["AttackDamage"] as Float }
-    override fun getMiningLevel(): Int { return data["MiningLevel"] as Int }
+    override fun getMiningSpeedMultiplier(): Float { return data["Mining Speed"] as Float }
+    override fun getAttackDamage(): Float { return data["Attack Damage"] as Float }
+    override fun getMiningLevel(): Int { return data["Mining Level"] as Int }
     override fun getEnchantability(): Int { return data["Enchantability"] as Int }
-    override fun getRepairIngredient(): Ingredient { return data["RepairIngredient"] as Ingredient }
+    override fun getRepairIngredient(): Ingredient { return data["Repair Ingredient"] as Ingredient }
 
 }

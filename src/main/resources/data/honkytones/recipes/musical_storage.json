@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "NJN",
+    "NCN",
+    "NNN"
+  ],
+  "key": {
+    "C": { "item": "minecraft:chest" },
+    "J": { "item": "minecraft:jukebox" },
+    "N": { "item": "minecraft:note_block" }
+  },
+  "result": {
+    "item": "honkytones:musical_storage",
+    "count": 1
+  }
+}

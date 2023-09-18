@@ -5,8 +5,5 @@
   "injectors": {
     "defaultRequire": 1
   },
-  "mixins": [
-    "ChestBlockEntityAccessor", "LidAnimatorAccessor",
-    "CrashReportMixin"
-  ]
+  "mixins": ["CrashReportMixin"]
 }
