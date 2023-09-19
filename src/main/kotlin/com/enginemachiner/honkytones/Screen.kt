@@ -21,7 +21,7 @@ import net.minecraft.text.Text
 import kotlin.math.roundToInt
 import kotlin.reflect.KClass
 
-// TODO: Remake all the slots order. First player inventory, then everything else.
+// TODO: Check all the slots order. First player inventory, then everything else.
 
 /** It's a custom screen handler that can allow only specific item types to the slots. */
 abstract class StrictSlotScreen( type: ScreenHandlerType<*>, syncID: Int ) : ScreenHandler( type, syncID ) {

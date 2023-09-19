@@ -181,7 +181,7 @@ open class Instrument(
 
     }
 
-    // TODO: interactive mobs make this trigger a lot idk why.
+    // TODO: Interactive mobs trigger this a lot, idk why.
     override fun useOnEntity(
         stack: ItemStack?, player: PlayerEntity?, entity: LivingEntity?, hand: Hand?
     ): ActionResult {
@@ -206,7 +206,6 @@ open class Instrument(
 
     }
 
-    // TODO: Verify how long.
     override fun getMaxUseTime( stack: ItemStack? ): Int { return 200 }
 
     override fun onStoppedUsing(

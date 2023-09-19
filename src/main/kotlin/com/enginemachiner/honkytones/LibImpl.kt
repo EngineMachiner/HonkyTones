@@ -54,14 +54,19 @@ object FFmpegImpl {
 }
 
 @Environment(EnvType.CLIENT)
-class YTDLRequest(input: String) : YoutubeDLRequest(input) {
+class MediaRequest(input: String) : YTDLRequest(input) {
+    init { setOption("no-playlist");   setOption("no-mark-watched") }
+}
+
+@Environment(EnvType.CLIENT)
+open class YTDLRequest(input: String) : YoutubeDLRequest(input) {
     public override fun buildOptions(): String { return super.buildOptions() }
 }
 
 private val mapper = ObjectMapper()
 
 @Environment(EnvType.CLIENT)
-fun requestInfo(path: String): VideoInfo? {
+fun infoRequest(path: String): VideoInfo? {
 
     val request = YTDLRequest(path)
     request.setOption("youtube-skip-dash-manifest")
@@ -70,7 +75,7 @@ fun requestInfo(path: String): VideoInfo? {
     request.setOption("no-mark-watched")
     request.setOption("no-colors")
     request.setOption("no-download-archive")
-    request.setOption("wait-for-video 5")
+    request.setOption( "wait-for-video", 5 )
     request.setOption("skip-download")
 
     val response = executeYTDL(request);    if ( response.isEmpty() ) return null

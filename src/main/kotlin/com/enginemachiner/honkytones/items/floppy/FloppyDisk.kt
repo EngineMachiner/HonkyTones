@@ -170,7 +170,7 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
             Thread.currentThread().name = "HonkyTones Floppy thread"
 
             val path = nbt.getString("Path")
-            val info = requestInfo(path) ?: return@launch
+            val info = infoRequest(path) ?: return@launch
 
             holder as PlayerEntity
 

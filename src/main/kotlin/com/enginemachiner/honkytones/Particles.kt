@@ -71,6 +71,8 @@ open class SimpleNoteParticle( clientWorld: ClientWorld, x: Double, y: Double, z
 
     }
 
+    fun addVelocityY(delta: Double) { velocityY += delta }
+
     companion object {
 
         @Environment(EnvType.CLIENT)

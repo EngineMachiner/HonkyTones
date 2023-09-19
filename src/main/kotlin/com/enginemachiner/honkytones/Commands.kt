@@ -60,7 +60,7 @@ object Commands : DedicatedServerModInitializer {
 
                     val error = Translation.get("error.$key")
 
-                    if ( key == "audio_quality" ) allow = i in 0..10
+                    if ( key == "audio_quality" ) allow = i in 1..10
                     if ( key == "max_length" ) allow = i > 0
 
                     if (allow) clientConfig[key] = i else warnUser(error)

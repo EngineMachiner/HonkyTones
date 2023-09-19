@@ -37,7 +37,7 @@ val clientConfigKeys = mutableMapOf(
 val serverConfigKeys = mutableMapOf(
 
     Boolean::class to listOf(
-        "debug_mode", "mob_particles", "player_particles", "allow_pushing_players",
+        "mob_particles", "player_particles", "allow_pushing_players",
         "music_particles"
     ),
 
@@ -189,7 +189,7 @@ class ServerConfigFile(path: String) : ConfigFile(path) {
 
         val default = mapOf(
             "music_particles" to "true",
-            "debug_mode" to "false",       "mobs_playing_delay" to "120",
+            "mobs_playing_delay" to "120",
             "mob_particles" to "true",     "player_particles" to "true",
             "allow_pushing_players" to "false"
         )

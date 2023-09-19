@@ -17,7 +17,7 @@ import kotlin.reflect.KClass
 object Utility {
 
     @JvmField   // To be used while testing mixins.
-    val print: (String) -> Unit = ::modPrint
+    val modPrint: (String) -> Unit = ::modPrint
 
 }
 

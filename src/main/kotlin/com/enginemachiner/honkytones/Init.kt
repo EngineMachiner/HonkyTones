@@ -32,7 +32,6 @@ import net.minecraft.sound.SoundEvent
 import net.minecraft.util.registry.Registry
 import kotlin.reflect.full.createInstance
 
-// TODO: Stop using java.util.Timer.
 // TODO: Check inherited methods on other classes.
 
 class Init : ModInitializer, ClientModInitializer {
@@ -181,13 +180,13 @@ class Init : ModInitializer, ClientModInitializer {
 
         private fun registerTickEvents() {
 
-            val serverTick = ServerTickEvents.StartTick { tickTimers() }
-            ServerTickEvents.START_SERVER_TICK.register(serverTick)
+            val serverTick = ServerTickEvents.StartWorldTick { tickTimers() }
+            ServerTickEvents.START_WORLD_TICK.register(serverTick)
 
             if ( !isClient() ) return
 
-            val clientTick = ClientTickEvents.StartTick { tickTimers() }
-            ClientTickEvents.START_CLIENT_TICK.register(clientTick)
+            val clientTick = ClientTickEvents.StartWorldTick { tickTimers() }
+            ClientTickEvents.START_WORLD_TICK.register(clientTick)
 
         }
 

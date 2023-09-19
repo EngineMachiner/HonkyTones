@@ -123,7 +123,7 @@ class MusicPlayerScreenHandler(
 
             floppySlot.stack = stack;       slot.stack = temp
 
-            slot.markDirty();       updateClients(16);       return false
+            updateClients(16);       return false
 
         } else {
 
@@ -135,6 +135,8 @@ class MusicPlayerScreenHandler(
         return true
 
     }
+
+    override fun close(player: PlayerEntity?) { inventory.markDirty();      super.close(player) }
 
     override fun transferSlot( player: PlayerEntity?, slotIndex: Int ): ItemStack {
 
@@ -224,15 +226,13 @@ class MusicPlayerScreenHandler(
 
     private fun updateClients(slotIndex: Int) {
 
-        trackPos(slotIndex)
-
         if ( world.isClient ) return;       var floppyStack = stacks[16]
 
         val musicPlayer = inventory as MusicPlayerBlockEntity
 
         if ( floppyStack.nbt == null ) floppyStack = cursorStack
 
-        musicPlayer.read(floppyStack)
+        trackPos(slotIndex);        musicPlayer.read(floppyStack)
 
     }
 

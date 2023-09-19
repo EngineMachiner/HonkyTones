@@ -535,7 +535,7 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
     @Environment(EnvType.CLIENT)
     private fun postPlay() {
 
-        val id = netID("particles")
+        if ( !isPlaying ) return;       val id = netID("particles")
 
         val buf = PacketByteBufs.create().writeBlockPos(pos)
 
@@ -610,7 +610,7 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
         // Download source using yt-dl + ffmpeg.
 
-        val info = requestInfo(path) ?: return
+        val info = infoRequest(path) ?: return
 
         val max = clientConfig["max_length"] as Int // Limit to max_length in config.
 
@@ -637,31 +637,23 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
         try {
 
-            val request = YTDLRequest(path)
-
-            request.setOption("no-playlist");   request.setOption("no-mark-watched")
+            val request = MediaRequest(path);   request.setOption( "format", 139 )
 
             val outputPath = outputFile.path.replace( ".ogg", ".%(ext)s" )
 
             request.setOption("output $outputPath")
 
-            var convertPath = outputPath.replace( "%(ext)s", "m4a" )
-
             val keepVideos = clientConfig["keep_videos"] as Boolean
 
-            if (keepVideos) {
-
-                convertPath = outputPath.replace( "%(ext)s", "3gp" )
-
-                request.setOption( "format", 17 );  request.setOption("-k")
-
-            } else request.setOption( "format", 139 )
+            if (keepVideos) coroutine.launch { requestVideo(outputPath) }
 
             warnUser( Translation.get("message.downloading") ); warnUser( info.title )
 
-            if ( executeYTDL(request).isEmpty() ) return
+            if ( executeYTDL(request).isEmpty() ) throw Exception("Request failed!")
 
             val quality = clientConfig["audio_quality"] as Int
+
+            val convertPath = outputPath.replace( "%(ext)s", "m4a" )
 
             val builder = FFmpegImpl.builder ?: throw YoutubeDLException("Missing ffmpeg!")
 
@@ -672,11 +664,9 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
             val executor = FFmpegImpl.executor ?: throw YoutubeDLException("Missing ffmpeg!")
 
-            executor.createJob(builder).run()
+            executor.createJob(builder).run();      ModFile(convertPath).delete()
 
-            if ( !keepVideos ) ModFile(convertPath).delete()
-
-            this.path = filePath;       warnUser( Translation.get("message.done") )
+            this.path = filePath;                   warnUser( Translation.get("message.done") )
 
         } catch ( e: Exception ) {
 
@@ -689,6 +679,19 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
         }
 
         onQuery = false
+
+    }
+
+    @Environment(EnvType.CLIENT)
+    private fun requestVideo(outputPath: String) {
+
+        val request = MediaRequest(path)
+
+        val outputPath = outputPath.replace( "%(ext)s", "mp4" )
+
+        request.setOption("output $outputPath");    request.setOption( "format", 18 )
+
+        executeYTDL(request)
 
     }
 
@@ -918,7 +921,7 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
     private fun read() { read( getStack(16) ) }
     fun read(floppy: ItemStack) {
 
-        val id = netID("read");          if ( !NBT.has(floppy) ) return
+        val id = netID("read");         if ( !NBT.has(floppy) ) return
 
         val nbt = NBT.get(floppy);          val buf = PacketByteBufs.create()
 
@@ -994,7 +997,9 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
 
                 val pos = entity.pos.add( Vec3d( 0.0, 1.25, 0.0 ) )
 
-                Particles.spawnOne( Particles.SIMPLE_NOTE, pos )
+                val particle = Particles.spawnOne( Particles.SIMPLE_NOTE, pos ) as SimpleNoteParticle
+
+                particle.addVelocityY( - 0.06 )
 
             }
 

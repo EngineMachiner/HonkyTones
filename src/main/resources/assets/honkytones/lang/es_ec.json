@@ -86,7 +86,7 @@
   "honkytones.gui.on": "Si",  "honkytones.gui.off": "No",
 
   "honkytones.error.parse": "Hubo un error analizando los datos.",
-  "honkytones.error.audio_quality": "Numero no está entre 0 y 10.",
+  "honkytones.error.audio_quality": "Numero no está entre 1 y 10.",
   "honkytones.error.url": "¡La url no es valida o la petición tardo mucho!",
   "honkytones.error.missing_ytdl": "¡El ejecutable youtube-dl no se encuentra or fue denegado!",
   "honkytones.error.denied": "Acceso denegado.",
@@ -118,7 +118,6 @@
   "honkytones.help.keep_videos": "Almacenar videos.",
   "honkytones.help.audio_quality": "Calidad de audio de 0 a 10.",
 
-  "honkytones.help.debug_mode": "Mostrar mensajes de debug y extras en la consola.",
   "honkytones.help.mobs_playing_delay": "Cambiar el intervalo de los sonidos de las creaturas (Tiene que ser mayor a 120).",
 
   "honkytones.help.tip1": "Los instrumentos pueden tener§2 otros usos§f además de tocar notas.",
