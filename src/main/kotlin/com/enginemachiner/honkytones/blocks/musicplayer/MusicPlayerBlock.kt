@@ -42,7 +42,6 @@ import net.minecraft.client.render.entity.EntityRenderer
 import net.minecraft.client.render.entity.EntityRendererFactory
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
-import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.SpawnGroup
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
@@ -79,10 +78,8 @@ import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
 import net.minecraft.world.explosion.Explosion
 import java.net.URL
-import java.util.*
 import javax.sound.midi.MidiSystem
 import javax.sound.midi.Sequencer
-import kotlin.concurrent.schedule
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
@@ -369,7 +366,9 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
                     val nbt = NBT.get( musicPlayer.getStack(16) )
 
-                    if ( !musicPlayer.isPlaying ) return@ServerTask
+                    val allow = serverConfig["music_particles"] as Boolean
+
+                    if ( !musicPlayer.isPlaying || !allow ) return@ServerTask
 
                     val waveType = ( 0 until particles.waves.size ).random()
                     val buf = PacketByteBufs.create().writeBlockPos(pos)
@@ -396,6 +395,8 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
                 val type = buf.readInt()
 
                 client.send {
+
+                    val allow = clientConfig["music_particles"] as Boolean;     if ( !allow ) return@send
 
                     val musicPlayer = world.getBlockEntity(pos) as MusicPlayerBlockEntity
 
@@ -883,20 +884,20 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
         if ( !spawnParticles || isRemoved ) return
 
-        val l1 = Random.nextLong(500L)
-        val l2 = Random.nextLong(500L, 750L )
-        val l3 = Random.nextLong( 500L, 750L )
-        val l4 = Random.nextLong( 250L, 750L )
+        val l1 = Random.nextInt(10)
+        val l2 = Random.nextInt( 10, 15 )
+        val l3 = Random.nextInt( 10, 15 )
+        val l4 = Random.nextInt( 5, 15 )
 
-        Timer().schedule(l4) { spawnParticles(wave) }
+        Timer(l4) { spawnParticles(wave) }
 
         if ( isMuted(entity!!) ) return
 
-        Timer().schedule(l1) { particles.spawnNote(entity!!) }
+        Timer(l1) { particles.spawnNote(entity!!) }
 
-        Timer().schedule(l2) { particles.spawnWave( entity!!, wave, false ) }
+        Timer(l2) { particles.spawnWave( entity!!, wave, false ) }
 
-        Timer().schedule(l3) { particles.spawnWave( entity!!, wave, true ) }
+        Timer(l3) { particles.spawnWave( entity!!, wave, true ) }
 
     }
 
@@ -912,7 +913,7 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
     }
 
-    private fun scheduleRead() { Timer().schedule(250L) { read() } }
+    private fun scheduleRead() { Timer(5) { read() } }
 
     private fun read() { read( getStack(16) ) }
     fun read(floppy: ItemStack) {

@@ -3,8 +3,8 @@ package com.enginemachiner.honkytones.items.instruments
 import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.Init.Companion.MOD_NAME
 import com.enginemachiner.honkytones.MusicTheory.completeSet
-import com.enginemachiner.honkytones.MusicTheory.instrumentFiles
 import com.enginemachiner.honkytones.MusicTheory.index
+import com.enginemachiner.honkytones.MusicTheory.instrumentFiles
 import com.enginemachiner.honkytones.MusicTheory.noteCount
 import com.enginemachiner.honkytones.MusicTheory.sharpsToFlats
 import com.enginemachiner.honkytones.MusicTheory.shift
@@ -69,8 +69,6 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.world.RaycastContext
 import net.minecraft.world.World
 import org.lwjgl.glfw.GLFW
-import java.util.*
-import kotlin.concurrent.schedule
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
@@ -405,8 +403,7 @@ open class Instrument(
 
             }
 
-            private var isMain = false
-            private const val HANDS_ANGLE = 15
+            private var onMainHand = false
 
             @Environment(EnvType.CLIENT)
             private fun spawnSimpleNote(entity: Entity) {
@@ -418,12 +415,12 @@ open class Instrument(
 
                 if ( n == 2 ) {
 
-                    data = if ( !isMain ) Vec3d( data.x, data.y + HANDS_ANGLE, data.z )
+                    data = if ( !onMainHand ) Vec3d( data.x, data.y + HANDS_ANGLE, data.z )
                     else Vec3d( data.x, data.y - HANDS_ANGLE, data.z )
 
-                    isMain = !isMain
+                    onMainHand = !onMainHand
 
-                } else isMain = false
+                } else onMainHand = false
 
                 spawnNote( Particles.SIMPLE_NOTE, entity, data )
 
@@ -432,9 +429,7 @@ open class Instrument(
             @Environment(EnvType.CLIENT)
             fun spawnNote(particle: ParticleEffect, entity: Entity, data: Vec3d ) {
 
-                val world = entity.world
-
-                if ( world !is ClientWorld ) return
+                val world = entity.world;       if ( world !is ClientWorld ) return
 
                 val radius = data.x;     val angleOffset = data.y;      val height = data.z
 
@@ -449,9 +444,7 @@ open class Instrument(
             }
 
             //** Spawn 4 hit particles. */
-            fun hit( entity: Entity, particleType: ParticleEffect ) {
-                hit( entity, particleType, 4 )
-            }
+            fun hit( entity: Entity, particleType: ParticleEffect ) { hit( entity, particleType, 4 ) }
 
             //** Spawn hit particles. */
             fun hit( entity: Entity, particleType: ParticleEffect, n: Int ) {
@@ -976,22 +969,19 @@ open class Instrument(
 
         } else {
 
-            val n = 6;      var time = 0L
+            val n = 6;      var ticks = 0
 
             for ( i in 1 .. n ) {
 
-                Timer().schedule(time) {
+                Timer(ticks) {
 
                     val projectile = NoteProjectileEntity( stack, world )
 
-                    val deltaX = 360f * i / n
-                    projectile.changeLookDirection( deltaX.toDouble(), 0.0 )
-
-                    world.spawnEntity( projectile )
+                    world.spawnEntity(projectile)
 
                 }
 
-                time += 150L
+                ticks += Random.nextInt( 2, 6 )
 
             }
 
@@ -1046,15 +1036,17 @@ open class Instrument(
 
         val sound = sounds.random();            val pitch = ( 75..125 ).random() * 0.1f
 
-        var delay = 0L;      var times = 1;     val index = sounds.indexOf(sound)
+        var delay = 0;      var times = 1;     val index = sounds.indexOf(sound)
 
         if ( index == 5 ) times = Random.nextInt(1, 5)
         else if ( index in 6..8 ) times = Random.nextInt(4)
 
-        val gap = Random.nextInt( 50, 200 )
+        val gap = Random.nextInt( 1, 5 )
+
         for ( i in 1..times ) {
 
-            Timer().schedule(delay) { world.playSoundFromEntity( null, entity, sound, SoundCategory.PLAYERS, 0.5f, pitch ) }
+            Timer(delay) { world.playSoundFromEntity( null, entity, sound, SoundCategory.PLAYERS, 0.5f, pitch ) }
+
             delay += gap
 
         }

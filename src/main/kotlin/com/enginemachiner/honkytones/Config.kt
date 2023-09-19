@@ -25,19 +25,20 @@ val clientConfigKeys = mutableMapOf(
 
     Boolean::class to listOf(
         "keep_downloads", "keep_videos", "mob_particles", "write_device_info",
-        "player_particles", "sync_all"
+        "player_particles", "sync_all", "music_particles"
     ),
 
     Int::class to listOf( "audio_quality", "max_length" ),
 
-    String::class to listOf( "ffmpeg_folder", "youtube-dl_path" )
+    String::class to listOf( "ffmpeg_directory", "youtube-dl_path" )
 
 )
 
 val serverConfigKeys = mutableMapOf(
 
     Boolean::class to listOf(
-        "debug_mode", "mob_particles", "player_particles", "allow_pushing_players"
+        "debug_mode", "mob_particles", "player_particles", "allow_pushing_players",
+        "music_particles"
     ),
 
     Int::class to listOf("mobs_playing_delay")
@@ -168,9 +169,9 @@ class ClientConfigFile(path: String) : ConfigFile(path) {
     companion object {
 
         private val default = mapOf(
-            "sync_all" to "false",
-            "ffmpeg_folder" to "",              "youtube-dl_path" to "youtube-dl",
-            "mob_particles" to "true",         "write_device_info" to "true",
+            "sync_all" to "false",              "music_particles" to "true",
+            "ffmpeg_directory" to "",           "youtube-dl_path" to "youtube-dl",
+            "mob_particles" to "true",          "write_device_info" to "true",
             "player_particles" to "true",       "keep_downloads" to "false",
             "keep_videos" to "false",           "audio_quality" to "5",
             "max_length" to "1200", // 60 * 20 -> 20 min
@@ -187,6 +188,7 @@ class ServerConfigFile(path: String) : ConfigFile(path) {
     companion object {
 
         val default = mapOf(
+            "music_particles" to "true",
             "debug_mode" to "false",       "mobs_playing_delay" to "120",
             "mob_particles" to "true",     "player_particles" to "true",
             "allow_pushing_players" to "false"

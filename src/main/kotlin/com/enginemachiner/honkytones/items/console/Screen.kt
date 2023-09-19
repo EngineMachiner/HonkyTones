@@ -40,12 +40,10 @@ import net.minecraft.util.Identifier
 import net.minecraft.util.registry.Registry
 import org.lwjgl.glfw.GLFW
 import java.awt.Color
-import java.util.*
 import javax.sound.midi.MidiEvent
 import javax.sound.midi.MidiSystem
 import javax.sound.midi.Sequence
 import javax.sound.midi.ShortMessage
-import kotlin.concurrent.schedule
 
 class DigitalConsoleScreenHandler(
     syncID: Int, private val playerInventory: PlayerInventory, val inventory: Inventory
@@ -325,7 +323,7 @@ class DigitalConsoleScreen(
 
             val sound = sounds[i] ?: return@forEach
 
-            Timer().schedule(125L) { sound.fadeOut() }
+            Timer(2) { sound.fadeOut() }
 
             record( i, ShortMessage.NOTE_OFF, 0f )
 

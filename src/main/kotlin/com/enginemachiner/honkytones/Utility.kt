@@ -128,3 +128,21 @@ fun degreeToRadians( angle: Double ): Double {
 fun modID(id: String): Identifier { return Identifier( MOD_NAME, id ) }
 
 fun textureID(id: String): Identifier { return Identifier( MOD_NAME, "textures/$id" ) }
+
+class Timer( private val tickLimit: Int,     private val function: () -> Unit ) {
+
+    private var ticks = 0;      init { timers.add(this) }
+
+    private fun kill() { timers.remove(this) }
+
+    fun tick() { if ( ticks > tickLimit ) { function(); kill() } else ticks++ }
+
+    companion object {
+
+        val timers = mutableListOf<Timer>()
+
+        fun tickTimers() { timers.toSet().forEach { it.tick() } }
+
+    }
+
+}

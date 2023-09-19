@@ -105,7 +105,6 @@ class ExternalSound(
 ) : FadingSound("audio_stream") {
 
     private var nbtVolume = 1f
-    private val sequencer = musicPlayer.sequencer
     private var audioStream: AudioStream? = null
 
     init { init() }

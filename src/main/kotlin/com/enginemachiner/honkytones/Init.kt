@@ -1,6 +1,7 @@
 package com.enginemachiner.honkytones
 
 import com.enginemachiner.honkytones.MusicTheory.instrumentFiles
+import com.enginemachiner.honkytones.Timer.Companion.tickTimers
 import com.enginemachiner.honkytones.blocks.musicplayer.*
 import com.enginemachiner.honkytones.items.console.DigitalConsole
 import com.enginemachiner.honkytones.items.console.DigitalConsoleScreen
@@ -20,7 +21,9 @@ import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.minecraft.block.Block
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.item.BlockItem
@@ -165,6 +168,8 @@ class Init : ModInitializer, ClientModInitializer {
 
             registerScreenHandlers();    registerCallbacks();   Screen.networking()
 
+            registerTickEvents()
+
         }
 
         private fun registerScreenHandlers() {
@@ -174,7 +179,17 @@ class Init : ModInitializer, ClientModInitializer {
 
         }
 
-        //private fun registerTickEvents() {}
+        private fun registerTickEvents() {
+
+            val serverTick = ServerTickEvents.StartTick { tickTimers() }
+            ServerTickEvents.START_SERVER_TICK.register(serverTick)
+
+            if ( !isClient() ) return
+
+            val clientTick = ClientTickEvents.StartTick { tickTimers() }
+            ClientTickEvents.START_CLIENT_TICK.register(clientTick)
+
+        }
 
         private fun networking() {
 

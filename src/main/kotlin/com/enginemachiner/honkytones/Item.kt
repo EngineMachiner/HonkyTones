@@ -18,6 +18,8 @@ import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
 import kotlin.reflect.KClass
 
+const val HANDS_ANGLE = 15
+
 val hands = arrayOf( Hand.MAIN_HAND, Hand.OFF_HAND )
 
 private val equipment = arrayOf( EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND )

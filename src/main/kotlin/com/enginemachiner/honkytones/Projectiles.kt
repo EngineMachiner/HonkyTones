@@ -30,8 +30,9 @@ import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.math.*
 import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
-import java.util.Timer
-import kotlin.concurrent.schedule
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.random.Random
 
 class Projectiles : ClientModInitializer {
@@ -56,7 +57,7 @@ class NoteProjectileEntity : PersistentProjectileEntity {
         val rotation = holder.rotationVecClient.multiply(1.25)
         setVelocity( rotation.x, rotation.y, rotation.z )
 
-        direction.normalize()
+        onOffHand();        direction.normalize()
 
     }
 
@@ -85,7 +86,7 @@ class NoteProjectileEntity : PersistentProjectileEntity {
 
     override fun tick() {
 
-        tickCount++;    if ( tickCount > tickLimit ) discard()
+        tickCount++;    if ( tickCount > tickLimit && !isRemoved ) discard()
 
         for ( i in 0..4 ) if ( patternIndex == i ) { patterns[i](); break }
 
@@ -124,6 +125,19 @@ class NoteProjectileEntity : PersistentProjectileEntity {
     }
 
     override fun asItemStack(): ItemStack { return ItemStack.EMPTY }
+
+    private fun onOffHand() {
+
+        val holder = stack!!.holder!! as LivingEntity
+
+        if ( holder.offHandStack != stack ) return
+
+        var yaw = holder.yaw.toDouble();     yaw = degreeToRadians(yaw)
+
+        val offset = Vec3d( cos(yaw), 0.0, sin(yaw) ).multiply(1.5)
+        setPosition( pos.add(offset) )
+
+    }
 
     private fun playHitSound(hitEntity: Entity) {
 
@@ -185,7 +199,7 @@ class NoteProjectileEntity : PersistentProjectileEntity {
                     val sound1 = instrument.stackSounds(stack).randomNote()
                     val sound2 = NoteProjectileSound( sound1.path, entity.pos, sound1.semitones() )
 
-                    sound2.play(stack);      Timer().schedule( Random.nextLong(500L) ) { sound2.fadeOut() }
+                    sound2.play(stack);      Timer( Random.nextInt(10) ) { sound2.fadeOut() }
 
                 }
 
