@@ -36,6 +36,8 @@ class FloppyDiskScreen( private val stack: ItemStack ) : Screen( Text.of(screenT
 
         if ( lastPath == path ) { super.close(); return }
 
+        nbt.remove("hasRequestDisplay")
+
         if ( path.isNotBlank() ) {
 
             if ( isValidUrl(path) ) {

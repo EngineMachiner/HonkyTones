@@ -106,15 +106,13 @@ object InstrumentSoundNetworking : ModID {
 
         val stacks = Instrument.stacks
 
-        var stack = stacks.find { getID(it) == getID(netStack) }
+        var stack = stacks.find { NBT.id(it) == NBT.id(netStack) }
 
         if ( stack == null ) { stacks.add(netStack); stack = netStack }
 
         return stack
 
     }
-
-    private fun getID(stack: ItemStack): Int { return NBT.get(stack).getInt("ID") }
 
     fun networking() {
 

@@ -192,9 +192,7 @@ class Init : ModInitializer, ClientModInitializer {
 
         private fun networking() {
 
-            NBT.networking();                       Sound.networking()
-
-            Instrument.networking();                FloppyDisk.networking()
+            NBT.networking();       Sound.networking();     Instrument.networking()
 
             Projectiles.networking();               MusicalStorage.networking()
 

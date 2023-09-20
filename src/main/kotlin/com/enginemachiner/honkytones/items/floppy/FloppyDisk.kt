@@ -3,24 +3,17 @@ package com.enginemachiner.honkytones.items.floppy
 import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.NBT.networkNBT
 import com.enginemachiner.honkytones.NBT.keepDisplay
-import com.enginemachiner.honkytones.NBT.trackHand
 import com.enginemachiner.honkytones.NBT.trackPlayer
+import com.enginemachiner.honkytones.NBT.trackSlot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.fabricmc.fabric.api.networking.v1.PacketSender
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NbtCompound
-import net.minecraft.network.PacketByteBuf
-import net.minecraft.server.MinecraftServer
-import net.minecraft.server.ServerTask
-import net.minecraft.server.network.ServerPlayNetworkHandler
-import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.text.Text
 import net.minecraft.util.Hand
 import net.minecraft.util.TypedActionResult
@@ -38,19 +31,11 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
         nbt.putFloat( "Rate", 1f );       nbt.putInt( "timesWritten", 0 )
 
         // Audio stream data.
-        nbt.putFloat( "Volume", 1f )
-
-        return nbt
+        nbt.putFloat( "Volume", 1f );     return nbt
 
     }
 
-    override fun trackTick( stack: ItemStack, slot: Int ) {
-
-        trackHand( stack, true );       trackPlayer(stack)
-
-        trackDamage(stack)
-
-    }
+    override fun trackTick( stack: ItemStack, slot: Int ) { trackPlayer(stack);     trackDamage(stack) }
 
     override fun inventoryTick( stack: ItemStack?, world: World?, entity: Entity?, slot: Int, selected: Boolean ) {
 
@@ -94,51 +79,6 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
 
         }
 
-        fun networking() {
-
-            val id = netID("focus")
-            ServerPlayNetworking.registerGlobalReceiver(id) {
-
-                server: MinecraftServer, player: ServerPlayerEntity,
-                _: ServerPlayNetworkHandler, buf: PacketByteBuf, _: PacketSender ->
-
-                val id = buf.readInt();         val handIndex = buf.readInt()
-
-                server.send( ServerTask( server.ticks ) {
-
-                    val hand = hands[handIndex];        val handStack = player.getStackInHand(hand)
-
-                    val inventory = player.inventory;   var floppy: ItemStack? = null
-
-                    var slot = 0;       val range = 0 until inventory.size()
-
-                    range.forEach {
-
-                        if ( floppy != null ) return@forEach
-
-                        val stack = inventory.getStack(it);     slot = it
-
-                        if ( !NBT.has(stack) ) return@forEach
-
-                        val nbt = NBT.get(stack)
-                        if ( nbt.getInt("ID") != id ) return@forEach
-
-                        slot = it;      floppy = stack
-
-                    }
-
-                    floppy ?: return@ServerTask
-
-                    inventory.setStack( slot, handStack )
-
-                    player.setStackInHand( hand, floppy )
-
-                } )
-
-            }
-
-        }
-
     }
 
     private fun trackDamage(stack: ItemStack) {
@@ -156,9 +96,10 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
     /** Queries the source title when requested. */
     private fun queryTick(stack: ItemStack) {
 
-        val nbt = NBT.get(stack);       val holder = stack.holder
+        val holder = stack.holder as PlayerEntity
 
-        var noAction = true
+        val nbt = NBT.get(stack);       var noAction = true
+
         for ( name in actions ) noAction = noAction && !nbt.contains(name)
 
         if (noAction) return
@@ -172,38 +113,26 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
             val path = nbt.getString("Path")
             val info = infoRequest(path) ?: return@launch
 
-            holder as PlayerEntity
+            val setTitle = stack.isEmpty || !holder.inventory.contains(stack)
+                    || nbt.contains("hasRequestDisplay")
 
-            if ( !holder.inventory.contains(stack) ) return@launch
+            if (setTitle) return@launch
 
             stack.setCustomName( Text.of( info.title ) )
 
-            keepDisplay( stack, nbt );      focusStack(nbt)
+            keepDisplay( stack, nbt );  closeScreen()
 
-            closeFloppyScreen();            nbt.remove("onQuery")
-
-            networkNBT(nbt)
+            nbt.putBoolean( "hasRequestDisplay", true );    networkNBT(nbt)
 
         }
 
     }
 
-    private fun focusStack( nbt: NbtCompound ) {
+    private fun closeScreen() {
 
-        val id = netID("focus")
+        val screen = currentScreen()
 
-        val buf = PacketByteBufs.create()
-
-        buf.writeInt( nbt.getInt("ID") )
-        buf.writeInt( nbt.getInt("Hand") )
-
-        ClientPlayNetworking.send( id, buf )
-
-    }
-
-    private fun closeFloppyScreen() {
-
-        if ( currentScreen() !is FloppyDiskScreen ) return
+        if ( screen == null || screen.shouldPause() ) return
 
         val id = modID("close_screen")
 

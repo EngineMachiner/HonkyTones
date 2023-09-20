@@ -106,11 +106,7 @@ open class Instrument(
 
     }
 
-    override fun trackTick(stack: ItemStack, slot: Int ) {
-
-        trackHand(stack);       trackSlot( stack, slot )
-
-    }
+    override fun trackTick( stack: ItemStack, slot: Int ) { trackHand(stack);    trackSlot( stack, slot ) }
 
     override fun inventoryTick( stack: ItemStack?, world: World?, entity: Entity?, slot: Int, selected: Boolean ) {
 

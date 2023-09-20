@@ -2,6 +2,7 @@ package com.enginemachiner.honkytones
 
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.inventory.Inventories
+import net.minecraft.inventory.Inventory
 import net.minecraft.inventory.SidedInventory
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
@@ -92,5 +93,15 @@ fun lookupSlot( slots: DefaultedList<Slot>, stack: ItemStack ): Int? {
     val stack = slots.find { it.stack == stack } ?: return null
 
     return slots.indexOf(stack)
+
+}
+
+fun inventoryAsList(inventory: Inventory): MutableList<ItemStack> {
+
+    val list = mutableListOf<ItemStack>()
+
+    for ( i in 0 until inventory.size() ) list.add( inventory.getStack(i) )
+
+    return list
 
 }

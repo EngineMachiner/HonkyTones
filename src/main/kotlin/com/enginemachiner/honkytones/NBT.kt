@@ -27,6 +27,8 @@ object NBT {
     @JvmStatic
     fun get(stack: ItemStack): NbtCompound { return stack.nbt!!.getCompound(MOD_NAME)!! }
 
+    fun id(stack: ItemStack): Int { return get(stack).getInt("ID") }
+
     /** Stores the display temporally for it to be updated later. */
     fun keepDisplay( stack: ItemStack, next: NbtCompound ) {
 
@@ -51,14 +53,11 @@ object NBT {
 
     }
 
-    fun trackHand(stack: ItemStack) { trackHand( stack, false ) }
-    fun trackHand( stack: ItemStack, validOnly: Boolean ) {
+    fun trackHand(stack: ItemStack) {
 
         val holder = stack.holder;      if ( holder !is PlayerEntity ) return
 
         val index = holder.handItems.indexOf(stack)
-
-        if ( validOnly && index == -1 ) return
 
         putInt( get(stack), "Hand", index )
 
@@ -87,15 +86,24 @@ object NBT {
 
         val stack = getBlockStack( nbt, player.world );     if ( stack != null ) return stack
 
-        if ( !nbt.contains("Slot") && !nbt.contains("Hand") ) return null
-
-        // Get player inventory stack.
-
         val inventory = player.inventory
 
-        val hand = nbt.getInt("Hand");      val slot = nbt.getInt("Slot")
+        if ( nbt.contains("Hand") ) {
 
-        return if ( hand != -1 ) player.getStackInHand( hands[hand] ) else inventory.getStack(slot)
+            val hand = nbt.getInt("Hand");      return player.getStackInHand( hands[hand] )
+
+        } else if ( nbt.contains("Slot") ) {
+
+            val slot = nbt.getInt("Slot");      return inventory.getStack(slot)
+
+        } else if ( nbt.contains("ID") ) {
+
+            return inventoryAsList(inventory).filter { has(it) }
+                .find { id(it) == nbt.getInt("ID") }
+
+        }
+
+        return null
 
     }
 
