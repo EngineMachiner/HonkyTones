@@ -1,9 +1,11 @@
 
 # HonkyTones
 
-It's a Minecraft Fabric Mod that adds magical instruments, music players and reads MIDI inputs. All networked between the players.
+It's a Minecraft Fabric Mod that adds magical instruments, music players, reads MIDI inputs and more. All networked between the players.
 
-It's on hiatus (sometimes).
+Users can use youtube-dl and ffmpeg to play web contents widely through the game.
+
+This project is on hiatus (sometimes).
 
 
 <p align="center">
