@@ -614,7 +614,7 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
         isDirectAudio = connection.contentType.contains("audio")
 
-        if (isDirectAudio) { modPrint( "Content Type: " + connection.contentType ); return }
+        if (isDirectAudio) { modPrint( "$entity: Direct Stream Content Type: " + connection.contentType ); return }
 
         if ( isCached(path) ) return;       onQuery = true
 
