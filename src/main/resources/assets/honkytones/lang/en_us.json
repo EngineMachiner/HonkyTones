@@ -1,6 +1,7 @@
 {
 
   "itemGroup.honkytones.item_group": "HonkyTones",
+
   "item.honkytones.keyboard": "Keyboard",
   "item.honkytones.organ": "Organ",
   "item.honkytones.drum_set": "Drum Set",
@@ -13,6 +14,33 @@
   "item.honkytones.recorder": "Recorder",
   "item.honkytones.oboe": "Oboe",
   "item.honkytones.trombone": "Trombone",
+
+  "item.honkytones.electric_piano": "Electric Piano",
+  "item.honkytones.harpsichord": "Harpsichord",
+  "item.honkytones.rhodes": "Rhodes",
+  "item.honkytones.banjo": "Banjo",
+  "item.honkytones.cello": "Cello",
+  "item.honkytones.koto": "Koto",
+  "item.honkytones.muted_trumpet": "Muted Trumpet",
+  "item.honkytones.trumpet": "Trumpet",
+  "item.honkytones.sax": "Sax",
+  "item.honkytones.accordion": "Accordion",
+  "item.honkytones.kalimba": "Kalimba",
+  "item.honkytones.marimba": "Marimba",
+  "item.honkytones.xylophone": "Xylophone",
+  "item.honkytones.music_box": "Music Box",
+  "item.honkytones.sfx": "SFX",
+  "item.honkytones.bass_synth": "Bass Synth",
+  "item.honkytones.bass2_synth": "Bass 2 Synth",
+  "item.honkytones.bass_lead_synth": "Bass Lead Synth",
+  "item.honkytones.celeste_synth": "Celeste Synth",
+  "item.honkytones.doc_synth": "Doc Synth",
+  "item.honkytones.metal_pad_synth": "Metal Pad Synth",
+  "item.honkytones.poly_synth": "Poly Synth",
+  "item.honkytones.saw_synth": "Saw Synth",
+  "item.honkytones.sine_synth": "Sine Synth",
+  "item.honkytones.square_synth": "Square Synth",
+  "item.honkytones.strings_synth": "Strings Synth",
 
   "item.honkytones.musical_storage": "Musical Storage",
 

@@ -88,7 +88,11 @@ private interface Trackable {
 
         if ( !NBT.has(stack) ) setupNBT(stack);     val nbt = NBT.get(stack)
 
-        if ( nbt.contains("BlockPos") ) nbt.remove("BlockPos")
+        if ( nbt.contains("BlockPos") ) {
+
+            nbt.remove("BlockPos");     nbt.remove("Slot")
+
+        }
 
     }
 

@@ -2,14 +2,16 @@ package com.enginemachiner.honkytones
 
 import com.enginemachiner.honkytones.MusicTheory.instrumentFiles
 import com.enginemachiner.honkytones.Timer.Companion.tickTimers
-import com.enginemachiner.honkytones.blocks.musicplayer.*
+import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlock
+import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlockEntity
+import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerScreen
+import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerScreenHandler
 import com.enginemachiner.honkytones.items.console.DigitalConsole
 import com.enginemachiner.honkytones.items.console.DigitalConsoleScreen
 import com.enginemachiner.honkytones.items.console.DigitalConsoleScreenHandler
 import com.enginemachiner.honkytones.items.console.PickStackScreenHandler
 import com.enginemachiner.honkytones.items.floppy.FloppyDisk
 import com.enginemachiner.honkytones.items.instruments.Instrument
-import com.enginemachiner.honkytones.items.instruments.Instrument.Companion.classes
 import com.enginemachiner.honkytones.items.instruments.Instrument.Companion.hitSounds
 import com.enginemachiner.honkytones.items.instruments.RangedEnchantment
 import com.enginemachiner.honkytones.items.storage.MusicalStorage
@@ -32,7 +34,8 @@ import net.minecraft.sound.SoundEvent
 import net.minecraft.util.registry.Registry
 import kotlin.reflect.full.createInstance
 
-// TODO: Check inherited methods on other classes.
+// TODO: Check inherited methods on vanilla classes.
+// TODO: Add advancements.
 
 class Init : ModInitializer, ClientModInitializer {
 
@@ -155,11 +158,11 @@ class Init : ModInitializer, ClientModInitializer {
             } }
 
             // Register instruments.
-            for ( kclass in classes ) registerItem( kclass.createInstance() )
+            for ( kclass in Instrument.classes ) registerItem( kclass.createInstance() )
 
             Instrument.registerFuel();      NoteProjectileEntity.register()
 
-            for ( i in 1..9 ) hitSounds.add( registerSound("hit0$i")!! )
+            for ( i in 1..9 ) hitSounds.add( registerSound("hit$i")!! )
 
             registerSound("magic.c3-e3_")
 

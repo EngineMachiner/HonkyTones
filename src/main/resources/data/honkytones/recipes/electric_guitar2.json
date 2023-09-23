@@ -1,17 +1,13 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "pattern": [
-    "   ",
-    " XS",
-    " N "
+
+  "type": "minecraft:crafting_shapeless",
+
+  "ingredients": [
+    { "item": "honkytones:electric_guitar_clean" },
+    { "item": "minecraft:red_dye" },
+    { "item": "minecraft:lever" }
   ],
-  "key": {
-    "S": { "item": "minecraft:red_dye" },
-    "N": { "item": "minecraft:lever" },
-    "X": { "item": "honkytones:electric_guitar_clean" }
-  },
-  "result": {
-    "item": "honkytones:electric_guitar",
-    "count": 1
-  }
+
+  "result": { "item": "honkytones:electric_guitar", "count": 1 }
+
 }

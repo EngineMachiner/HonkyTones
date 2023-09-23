@@ -243,7 +243,15 @@ class InstrumentsScreen( private val stack: ItemStack ) : Screen( Text.of("Instr
 
     }
 
-    override fun tick() { channelField!!.tick() }
+    override fun tick() {
+
+        channelField!!.tick()
+
+        val sequenceField = sequenceField!!;        val text = sequenceField.text
+
+        if ( text.contains( Regex("[a-z]") ) ) sequenceField.text = text.uppercase()
+
+    }
 
     override fun render( matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float ) {
 

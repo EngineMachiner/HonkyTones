@@ -107,8 +107,10 @@ interface ModID {
 
             name = name.replace( "ScreenHandler", "" )
                 .replace( ".Companion", "" )
-                .replace( Regex("([A-Z])"), "_$1" )
-                .lowercase().substring(1)
+                .replace( Regex("([A-Z])([a-z])"), "_$1$2" )
+                .lowercase()
+
+            if ( name[0] == '_' ) name = name.substring(1)
 
             return name
 
@@ -119,29 +121,35 @@ interface ModID {
 }
 
 
-fun degreeToRadians( angle: Double ): Double {
-
-    return angle % 360 * 2 * PI / 360
-
-}
+fun degreeToRadians( angle: Double ): Double { return angle % 360 * 2 * PI / 360 }
 
 fun modID(id: String): Identifier { return Identifier( MOD_NAME, id ) }
 
 fun textureID(id: String): Identifier { return Identifier( MOD_NAME, "textures/$id" ) }
 
+private fun threadID(): Long { return Thread.currentThread().id }
+
 class Timer( private val tickLimit: Int,     private val function: () -> Unit ) {
+
+    private val id = threadID()
 
     private var ticks = 0;      init { timers.add(this) }
 
     private fun kill() { timers.remove(this) }
 
-    fun tick() { if ( ticks > tickLimit ) { function(); kill() } else ticks++ }
+    fun tick() {
+
+        if ( id != threadID() ) { return }
+
+        if ( ticks > tickLimit ) { function(); kill() } else ticks++
+
+    }
 
     companion object {
 
-        val timers = mutableListOf<Timer>()
+        val timers = mutableListOf<Timer?>()
 
-        fun tickTimers() { timers.toSet().forEach { it.tick() } }
+        fun tickTimers() { timers.filterNotNull().forEach { it.tick() } }
 
     }
 

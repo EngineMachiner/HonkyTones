@@ -13,13 +13,13 @@ import kotlin.reflect.KClass
 
 /** Searches a client world entity by its id. Mostly used on networking. */
 @Environment(EnvType.CLIENT)
-fun entity(id: Int): Entity? { return world().getEntityById(id) }
+fun entity(id: Int): Entity? { return world()!!.getEntityById(id) }
 
 @Environment(EnvType.CLIENT)
 fun player(): ClientPlayerEntity? { return client().player }
 
 @Environment(EnvType.CLIENT)
-fun world(): ClientWorld { return client().world!! }
+fun world(): ClientWorld? { return client().world }
 
 fun addVelocity( entity: Entity, delta: Vec3d ) { entity.addVelocity( delta.x, delta.y, delta.z ) }
 

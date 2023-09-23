@@ -30,7 +30,6 @@ import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.math.*
 import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
-import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random

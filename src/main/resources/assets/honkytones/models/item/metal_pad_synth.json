@@ -1,0 +1,4 @@
+{
+  "parent": "item/generated",
+  "textures": { "layer0": "honkytones:item/keyboard/synth/metal_pad_synth" }
+}

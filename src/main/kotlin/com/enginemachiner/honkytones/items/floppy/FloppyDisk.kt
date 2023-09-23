@@ -1,10 +1,9 @@
 package com.enginemachiner.honkytones.items.floppy
 
 import com.enginemachiner.honkytones.*
-import com.enginemachiner.honkytones.NBT.networkNBT
 import com.enginemachiner.honkytones.NBT.keepDisplay
+import com.enginemachiner.honkytones.NBT.networkNBT
 import com.enginemachiner.honkytones.NBT.trackPlayer
-import com.enginemachiner.honkytones.NBT.trackSlot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -19,6 +18,7 @@ import net.minecraft.util.Hand
 import net.minecraft.util.TypedActionResult
 import net.minecraft.world.World
 
+// TODO: I want different color floppies.
 class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMenu {
 
     override fun getSetupNBT(stack: ItemStack): NbtCompound {

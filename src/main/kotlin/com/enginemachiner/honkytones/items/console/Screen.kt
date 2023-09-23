@@ -287,7 +287,9 @@ class DigitalConsoleScreen(
 
         item as Instrument;     val sounds = item.stackSounds(stack).notes
 
-        val sound = sounds[index] ?: return;        sound.play(stack)
+        val sound = sounds[index] ?: return
+
+        if ( sound.isPlaying() ) sound.addTimesStopped();       sound.play(stack)
 
         particles.clientSpawn( player()!!, "simple" )
 
@@ -323,9 +325,7 @@ class DigitalConsoleScreen(
 
             val sound = sounds[i] ?: return@forEach
 
-            Timer(2) { sound.fadeOut() }
-
-            record( i, ShortMessage.NOTE_OFF, 0f )
+            sound.fadeOut();        record( i, ShortMessage.NOTE_OFF, 0f )
 
         }
 

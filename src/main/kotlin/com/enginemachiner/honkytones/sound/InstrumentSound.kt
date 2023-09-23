@@ -2,8 +2,9 @@ package com.enginemachiner.honkytones.sound
 
 import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.CanBeMuted.Companion.isMuted
-import com.enginemachiner.honkytones.items.instruments.DrumSet
 import com.enginemachiner.honkytones.items.instruments.Instrument
+import com.enginemachiner.honkytones.items.instruments.NoFading
+import com.enginemachiner.honkytones.items.instruments.PlayCompletely
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
@@ -36,7 +37,9 @@ open class InstrumentSound(path: String) : StackSound(path) {
 
     override fun fadeOut() {
 
-        if ( stack!!.item is DrumSet ) return;      super.fadeOut()
+        val item = stack!!.item;        if ( item is NoFading ) { stop(); return }
+
+        if ( item is PlayCompletely ) return;      super.fadeOut()
 
     }
 

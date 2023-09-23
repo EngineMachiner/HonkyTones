@@ -231,10 +231,30 @@ open class Instrument(
         val stacks = mutableListOf<ItemStack>()
 
         val classes = mutableListOf(
-            DrumSet::class,             Keyboard::class,            Organ::class,
+
+            DrumSet::class,
+
             AcousticGuitar::class,      ElectricGuitar::class,      ElectricGuitarClean::class,
+
             Harp::class,                Viola::class,               Violin::class,
-            Trombone::class,            Recorder::class,               Oboe::class,
+            Banjo::class,               Cello::class,               Koto::class,
+
+            Trombone::class,            Recorder::class,            Oboe::class,
+            Accordion::class,           MutedTrumpet::class,        Trumpet::class,
+            Sax::class,
+
+            Kalimba::class,             Marimba::class,             MusicBox::class,
+            SFX::class,                 Xylophone::class,
+
+            Organ::class,               Keyboard::class,               Harpsichord::class,
+            ElectricPiano::class,       Rhodes::class,
+
+            BassSynth::class,           BassLeadSynth::class,       Bass2Synth::class,
+            CelesteSynth::class,        DocSynth::class,            MetalPadSynth::class,
+            PolySynth::class,           SawSynth::class,            SineSynth::class,
+            SquareSynth::class,         StringsSynth::class,
+
+
         )
 
         val hitSounds = mutableListOf<SoundEvent>()
@@ -345,7 +365,7 @@ open class Instrument(
         }
 
         @Environment(EnvType.CLIENT)
-        open class Sounds(instrument: Instrument) {
+        open class Sounds( val instrument: Instrument ) {
 
             private val template = instrument.soundsTemplate!!
 
@@ -1065,10 +1085,16 @@ open class Instrument(
 
 }
 
-class Keyboard : Instrument( 5f, -2.4f, MusicalQuartz() )
+/** Instruments that don't fade out and play until the end. */
+interface PlayCompletely
+
+/** Instruments that stop immediately. */
+interface NoFading
+
+open class Keyboard : Instrument( 5f, -2.4f, MusicalQuartz() )
 class Organ : Instrument( 5f, -3.5f, MusicalIron() )
-class DrumSet : Instrument( 3.5f, -3f, MusicalIron() )
-class AcousticGuitar : Instrument( 3f, -2.4f, MusicalString() )
+open class DrumSet : Instrument( 3.5f, -3f, MusicalIron() ), PlayCompletely
+open class AcousticGuitar : Instrument( 3f, -2.4f, MusicalString() )
 
 open class ElectricGuitar : Instrument( 4f, -2.4f, MusicalRedstone() ) {
 
@@ -1146,12 +1172,12 @@ class ElectricGuitarClean : ElectricGuitar() {
 }
 
 class Harp : Instrument( 2f, -1f, MusicalString() )
-class Viola : Instrument( 3.5f, -2f, MusicalString() )
-class Violin : Instrument( 3.75f, -2f, MusicalRedstone() )
+open class Viola : Instrument( 3.5f, -2f, MusicalString() )
+open class Violin : Instrument( 3.75f, -2f, MusicalRedstone() )
 class Recorder : Instrument( 1.25f, -1.5f, MusicalString() )
 class Oboe : Instrument( 3.25f, -1f, MusicalIron() )
 
-class Trombone : Instrument( 5f, -3f, MusicalRedstone() ) {
+open class Trombone : Instrument( 5f, -3f, MusicalRedstone() ) {
 
     override fun use( world: World?, user: PlayerEntity, hand: Hand? ): TypedActionResult<ItemStack>? {
 
@@ -1185,3 +1211,31 @@ class Trombone : Instrument( 5f, -3f, MusicalRedstone() ) {
     }
 
 }
+
+class Accordion : Instrument( 2.25f, -2.5f, MusicalIron() )
+class Kalimba : Instrument( 1f, -0.5f, MusicalIron() ), PlayCompletely
+class Koto : Instrument( 3.5f, -2f, MusicalIron() )
+
+class Marimba : Instrument( 2.5f, -1.25f, MusicalString() ), PlayCompletely
+class Xylophone : Instrument( 2.5f, -1.25f, MusicalString() )
+
+class ElectricPiano : Keyboard();       class Harpsichord : Keyboard()
+class Rhodes : Keyboard()
+
+abstract class Synth : Keyboard()
+
+class BassSynth : Synth();           class BassLeadSynth : Synth()
+class Bass2Synth : Synth();          class CelesteSynth : Synth()
+class DocSynth : Synth();            class MetalPadSynth : Synth()
+class PolySynth : Synth();           class SawSynth : Synth()
+class SineSynth : Synth();           class SquareSynth : Synth()
+class StringsSynth : Synth()
+
+class Banjo : AcousticGuitar();         class Cello : Instrument( 2f, -2f, MusicalString() )
+
+class MutedTrumpet : Trombone();        class Trumpet : Trombone()
+class Sax : Trombone()
+
+class MusicBox : Viola()
+
+class SFX : Instrument( 3.5f, -3f, MusicalIron() )

@@ -1,18 +1,20 @@
 {
+
   "type": "minecraft:crafting_shaped",
+
   "pattern": [
-    "NCN",
-    "FKF",
-    "NKN"
+    "NSN",
+    "FCF",
+    "NSN"
   ],
+
   "key": {
-    "C": { "item": "honkytones:musical_storage" },
-    "K": { "item": "honkytones:digital_console" },
+    "S": { "item": "honkytones:musical_storage" },
+    "C": { "item": "honkytones:digital_console" },
     "F": { "item": "honkytones:floppy_disk" },
     "N": { "item": "minecraft:note_block" }
   },
-  "result": {
-    "item": "honkytones:music_player",
-    "count": 1
-  }
+
+  "result": { "item": "honkytones:music_player", "count": 1 }
+
 }

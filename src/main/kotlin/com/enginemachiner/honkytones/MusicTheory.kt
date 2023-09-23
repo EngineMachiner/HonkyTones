@@ -26,7 +26,7 @@ object MusicTheory {
     /** Move a semitone distance up an octave (12 semitones) */
     fun shift( a: Int, b: Int ): Int { if (a < b) return a + 12;   return a }
 
-    /** Get the note position in a two octaves. */
+    /** Get the note position in two octaves. */
     @Environment(EnvType.CLIENT)
     fun index(s: String): Int {
 
@@ -58,8 +58,8 @@ object MusicTheory {
         val temp = builder( octave, setOf( 1, 2 ) )
         for ( t in temp ) {
 
-            val s = t.replace("1", "")
-                .replace("2", "")
+            val s = t.replace( "1", "" )
+                .replace( "2", "" )
 
             twoOctaves.add(s)
 
@@ -69,32 +69,30 @@ object MusicTheory {
         completeSet = builder( octave, ( -1..8 ).toSet() )
 
         // Sets to be added to the map used by some instrument sound files paths.
-        val set1 = setOf( "B2-D3", "E3_-G3_", "G3-B3_", "B3-D4" )
-        val set2 = setOf( "C3-E3_", "E3-G3", "A3_-B3", "B3" )
+
+        val set1 = builder( octave, ( 3..5 ).toSet() ) // Keyboard set.
+
+        val set2 = builder( mutableSetOf( "C4-E4_", "E4-G4", "A4_-B4" ), ( 4..5 ).toSet() ) as MutableSet<String>
+        set2.add("C6")
 
         // Based for percussion.
         val set3 = builder( octave, setOf(2) ) as MutableSet<String>
         for ( n in mutableSetOf( "C3", "D3_", "D3", "E3_" ) ) set3.add(n)
 
-        instrumentFiles[ DrumSet::class ] = set3
+        // SFX.
+        val set4 = builder( octave, ( 3..6 ).toSet() ) as MutableSet<String>
+        for ( n in mutableSetOf( "C3", "D3_", "D3", "A4" ) ) set4.remove(n)
+        set4.add("C7")
 
-        instrumentFiles[ Organ::class ] = set2
-        instrumentFiles[ AcousticGuitar::class ] = set2
-        instrumentFiles[ ElectricGuitarClean::class ] = set2
+        Instrument.classes.forEach {
 
-        instrumentFiles[ Viola::class ] = builder( set1, setOf( 3, 6 ) )
+            var set = set2 as Set<String>;     if ( it == DrumSet::class ) set = set3
 
-        instrumentFiles[ Keyboard::class ] = builder( octave, ( 3..6 ).toSet() )
+            if ( it == Keyboard::class ) set = set1;        if ( it == SFX::class ) set = set4
 
-        instrumentFiles[ ElectricGuitar::class ] = builder( octave, setOf(4) )
+            instrumentFiles[it] = set
 
-        val set4 = builder( set2, setOf(4) )
-
-        instrumentFiles[ Harp::class ] = set4;          instrumentFiles[ Oboe::class ] = set4
-        instrumentFiles[ Recorder::class ] = set4;      instrumentFiles[ Trombone::class ] = set4
-
-        val set5 = builder( set4, setOf(3) ) as MutableSet<String>;     set5.add("C6")
-        instrumentFiles[ Violin::class ] = set5
+        }
 
     }
 

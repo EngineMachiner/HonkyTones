@@ -1,5 +1,7 @@
 {
+
   "parent": "block/cube",
+
   "textures": {
     "particle": "honkytones:block/music_player/speaker_side",
     "north": "honkytones:block/music_player/front_on",
@@ -9,4 +11,5 @@
     "up": "honkytones:block/music_player/lid",
     "down": "honkytones:block/music_player/lid"
   }
+
 }

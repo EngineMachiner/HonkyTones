@@ -84,6 +84,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
+// TODO: Make parrots dance.
 class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMuted {
 
     init { defaultState = defaultState.with( PLAYING, false ) }
@@ -147,7 +148,10 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings), CanBeMut
         val musicPlayer = world.getBlockEntity(pos) as MusicPlayerBlockEntity
 
         var isPowered = world.getReceivedStrongRedstonePower(pos) > 9
-        isPowered = isPowered || world.getReceivedRedstonePower(pos) > 9
+                || world.getReceivedRedstonePower(pos) > 9
+
+        val from = fromPos!!.add( 1, 0, 0 )
+        isPowered = isPowered && world.isReceivingRedstonePower(from)
 
         if ( !isPowered || musicPlayer.isTriggered ) { musicPlayer.isTriggered = false; return }
 
@@ -485,6 +489,14 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
         fun tick( world: World, pos: BlockPos ) {
 
             val musicPlayer = world.getBlockEntity(pos) as MusicPlayerBlockEntity
+
+            // Entity position.
+
+            val entity = musicPlayer.entity
+
+            if ( entity != null && entity.blockPos != pos ) entity.setPosition( Vec3d.of(pos) )
+
+            // Sequencer.
 
             val floppyStack = musicPlayer.getStack(16)
 
@@ -824,11 +836,17 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
     private fun setup() {
 
-        if ( world!!.isClient || entity != null ) return
+        val world = world!!
+
+        if ( world.isClient || entity != null ) return
 
         entity = MusicPlayerEntity(this)
 
-        entity!!.setup();       world!!.spawnEntity(entity)
+        entity!!.setup();       world.spawnEntity(entity)
+
+        val nextState = world.getBlockState(pos).with( PLAYING, false )
+
+        world.setBlockState( pos, nextState )
 
     }
 
@@ -887,6 +905,8 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
         if ( !spawnParticles || isRemoved ) return
 
+        val entity = entity!!
+
         val l1 = Random.nextInt(10)
         val l2 = Random.nextInt( 10, 15 )
         val l3 = Random.nextInt( 10, 15 )
@@ -894,13 +914,13 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
         Timer(l4) { spawnParticles(wave) }
 
-        if ( isMuted(entity!!) ) return
+        if ( isMuted(entity) ) return
 
-        Timer(l1) { particles.spawnNote(entity!!) }
+        Timer(l1) { particles.spawnNote(entity) }
 
-        Timer(l2) { particles.spawnWave( entity!!, wave, false ) }
+        Timer(l2) { particles.spawnWave( entity, wave, false ) }
 
-        Timer(l3) { particles.spawnWave( entity!!, wave, true ) }
+        Timer(l3) { particles.spawnWave( entity, wave, true ) }
 
     }
 
@@ -995,6 +1015,8 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
             @Environment(EnvType.CLIENT)
             fun spawnNote( entity: Entity ) {
 
+                world() ?: return
+
                 val pos = entity.pos.add( Vec3d( 0.0, 1.25, 0.0 ) )
 
                 val particle = Particles.spawnOne( Particles.SIMPLE_NOTE, pos ) as SimpleNoteParticle
@@ -1005,6 +1027,8 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
 
             @Environment(EnvType.CLIENT)
             fun spawnWave( entity: Entity, wave: ParticleEffect, flip: Boolean ) {
+
+                world() ?: return
 
                 val yaw = degreeToRadians( entity.yaw.toDouble() )
 

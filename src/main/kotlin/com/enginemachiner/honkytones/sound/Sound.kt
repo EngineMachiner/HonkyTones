@@ -109,6 +109,8 @@ open class FadingSound( val path: String ) : MovingSoundInstance(
     fun isPlaying(): Boolean { return isPlaying }
     fun isStopping(): Boolean { return fadeOut }
 
+    fun addTimesStopped() { timesStopped++ }
+
     companion object {
 
         fun getManager(): SoundManager { return client().soundManager!! }

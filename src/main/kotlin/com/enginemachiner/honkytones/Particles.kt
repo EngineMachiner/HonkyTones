@@ -281,7 +281,7 @@ class Particles : ModInitializer, ClientModInitializer {
         @Environment(EnvType.CLIENT)
         fun spawnOne( particle: ParticleEffect, pos: Vec3d, delta: Vec3d ): Particle? {
 
-            val manager = client().particleManager
+            world() ?: return null;         val manager = client().particleManager
 
             return manager.addParticle( particle, pos.x, pos.y, pos.z, delta.x, delta.y, delta.z )
 

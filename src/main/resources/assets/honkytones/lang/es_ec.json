@@ -1,6 +1,7 @@
 {
 
   "itemGroup.honkytones.item_group": "HonkyTones",
+
   "item.honkytones.keyboard": "Teclado",
   "item.honkytones.organ": "Órgano",
   "item.honkytones.drum_set": "Batería",
@@ -13,6 +14,33 @@
   "item.honkytones.recorder": "Flauta",
   "item.honkytones.oboe": "Oboe",
   "item.honkytones.trombone": "Trombón",
+
+  "item.honkytones.electric_piano": "Piano eléctrico",
+  "item.honkytones.harpsichord": "Clavecín",
+  "item.honkytones.rhodes": "Piano Rhodes",
+  "item.honkytones.banjo": "Banyo",
+  "item.honkytones.cello": "Violonchelo",
+  "item.honkytones.koto": "Koto",
+  "item.honkytones.muted_trumpet": "Trompeta Sordina",
+  "item.honkytones.trumpet": "Trompeta",
+  "item.honkytones.sax": "Saxofón",
+  "item.honkytones.accordion": "Acordeón",
+  "item.honkytones.kalimba": "Kalimba",
+  "item.honkytones.marimba": "Marimba",
+  "item.honkytones.xylophone": "Xilófono",
+  "item.honkytones.music_box": "Caja musical",
+  "item.honkytones.sfx": "Efectos de sonido",
+  "item.honkytones.bass_synth": "Sintetizador Bass",
+  "item.honkytones.bass2_synth": "Sintetizador Bass 2",
+  "item.honkytones.bass_lead_synth": "Sintetizador Bass Lead",
+  "item.honkytones.celeste_synth": "Sintetizador Celeste",
+  "item.honkytones.doc_synth": "Sintetizador Doc",
+  "item.honkytones.metal_pad_synth": "Sintetizador Metal Pad",
+  "item.honkytones.poly_synth": "Sintetizador Poly",
+  "item.honkytones.saw_synth": "Sintetizador Saw",
+  "item.honkytones.sine_synth": "Sintetizador Sine",
+  "item.honkytones.square_synth": "Sintetizador Square",
+  "item.honkytones.strings_synth": "Sintetizador Strings",
 
   "item.honkytones.musical_storage": "Cofre musical",
 
