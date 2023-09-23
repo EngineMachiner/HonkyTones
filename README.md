@@ -1,7 +1,7 @@
 
 # HonkyTones
 
-HonkyTones is a mod that can read MIDI devices and do different actions with instruments.
+HonkyTones is a Minecraft Fabric Mod that adds magical instruments, music players and reads MIDI inputs. All networked between the players.
 
 This is on hiatus (sometimes).
 
