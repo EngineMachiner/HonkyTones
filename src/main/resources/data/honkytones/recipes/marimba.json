@@ -1,0 +1,20 @@
+{
+
+  "type": "minecraft:crafting_shaped",
+
+  "pattern": [
+    "LSL",
+    "PSP",
+    "SCS"
+  ],
+
+  "key": {
+    "L": { "tag": "minecraft:logs" },
+    "C": { "item": "minecraft:stick" },
+    "P": { "tag": "minecraft:planks" },
+    "S": { "item": "minecraft:string" }
+  },
+
+  "result": { "item": "honkytones:marimba", "count": 1 }
+
+}

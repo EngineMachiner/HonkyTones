@@ -38,6 +38,8 @@ dependencies {
     include( implementation("com.github.sapher:youtubedl-java:1.1")!! )
     include( implementation("net.bramp.ffmpeg:ffmpeg:0.7.0")!! )
     include( implementation("commons-validator:commons-validator:1.7")!! )
+    include( implementation("com.squareup.okhttp:okhttp:2.7.5")!! )
+    include( implementation("com.googlecode.soundlibs:mp3spi:1.9.5.4")!! )
 }
 
 tasks {

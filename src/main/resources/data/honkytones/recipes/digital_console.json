@@ -1,0 +1,22 @@
+{
+
+  "type": "minecraft:crafting_shaped",
+
+  "pattern": [
+    "BBF",
+    "EKE",
+    "GCG"
+  ],
+
+  "key": {
+    "C": { "item": "minecraft:comparator" },
+    "K": { "item": "honkytones:keyboard" },
+    "B": { "tag": "minecraft:buttons" },
+    "F": { "item": "honkytones:floppy_disk" },
+    "E": { "item": "minecraft:emerald" },
+    "G": { "item": "minecraft:gold_ingot" }
+  },
+
+  "result": { "item": "honkytones:digital_console", "count": 1 }
+
+}

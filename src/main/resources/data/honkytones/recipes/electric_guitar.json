@@ -1,0 +1,20 @@
+{
+
+  "type": "minecraft:crafting_shaped",
+
+  "pattern": [
+    "  B",
+    " G ",
+    "RT "
+  ],
+
+  "key": {
+    "T": { "item": "minecraft:redstone_torch" },
+    "G": { "item": "honkytones:acoustic_guitar" },
+    "R": { "item": "minecraft:redstone_block" },
+    "B": { "item": "minecraft:blaze_rod" }
+  },
+
+  "result": { "item": "honkytones:electric_guitar", "count": 1 }
+
+}

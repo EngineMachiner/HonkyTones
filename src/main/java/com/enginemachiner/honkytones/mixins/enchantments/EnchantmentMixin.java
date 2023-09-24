@@ -9,20 +9,19 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(Enchantment.class)
+@Mixin( Enchantment.class )
 public class EnchantmentMixin {
 
-    /** Allow vanilla enchantments to Instruments */
-    @Inject(at = @At("HEAD"), method = "isAcceptableItem", cancellable = true)
-    private void honkyTonesAllowEnchantments( ItemStack stack,
-                                              CallbackInfoReturnable<Boolean> callback ) {
+    /** Allow vanilla enchantments to instruments. */
+    @Inject( at = @At("HEAD"), method = "isAcceptableItem", cancellable = true )
+    private void honkyTonesEnableVanillaEnchantments( ItemStack stack, CallbackInfoReturnable<Boolean> callback ) {
 
         Multimap<Enchantment, Integer> enchants = Instrument.Companion.getEnchants();
-        Enchantment enchantment = ( Enchantment ) ( Object ) this;
+        Enchantment enchantment = (Enchantment) (Object) this;
 
-        boolean itemCanPlay = stack.getItem() instanceof Instrument;
-        boolean isInstrumentEnchant = enchants.containsKey(enchantment);
-        if ( itemCanPlay && isInstrumentEnchant ) callback.setReturnValue(true);
+        boolean isInstrument = stack.getItem() instanceof Instrument;
+        boolean isEnchantment = enchants.containsKey(enchantment);
+        if ( isInstrument && isEnchantment ) callback.setReturnValue(true);
 
     }
 
