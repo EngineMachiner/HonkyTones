@@ -242,7 +242,7 @@ class NoteProjectileEntity : PersistentProjectileEntity {
 
                 val layer = RenderLayer.getEntityTranslucent( getTexture(entity) )
                 val consumer = vertexConsumers!!.getBuffer(layer)
-                var rotation = dispatcher.rotation
+                val rotation = dispatcher.rotation
 
                 matrices.scale( SCALE, SCALE, SCALE )
                 matrices.multiply(rotation)
