@@ -95,7 +95,7 @@ interface ModID {
 
     companion object {
 
-        fun className( kclass: KClass<*>): String {
+        fun className( kclass: KClass<*> ): String {
 
             var name = kclass.simpleName!!
 

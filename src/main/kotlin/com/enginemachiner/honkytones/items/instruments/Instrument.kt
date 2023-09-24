@@ -24,7 +24,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.PacketSender
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
-import net.fabricmc.fabric.api.registry.FuelRegistry
 import net.minecraft.block.AirBlock
 import net.minecraft.block.BlockState
 import net.minecraft.client.MinecraftClient
@@ -76,7 +75,6 @@ import kotlin.random.Random
 
 val particles = Instrument.Companion.ActionParticles
 
-// TODO: Fix stop sound on death.
 open class Instrument(
     val damage: Float, val useSpeed: Float, material: ToolMaterial
 ) : ToolItem( material, createSettings(material) ), CanBeMuted {
@@ -149,6 +147,7 @@ open class Instrument(
 
     }
 
+    // TODO: Add player pose when playing on use.
     override fun use( world: World?, user: PlayerEntity, hand: Hand? ): TypedActionResult<ItemStack>? {
 
         val stack = user.getStackInHand(hand);      val nbt = NBT.get(stack)
@@ -177,7 +176,7 @@ open class Instrument(
 
     }
 
-    // TODO: Interactive mobs trigger this a lot, idk why.
+    // TODO: Interactive (menu) mobs trigger this a lot, idk why.
     override fun useOnEntity(
         stack: ItemStack?, player: PlayerEntity?, entity: LivingEntity?, hand: Hand?
     ): ActionResult {
@@ -252,8 +251,7 @@ open class Instrument(
             BassSynth::class,           BassLeadSynth::class,       Bass2Synth::class,
             CelesteSynth::class,        DocSynth::class,            MetalPadSynth::class,
             PolySynth::class,           SawSynth::class,            SineSynth::class,
-            SquareSynth::class,         StringsSynth::class,
-
+            SquareSynth::class,         StringsSynth::class
 
         )
 
@@ -726,22 +724,6 @@ open class Instrument(
             builder.put( Enchantments.MENDING, 1 );       builder.put( RangedEnchantment(), 1 )
 
             enchants = builder.build()
-
-        }
-
-        fun registerFuel() {
-
-            val registry = FuelRegistry.INSTANCE
-
-            var time = 300 * 3 + 100 * 3
-            registry.add( modItem( AcousticGuitar::class ), time + 100 )
-            registry.add( modItem( Harp::class ), time - 100 )
-            registry.add( modItem( Viola::class ), time )
-
-
-            time += 2400       // A blaze rod.
-            time += ( time * 0.25f ).toInt()
-            registry.add( modItem( Violin::class ), time )
 
         }
 

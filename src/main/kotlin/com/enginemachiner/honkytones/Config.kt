@@ -174,7 +174,7 @@ class ClientConfigFile(path: String) : ConfigFile(path) {
             "mob_particles" to "true",          "write_device_info" to "true",
             "player_particles" to "true",       "keep_downloads" to "false",
             "keep_videos" to "false",           "audio_quality" to "5",
-            "max_length" to "1200", // 60 * 20 -> 20 min
+            "max_length" to "1200" // 60 * 20 -> 20 min
         )
 
     }

@@ -145,18 +145,20 @@
   "honkytones.help.keep_downloads": "Keep downloads permanently when requesting web content.",
   "honkytones.help.keep_videos": "Keep videos when requesting web content.",
   "honkytones.help.audio_quality": "Choose from 0 to 10.",
+  "honkytones.help.sync_all": "Sync with all the music players.",
+  "honkytones.help.max_length": "Max seconds for a youtube-dl request.",
 
   "honkytones.help.mobs_playing_delay": "Change the delay of mobs playing (Has to be > 120).",
 
   "honkytones.help.tip1": "Instruments might have§2 other uses§f than just playing sounds.",
   "honkytones.help.tip2": "You can§2 force attack§f interactive mobs by§2 sneaking§f while attacking.",
-  "honkytones.help.tip3": "Floppy disk §2local midi§f files will be localized by the§2 last player§f that picked it up.",
-  "honkytones.help.tip4": "A floppy track can be stopped by dragging it out of the slot in the Music Player.",
-  "honkytones.help.tip5": "Play / pause can be done with redstone trigger.",
-  "honkytones.help.tip6": "Music players can play less than 20 min streams and midi files.",
-  "honkytones.help.tip7": "A digital console can record midi and play with the keyboard keys in case you don't have controller.",
-  "honkytones.help.tip8": "A musical storage can store honkytones stacks and has a couple more internal features.",
-  "honkytones.help.tip9": "You can use the sound settings player slider to change the global mod volume.",
-  "honkytones.help.tip10": "You can use mute players by using an instrument and sneaking."
+  "honkytones.help.tip3": "Floppy disk files will be localized by the§2 last player§f that had it.",
+  "honkytones.help.tip4": "The music player can be stopped by dragging the floppy out.",
+  "honkytones.help.tip5": "The music player play / pause can be done with redstone signals.",
+  "honkytones.help.tip6": "Music players can play midi files and audio sources based on the config.",
+  "honkytones.help.tip7": "A digital console can record midi and play with keybindings in case you don't have controller.",
+  "honkytones.help.tip8": "A musical storage can store HonkyTones items and can read MIDI from it's instruments.",
+  "honkytones.help.tip9": "You can use the sound settings player slider to change the mod global volume.",
+  "honkytones.help.tip10": "You can mute players by using an instrument and sneaking."
 
 }

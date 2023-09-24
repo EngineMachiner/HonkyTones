@@ -145,18 +145,20 @@
   "honkytones.help.keep_downloads": "Almacenar permanente los contenidos de las peticiones.",
   "honkytones.help.keep_videos": "Almacenar videos.",
   "honkytones.help.audio_quality": "Calidad de audio de 0 a 10.",
+  "honkytones.help.sync_all": "Sincronizar con todos los reproductores.",
+  "honkytones.help.max_length": "Segundos limite para una petición youtube-dl.",
 
   "honkytones.help.mobs_playing_delay": "Cambiar el intervalo de los sonidos de las creaturas (Tiene que ser mayor a 120).",
 
   "honkytones.help.tip1": "Los instrumentos pueden tener§2 otros usos§f además de tocar notas.",
   "honkytones.help.tip2": "Se puede§2 forzar un ataque§f con creaturas interactivas §2 agachándose§f y atacando a la vez.",
   "honkytones.help.tip3": "Los §2archivos locales§f del disquete serán localizados por el§2 último jugador§f que los recogió.",
-  "honkytones.help.tip4": "Una pista de disquete se puede detener removiendo el disquete del reproductor",
-  "honkytones.help.tip5": "La pausa y reproducción de pistas se puede hacer también por circuitos de redstone.",
-  "honkytones.help.tip6": "Los reproductores pueden reproducir transmisiones de 20 minutos por defecto y archivos midi.",
-  "honkytones.help.tip7": "Una consola digital puede grabar midi y tocar con las teclas del sistema.",
-  "honkytones.help.tip8": "Un cofre musical puede almacenar objetos HonkyTones y tiene otras características internas.",
-  "honkytones.help.tip9": "Se puede cambiar el volumen global en las opciones de audio de jugadores.",
+  "honkytones.help.tip4": "Una pista de disquete se puede detener removiendo el disquete del reproductor.",
+  "honkytones.help.tip5": "La pausa y reproducción de pistas se puede hacer por señales de redstone.",
+  "honkytones.help.tip6": "Los reproductores pueden reproducir archivos midi y contenido web según la configuración.",
+  "honkytones.help.tip7": "Una consola digital puede grabar midi y tocar con los controles del juego.",
+  "honkytones.help.tip8": "Un cofre musical puede almacenar objetos HonkyTones y puede leer mensajes MIDI de los instrumentos.",
+  "honkytones.help.tip9": "Se puede cambiar el volumen global de HonkyTones en el deslizador de jugadores de las opciones de audio.",
   "honkytones.help.tip10": "Se puede silenciar a los jugadores usando un instrumento y estando agachado a la vez."
 
 }

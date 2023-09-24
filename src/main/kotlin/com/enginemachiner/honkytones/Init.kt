@@ -160,7 +160,7 @@ class Init : ModInitializer, ClientModInitializer {
             // Register instruments.
             for ( kclass in Instrument.classes ) registerItem( kclass.createInstance() )
 
-            Instrument.registerFuel();      NoteProjectileEntity.register()
+            Fuel.register();      NoteProjectileEntity.register()
 
             for ( i in 1..9 ) hitSounds.add( registerSound("hit$i")!! )
 

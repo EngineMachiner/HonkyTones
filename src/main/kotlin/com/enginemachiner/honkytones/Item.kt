@@ -1,7 +1,10 @@
 package com.enginemachiner.honkytones
 
 import com.enginemachiner.honkytones.Init.Companion.MOD_NAME
+import com.enginemachiner.honkytones.items.instruments.*
+import com.enginemachiner.honkytones.items.storage.MusicalStorage
 import net.fabricmc.fabric.api.client.itemgroup.FabricItemGroupBuilder
+import net.fabricmc.fabric.api.registry.FuelRegistry
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
@@ -129,5 +132,31 @@ abstract class Item(settings: Settings) : Item(settings), Trackable, ModID {
     override fun inventoryTick(
         stack: ItemStack?, world: World?, entity: Entity?, slot: Int, selected: Boolean
     ) { tick( stack, world, entity, slot ) }
+
+}
+
+object Fuel {
+
+    private val fuels = mapOf(
+        AcousticGuitar::class to 2200,
+    )
+
+    private fun register( kclass: KClass<*>, time: Int ) {
+        FuelRegistry.INSTANCE.add( modItem(kclass), time )
+    }
+
+    fun register() {
+
+        register( MusicalStorage::class, 6000 );    register( Harp::class, 2200 )
+
+        register( AcousticGuitar::class, 2200 );    register( Banjo::class, 2200 )
+
+        register( Cello::class, 3000 );             register( Marimba::class, 4000 )
+
+        register( ElectricGuitar::class, 5500 );    register( ElectricGuitarClean::class, 5500 )
+
+        register( Recorder::class, 600 );           register( Xylophone::class, 4000 )
+
+    }
 
 }
