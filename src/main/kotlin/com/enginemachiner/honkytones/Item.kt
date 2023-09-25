@@ -137,10 +137,6 @@ abstract class Item(settings: Settings) : Item(settings), Trackable, ModID {
 
 object Fuel {
 
-    private val fuels = mapOf(
-        AcousticGuitar::class to 2200,
-    )
-
     private fun register( kclass: KClass<*>, time: Int ) {
         FuelRegistry.INSTANCE.add( modItem(kclass), time )
     }
