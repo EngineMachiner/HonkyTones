@@ -70,7 +70,7 @@ object NBT {
         if ( !nbt.contains("BlockPos") ) return null
 
         val slot = nbt.getInt("Slot")
-        val list = nbt.getString("BlockPos").replace(" ","").split(',')
+        val list = nbt.getString("BlockPos").replace( " ", "" ).split(',')
         val blockPos = BlockPos( list[0].toDouble(), list[1].toDouble(), list[2].toDouble() )
         val inventory = world.getBlockEntity(blockPos) ?: return null
 
