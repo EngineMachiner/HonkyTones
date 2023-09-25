@@ -968,9 +968,7 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
 
     }
 
-    override fun tickInVoid() {}
-
-    override fun initDataTracker() {}
+    override fun tickInVoid() {};    override fun initDataTracker() {}
 
     override fun readCustomDataFromNbt( nbt: NbtCompound? ) {}
 
