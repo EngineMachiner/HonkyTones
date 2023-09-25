@@ -10,32 +10,23 @@ import net.minecraft.client.particle.*
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.Entity
 import net.minecraft.particle.DefaultParticleType
+import net.minecraft.particle.ParticleEffect
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
-import net.minecraft.util.Identifier
+import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.math.Vec3d
+import kotlin.random.Random
 
-class NoteProjectileParticle(clientWorld: ClientWorld, x: Double, y: Double, z: Double) : MuteParticle(clientWorld, x, y, z) {
+open class MuteParticle( clientWorld: ClientWorld, x: Double, y: Double, z: Double ) : FollowingParticle( clientWorld, x, y, z ) {
 
-    init {
-        scale *= 0.75f
-        followPosOffset = Vec3d.ZERO
-    }
+    override fun setting() { scale = 0.5f }
 
     companion object {
 
-        @Environment(EnvType.CLIENT)
-        open class Factory(spriteProvider: SpriteProvider) : BaseParticle.Companion.Factory(spriteProvider) {
+        class Factory(spriteProvider: SpriteProvider) : FollowingParticle.Companion.Factory(spriteProvider) {
 
-            override fun template(world: ClientWorld, x: Double, y: Double, z: Double): SpriteBillboardParticle {
-
-                val particle = NoteProjectileParticle(world, x, y, z)
-                val color = getRandomColor()
-                if ( (0..1).random() == 1 ) particle.scale(-2f)
-                particle.setColor(color.x, color.y, color.z)
-
-                return particle
-
+            override fun template( world: ClientWorld, x: Double, y: Double, z: Double ): SpriteBillboardParticle {
+                return MuteParticle( world, x, y, z )
             }
 
         }
@@ -44,47 +35,13 @@ class NoteProjectileParticle(clientWorld: ClientWorld, x: Double, y: Double, z: 
 
 }
 
-open class MuteParticle(clientWorld: ClientWorld, x: Double, y: Double, z: Double) : BaseParticle(clientWorld, x, y, z) {
+class DeviceNoteParticle( clientWorld: ClientWorld, x: Double, y: Double, z: Double ) : SimpleNoteParticle( clientWorld, x, y, z ) {
 
-    init { scale *= 2f;     followPosOffset = Vec3d(0.0, 2.6, 0.0) }
+    override fun setting() {
 
-    override fun tick() {
-        val entity = entity ?: return
-        if (entity.isRemoved) markDead()
-        followEntity(entity); super.tick()
-    }
+        super.setting();    velocityY *= ( 7..12 ).random() * 0.1f;     scale *= Random.nextInt(125) * 0.01f
 
-    companion object {
-
-        @Environment(EnvType.CLIENT)
-        open class Factory(spriteProvider: SpriteProvider) : BaseParticle.Companion.Factory(spriteProvider) {
-
-            override fun template(world: ClientWorld, x: Double, y: Double, z: Double): SpriteBillboardParticle {
-                return MuteParticle(world, x, y, z)
-            }
-
-        }
-
-    }
-
-}
-
-@Verify("Particle movement")
-class DeviceNoteParticle(clientWorld: ClientWorld, x: Double, y: Double, z: Double) : SimpleNoteParticle(clientWorld, x, y, z) {
-
-    init {
-
-        val random = mutableListOf<Float>()
-        for ( i in 1..3 ) {
-            var a = (5..15).random() * 0.1f
-            if ( (0..1).random() == 1 ) a *= -1
-            random.add(a)
-        }
-
-        velocityX *= random[0];     velocityY *= random[1]
-        velocityZ *= random[2]
-
-        if ( (0..1).random() == 1 ) scale *= -1
+        if ( ( 0..1 ).random() == 1 ) velocityY *= -0.5;        if ( ( 0..1 ).random() == 1 ) scale *= -1
 
     }
 
@@ -93,11 +50,8 @@ class DeviceNoteParticle(clientWorld: ClientWorld, x: Double, y: Double, z: Doub
         @Environment(EnvType.CLIENT)
         class Factory(spriteProvider: SpriteProvider) : SimpleNoteParticle.Companion.Factory(spriteProvider) {
 
-            override fun template(world: ClientWorld, x: Double, y: Double, z: Double): SpriteBillboardParticle {
-                val particle = DeviceNoteParticle(world, x, y, z)
-                val color = getRandomColor()
-                particle.setColor(color.x, color.y, color.z)
-                return particle
+            override fun template( world: ClientWorld, x: Double, y: Double, z: Double ): SpriteBillboardParticle {
+                return DeviceNoteParticle( world, x, y, z )
             }
 
         }
@@ -106,20 +60,77 @@ class DeviceNoteParticle(clientWorld: ClientWorld, x: Double, y: Double, z: Doub
 
 }
 
-@Verify("Vanilla movement")
-open class SimpleNoteParticle(clientWorld: ClientWorld, x: Double, y: Double, z: Double) : BaseParticle(clientWorld, x, y, z) {
+open class SimpleNoteParticle( clientWorld: ClientWorld, x: Double, y: Double, z: Double ) : BaseParticle( clientWorld, x, y, z ) {
 
-    init {
+    override fun setting() {
 
-        velocityX *= 0.009999999776482582
-        velocityY *= 0.009999999776482582
-        velocityZ *= 0.009999999776482582
-        velocityY += 0.2
-        scale *= 1.5f
-        maxAge = 6
+        setRandomColor();       maxAge = 10;        scale *= ( 8..14 ).random() * 0.1f
 
-        velocityY *= (10..20).random() * 0.1
-        scale *= (1..4).random() * 0.5f
+        velocityY *= 0.01;      velocityY += 0.12;      velocityY *= ( 7..12 ).random() * 0.1
+
+        collidesWithWorld = false
+
+    }
+
+    fun addVelocityY(delta: Double) { velocityY += delta }
+
+    companion object {
+
+        @Environment(EnvType.CLIENT)
+        open class Factory(spriteProvider: SpriteProvider) : BaseParticle.Companion.Factory(spriteProvider) {
+
+            override fun template( world: ClientWorld, x: Double, y: Double, z: Double ): SpriteBillboardParticle {
+                return SimpleNoteParticle( world, x, y, z )
+            }
+
+        }
+
+    }
+
+}
+
+class WaveParticle( clientWorld: ClientWorld, x: Double, y: Double, z: Double ) : BaseParticle( clientWorld, x, y, z ) {
+
+    override fun setting() { maxAge = 25;   scale *= ( 10..20 ).random() * 0.1f;    collidesWithWorld = false }
+
+    fun flip() { scale( -1f ) }
+
+    companion object {
+
+        @Environment(EnvType.CLIENT)
+        open class Factory(spriteProvider: SpriteProvider) : BaseParticle.Companion.Factory(spriteProvider) {
+
+            override fun template( world: ClientWorld, x: Double, y: Double, z: Double ): SpriteBillboardParticle {
+                return WaveParticle( world, x, y, z )
+            }
+
+        }
+
+    }
+
+}
+
+open class FollowingParticle( clientWorld: ClientWorld, x: Double, y: Double, z: Double ) : BaseParticle( clientWorld, x, y, z ) {
+
+    var entity: Entity? = null;     var offset: Vec3d = Vec3d.ZERO
+
+    private fun followEntity() {
+
+        val entity = entity!!;      val height = entity.boundingBox.yLength
+
+        val pos = entity.pos.add(offset).add( Vec3d( 0.0, height + scale * 3.5, 0.0 ) )
+
+        setPos( pos.x, pos.y, pos.z );      age = 0
+
+    }
+
+    override fun tick() {
+
+        entity ?: return;       val entity = entity!!
+
+        if ( entity.isRemoved ) { markDead(); return };     followEntity()
+
+        super.tick()
 
     }
 
@@ -128,14 +139,8 @@ open class SimpleNoteParticle(clientWorld: ClientWorld, x: Double, y: Double, z:
         @Environment(EnvType.CLIENT)
         open class Factory(spriteProvider: SpriteProvider) : BaseParticle.Companion.Factory(spriteProvider) {
 
-            override fun template(world: ClientWorld, x: Double, y: Double, z: Double): SpriteBillboardParticle {
-
-                val particle = SimpleNoteParticle(world, x, y, z)
-                val color = getRandomColor()
-                particle.setColor(color.x, color.y, color.z)
-
-                return particle
-
+            override fun template( world: ClientWorld, x: Double, y: Double, z: Double ): SpriteBillboardParticle {
+                return FollowingParticle( world, x, y, z )
             }
 
         }
@@ -144,15 +149,16 @@ open class SimpleNoteParticle(clientWorld: ClientWorld, x: Double, y: Double, z:
 
 }
 
-open class TemplateParticle(clientWorld: ClientWorld, x: Double, y: Double, z: Double) : BaseParticle(clientWorld, x, y, z) {
+/** This particle is registered replacing BaseParticle. */
+open class TemplateParticle( clientWorld: ClientWorld, x: Double, y: Double, z: Double ) : BaseParticle( clientWorld, x, y, z ) {
 
     companion object {
 
         @Environment(EnvType.CLIENT)
         open class Factory(spriteProvider: SpriteProvider) : BaseParticle.Companion.Factory(spriteProvider) {
 
-            override fun template(world: ClientWorld, x: Double, y: Double, z: Double): SpriteBillboardParticle {
-                return TemplateParticle(world, x, y, z)
+            override fun template( world: ClientWorld, x: Double, y: Double, z: Double ): SpriteBillboardParticle {
+                return TemplateParticle( world, x, y, z )
             }
 
         }
@@ -161,34 +167,21 @@ open class TemplateParticle(clientWorld: ClientWorld, x: Double, y: Double, z: D
 
 }
 
-open class BaseParticle(clientWorld: ClientWorld, x: Double, y: Double, z: Double) : SpriteBillboardParticle(clientWorld, x, y, z) {
+open class BaseParticle( clientWorld: ClientWorld, x: Double, y: Double, z: Double ) : SpriteBillboardParticle( clientWorld, x, y, z ) {
 
-    var entity: Entity? = null
-    var followPosOffset: Vec3d = Vec3d.ZERO
+    init { init() };     private fun init() { setting() };      open fun setting() {}
 
-    open fun followEntity(entity: Entity?) {
-
-        if (this.entity != entity) this.entity = entity
-
-        if (entity != null) {
-            val p = followPosOffset
-            setPos( entity.x + p.x, entity.y + p.y, entity.z + p.z )
-        } else markDead()
-
-        age = 0
-
-    }
+    fun setRandomColor() { val color = randomColor();   setColor( color.x, color.y, color.z ) }
 
     companion object {
 
         @Environment(EnvType.CLIENT)
         abstract class Factory(spriteProvider: SpriteProvider) : ParticleFactory<DefaultParticleType> {
 
-            private var spriteProvider: SpriteProvider
-            init { this.spriteProvider = spriteProvider }
+            private var spriteProvider: SpriteProvider;     init { this.spriteProvider = spriteProvider }
 
-            open fun template(world: ClientWorld, x: Double, y: Double, z: Double): SpriteBillboardParticle {
-                return BaseParticle(world, x, y, z)
+            open fun template( world: ClientWorld, x: Double, y: Double, z: Double ): SpriteBillboardParticle {
+                return BaseParticle( world, x, y, z )
             }
 
             override fun createParticle(
@@ -197,8 +190,7 @@ open class BaseParticle(clientWorld: ClientWorld, x: Double, y: Double, z: Doubl
                 velocityX: Double, velocityY: Double, velocityZ: Double
             ): Particle {
 
-                val particle = template(world!!, x, y, z)
-                particle.setSprite(spriteProvider)
+                val particle = template( world!!, x, y, z );        particle.setSprite(spriteProvider)
 
                 return particle
 
@@ -208,66 +200,94 @@ open class BaseParticle(clientWorld: ClientWorld, x: Double, y: Double, z: Doubl
 
     }
 
-    // Is this the default type?
-    override fun getType(): ParticleTextureSheet {
-        return ParticleTextureSheet.PARTICLE_SHEET_OPAQUE
-    }
+    override fun getType(): ParticleTextureSheet { return ParticleTextureSheet.PARTICLE_SHEET_OPAQUE }
 
 }
 
 class Particles : ModInitializer, ClientModInitializer {
 
-    companion object {
-
-        const val MIN_RADIUS = 40f
-
-        val MUTE: DefaultParticleType = FabricParticleTypes.simple()
-        val NOTE_PROJECTILE: DefaultParticleType = FabricParticleTypes.simple()
-        val NOTE_PROJECTILE_2: DefaultParticleType = FabricParticleTypes.simple()
-        val NOTE_IMPACT: DefaultParticleType = FabricParticleTypes.simple()
-        val SIMPLE_NOTE: DefaultParticleType = FabricParticleTypes.simple()
-        val DEVICE_NOTE: DefaultParticleType = FabricParticleTypes.simple()
-
-    }
-
-    private fun register(path: String, particle: DefaultParticleType) {
-        val id = Identifier(Base.MOD_NAME, path)
-        Registry.register(Registries.PARTICLE_TYPE, id, particle)
+    private fun register( path: String, particle: DefaultParticleType ) {
+        Registry.register( Registries.PARTICLE_TYPE, modID(path), particle )
     }
 
     override fun onInitialize() {
-        register("mute", MUTE)
-        register("note-projectile", NOTE_PROJECTILE)
-        register("note-projectile-2", NOTE_PROJECTILE_2)
-        register("note-impact", NOTE_IMPACT)
-        register("use-note", SIMPLE_NOTE)
-        register("midi-note", DEVICE_NOTE)
+
+        register( "mute", MUTE )
+
+        register( "note_impact1", NOTE_IMPACT1 )
+        register( "note_impact2", NOTE_IMPACT2 )
+        register( "note_impact3", NOTE_IMPACT3 )
+
+        register( "simple_note", SIMPLE_NOTE )
+        register( "device_note", DEVICE_NOTE )
+
+        register( "wave1", WAVE1 );     register( "wave2", WAVE2 )
+        register( "wave3", WAVE3 );     register( "wave4", WAVE4 )
+
     }
 
     override fun onInitializeClient() {
-        ParticleFactoryRegistry.getInstance().register(
-            MUTE, MuteParticle.Companion::Factory
-        )
 
-        ParticleFactoryRegistry.getInstance().register(
-            NOTE_PROJECTILE, NoteProjectileParticle.Companion::Factory
-        )
+        val registry = ParticleFactoryRegistry.getInstance()
 
-        ParticleFactoryRegistry.getInstance().register(
-            NOTE_PROJECTILE_2, NoteProjectileParticle.Companion::Factory
-        )
+        registry.register( MUTE, MuteParticle.Companion::Factory )
 
-        ParticleFactoryRegistry.getInstance().register(
-            NOTE_IMPACT, TemplateParticle.Companion::Factory
-        )
+        registry.register( NOTE_IMPACT1, TemplateParticle.Companion::Factory )
+        registry.register( NOTE_IMPACT2, TemplateParticle.Companion::Factory )
+        registry.register( NOTE_IMPACT3, TemplateParticle.Companion::Factory )
 
-        ParticleFactoryRegistry.getInstance().register(
-            SIMPLE_NOTE, SimpleNoteParticle.Companion::Factory
-        )
+        registry.register( SIMPLE_NOTE, SimpleNoteParticle.Companion::Factory )
+        registry.register( DEVICE_NOTE, DeviceNoteParticle.Companion::Factory )
 
-        ParticleFactoryRegistry.getInstance().register(
-            DEVICE_NOTE, DeviceNoteParticle.Companion::Factory
-        )
+        registry.register( WAVE1, WaveParticle.Companion::Factory )
+        registry.register( WAVE2, WaveParticle.Companion::Factory )
+        registry.register( WAVE3, WaveParticle.Companion::Factory )
+        registry.register( WAVE4, WaveParticle.Companion::Factory )
+
+    }
+
+    companion object {
+
+        const val MIN_DISTANCE = 36.0
+
+        val MUTE: DefaultParticleType = FabricParticleTypes.simple()
+
+        val NOTE_IMPACT1: DefaultParticleType = FabricParticleTypes.simple()
+        val NOTE_IMPACT2: DefaultParticleType = FabricParticleTypes.simple()
+        val NOTE_IMPACT3: DefaultParticleType = FabricParticleTypes.simple()
+
+        val SIMPLE_NOTE: DefaultParticleType = FabricParticleTypes.simple()
+        val DEVICE_NOTE: DefaultParticleType = FabricParticleTypes.simple()
+
+        val WAVE1: DefaultParticleType = FabricParticleTypes.simple()
+        val WAVE2: DefaultParticleType = FabricParticleTypes.simple()
+        val WAVE3: DefaultParticleType = FabricParticleTypes.simple()
+        val WAVE4: DefaultParticleType = FabricParticleTypes.simple()
+
+        val hand = listOf( NOTE_IMPACT1, NOTE_IMPACT2 )
+
+        private fun spawn( world: ServerWorld, particle: ParticleEffect, count: Int, pos: Vec3d, delta: Vec3d, speed: Double ) {
+            world.spawnParticles( particle, pos.x, pos.y, pos.z, count, delta.x, delta.y, delta.z, speed )
+        }
+
+        fun spawnOne( world: ServerWorld, particle: ParticleEffect, pos: Vec3d ) {
+            spawn( world, particle, 1, pos, Vec3d.ZERO, 0.0 )
+        }
+
+        @Environment(EnvType.CLIENT)
+        fun spawnOne( particle: ParticleEffect, pos: Vec3d ): Particle? {
+            return spawnOne( particle, pos, Vec3d.ZERO )
+        }
+
+        @Environment(EnvType.CLIENT)
+        fun spawnOne( particle: ParticleEffect, pos: Vec3d, delta: Vec3d ): Particle? {
+
+            world() ?: return null;         val manager = client().particleManager
+
+            return manager.addParticle( particle, pos.x, pos.y, pos.z, delta.x, delta.y, delta.z )
+
+        }
+
     }
 
 }

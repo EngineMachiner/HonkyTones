@@ -1,0 +1,20 @@
+{
+
+  "type": "minecraft:crafting_shaped",
+
+  "pattern": [
+    "NSN",
+    "FCF",
+    "NSN"
+  ],
+
+  "key": {
+    "S": { "item": "honkytones:musical_storage" },
+    "C": { "item": "honkytones:digital_console" },
+    "F": { "item": "honkytones:floppy_disk" },
+    "N": { "item": "minecraft:note_block" }
+  },
+
+  "result": { "item": "honkytones:music_player", "count": 1 }
+
+}

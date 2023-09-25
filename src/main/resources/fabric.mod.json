@@ -1,25 +1,30 @@
 {
+
   "schemaVersion": 1,
   "id": "honkytones",
-  "version": "3.0.2",
+  "version": "4.0.0",
   "name": "HonkyTones",
   "description": "Mod that reads MIDI stuff and does other things.",
+
   "authors": [ "Engine_Machiner" ],
+
   "contact": {
     "homepage": "https://modrinth.com/mod/honkytones",
     "issues": "https://github.com/EngineMachiner/HonkyTones/issues",
     "sources": "https://github.com/EngineMachiner/HonkyTones"
   },
+
   "license": "GNU Lesser General Public License version 3 (LGPLv3)",
   "icon": "assets/honkytones/mod-icon.png",
   "environment": "*",
+
   "entrypoints": {
 
     "main": [
 
       {
         "adapter": "kotlin",
-        "value": "com.enginemachiner.honkytones.Base"
+        "value": "com.enginemachiner.honkytones.Init"
       },
 
       {
@@ -30,13 +35,13 @@
     ],
 
     "client": [
-      "com.enginemachiner.honkytones.Base",
-      "com.enginemachiner.honkytones.Input",
+      "com.enginemachiner.honkytones.Init",
       "com.enginemachiner.honkytones.Particles",
       "com.enginemachiner.honkytones.Projectiles"
     ]
 
   },
+
   "depends": {
     "fabricloader": ">=0.11.7",
     "fabric": "*",
@@ -44,12 +49,13 @@
     "minecraft": "1.19.x",
     "java": ">=16"
   },
-  "mixins": [
 
+  "mixins": [
     "honkytones.mixins.json",
     "honkytones.mixins.mob.json",
+    "honkytones.mixins.chest.json",
     "honkytones.mixins.player.json",
     "honkytones.mixins.enchantments.json"
-
   ]
+
 }

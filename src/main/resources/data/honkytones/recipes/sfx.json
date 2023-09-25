@@ -1,0 +1,18 @@
+{
+
+  "type": "minecraft:crafting_shaped",
+
+  "pattern": [
+    " G ",
+    "GXG",
+    " G "
+  ],
+
+  "key": {
+    "X": { "item": "honkytones:drum_set" },
+    "G": { "item": "minecraft:gold_ingot" }
+  },
+
+  "result": { "item": "honkytones:sfx", "count": 1 }
+
+}

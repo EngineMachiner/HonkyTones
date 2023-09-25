@@ -2,8 +2,6 @@
   "required": true,
   "package": "com.enginemachiner.honkytones.mixins.mob",
   "compatibilityLevel": "JAVA_16",
-  "injectors": {
-    "defaultRequire": 1
-  },
-  "mixins": ["MobsCanPlay", "ForceAttack", "MobInstrumentAttack", "MobTick"]
+  "injectors": { "defaultRequire": 1 },
+  "mixins": [ "MobsCanPlay", "MenuMob", "MobEntityMixin" ]
 }

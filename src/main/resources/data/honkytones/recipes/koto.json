@@ -1,0 +1,19 @@
+{
+
+  "type": "minecraft:crafting_shaped",
+
+  "pattern": [
+    "SPS",
+    "GSG",
+    "SPS"
+  ],
+
+  "key": {
+    "G": { "item": "minecraft:gold_ingot" },
+    "P": { "tag": "minecraft:planks" },
+    "S": { "item": "minecraft:string" }
+  },
+
+  "result": { "item": "honkytones:koto", "count": 1 }
+
+}

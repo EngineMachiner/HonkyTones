@@ -1,18 +1,20 @@
 {
+
   "type": "minecraft:crafting_shaped",
+
   "pattern": [
-    "NNN",
-    "RXR",
-    "WWW"
+    "NQN",
+    "QCQ",
+    "RQR"
   ],
+
   "key": {
     "N": { "item": "minecraft:note_block" },
     "R": { "item": "minecraft:redstone" },
-    "X": { "item": "minecraft:comparator" },
-    "W": { "item": "minecraft:quartz_block" }
+    "C": { "item": "minecraft:comparator" },
+    "Q": { "item": "minecraft:quartz_block" }
   },
-  "result": {
-    "item": "honkytones:keyboard",
-    "count": 1
-  }
+
+  "result": { "item": "honkytones:keyboard", "count": 1 }
+
 }
