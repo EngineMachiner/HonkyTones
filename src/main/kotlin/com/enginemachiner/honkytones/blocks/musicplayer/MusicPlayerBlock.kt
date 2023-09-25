@@ -1034,7 +1034,7 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
 
                 val particle = Particles.spawnOne( wave, pos ) as WaveParticle
 
-                var velocity = Vec3d( cos(yaw), 0.0, - sin(yaw) )
+                var velocity = Vec3d( cos(yaw), 0.0, sin(yaw) )
 
                 velocity = velocity.multiply(0.05)
 
