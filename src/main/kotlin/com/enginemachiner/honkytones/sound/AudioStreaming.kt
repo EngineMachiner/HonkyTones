@@ -167,9 +167,11 @@ class ExternalSound(
 
     public override fun stop() {
 
-        if ( !isPlaying() ) return;     modPrint("$entity: Stopped.")
+        if ( !isPlaying() ) return;             modPrint("$entity: Stopped.")
 
-        musicPlayer.setPlayingState(false);     super.stop()
+        musicPlayer.spawnParticles = false;     musicPlayer.setPlayingState(false)
+
+        super.stop()
 
     }
 
