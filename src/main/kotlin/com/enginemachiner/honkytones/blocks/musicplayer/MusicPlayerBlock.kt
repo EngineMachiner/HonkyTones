@@ -996,7 +996,7 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
 
         val facing = world.getBlockState(blockPos).get(FACING)
 
-        val yaw = facing.rotationQuaternion.toEulerXyzDegrees().y;      this.yaw = yaw
+        this.yaw = facing.asRotation()
 
     }
 
