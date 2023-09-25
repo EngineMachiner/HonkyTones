@@ -968,6 +968,8 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
 
     }
 
+    override fun tickInVoid() {}
+
     override fun initDataTracker() {}
 
     override fun readCustomDataFromNbt( nbt: NbtCompound? ) {}
@@ -989,8 +991,6 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
     }
 
     override fun createSpawnPacket(): Packet<*> { return EntitySpawnS2CPacket(this) }
-
-    override fun tickInVoid() {}
 
     override fun getName(): Text { return Text.of("MusicPlayer") }
 
