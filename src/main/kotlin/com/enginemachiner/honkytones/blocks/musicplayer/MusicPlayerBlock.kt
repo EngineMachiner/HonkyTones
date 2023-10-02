@@ -174,7 +174,7 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
 
     override fun <T : BlockEntity> getTicker(
         world: World, state: BlockState, type: BlockEntityType<T>
-    ): BlockEntityTicker<T>? {
+    ): BlockEntityTicker<T> {
 
         val id = MusicPlayerBlockEntity.classID()
 
