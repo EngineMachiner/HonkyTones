@@ -10,8 +10,8 @@ class RangedEnchantment : Enchantment(
     Rarity.UNCOMMON, EnchantmentTarget.WEAPON, EquipmentSlot.values()
 ), ModID {
 
-    override fun isAcceptableItem( stack: ItemStack? ): Boolean {
-        return stack!!.item is Instrument
+    override fun isAcceptableItem(stack: ItemStack): Boolean {
+        return stack.item is Instrument
     }
 
 }

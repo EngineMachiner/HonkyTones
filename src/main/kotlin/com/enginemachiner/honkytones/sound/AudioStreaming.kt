@@ -2,7 +2,7 @@ package com.enginemachiner.honkytones.sound
 import MarkErrorInputStream
 import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.CanBeMuted.Companion.isMuted
-import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlockEntity
+import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayer
 import com.squareup.okhttp.OkHttpClient
 import com.squareup.okhttp.Request
 import net.fabricmc.api.EnvType
@@ -97,21 +97,15 @@ private class DirectAudioStream( private val sound: ExternalSound ) : AudioStrea
 
 /** Sound that can stream or play certain external audio files. */
 @Environment(EnvType.CLIENT)
-class ExternalSound(
+class ExternalSound( private val musicPlayer: MusicPlayer ) : FadingSound("audio_stream") {
 
-    val sourceInput: String,
-    private val musicPlayer: MusicPlayerBlockEntity
+    val sourceInput = musicPlayer.path;     init { init() }
 
-) : FadingSound("audio_stream") {
-
-    private var nbtVolume = 1f
-    private var audioStream: AudioStream? = null
-
-    init { init() }
+    private var nbtVolume = 1f;     private var audioStream: AudioStream? = null
 
     private fun init() {
 
-        entity = musicPlayer.entity
+        entity = musicPlayer.blockEntity!!.entity
 
         try { audioStream = getAudioStream() } catch (e: Exception) {
 
@@ -122,6 +116,8 @@ class ExternalSound(
         }
 
     }
+
+    fun isValid(): Boolean { return audioStream != null }
 
     private fun getAudioStream(): AudioStream {
 
@@ -139,9 +135,9 @@ class ExternalSound(
 
     private fun setNBTVolume() {
 
-        val floppyStack = musicPlayer.getStack(16)
+        val floppy = musicPlayer.items[16]
 
-        if ( floppyStack.isEmpty ) return;       val nbt = NBT.get(floppyStack)
+        if ( floppy.isEmpty ) return;       val nbt = NBT.get(floppy)
 
         if ( isMuted(entity!!) ) { nbtVolume = 0f; return };    val volume = nbt.getFloat("Volume")
 
@@ -149,17 +145,19 @@ class ExternalSound(
 
     }
 
+    override fun fadeOut() { if ( !musicPlayer.blockEntity!!.repeatOnPlay ) super.fadeOut() else stop() }
+
     override fun tick() {
 
         super.tick();       if ( isStopping() ) return;         setNBTVolume()
 
         val factor = Sound.MIN_DISTANCE.pow(2) * 0.5f
 
-        val distance1 = musicPlayer.pos.getSquaredDistance( player()!!.pos ) * 0.05
+        val distance1 = musicPlayer.pos().getSquaredDistance( player()!!.pos ) * 0.03
 
         var distance2 = factor - distance1;     distance2 /= factor
 
-        distance2 += 0.06f;        distance2 *= nbtVolume
+        distance2 += 0.05f;        distance2 *= nbtVolume
 
         volume = max( 0f, min( 1f, distance2.toFloat() ) )
 
@@ -167,15 +165,11 @@ class ExternalSound(
 
     public override fun stop() {
 
-        if ( !isPlaying() ) return;             modPrint("$entity: Stopped.")
-
-        musicPlayer.spawnParticles = false;     musicPlayer.setPlayingState(false)
-
-        super.stop()
+        if ( !isPlaying() ) return;     super.stop();       musicPlayer.pause()
 
     }
 
-    override fun getAudioStream( loader: SoundLoader?, id: Identifier?, shouldLoop: Boolean ): CompletableFuture<AudioStream> {
+    override fun getAudioStream( loader: SoundLoader, id: Identifier, shouldLoop: Boolean ): CompletableFuture<AudioStream> {
 
         if ( audioStream == null ) return super.getAudioStream( loader, id, shouldLoop )
 

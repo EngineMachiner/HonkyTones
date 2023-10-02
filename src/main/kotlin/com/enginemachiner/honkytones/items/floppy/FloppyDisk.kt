@@ -37,19 +37,19 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
 
     override fun trackTick( stack: ItemStack, slot: Int ) { trackPlayer(stack);     trackDamage(stack) }
 
-    override fun inventoryTick( stack: ItemStack?, world: World?, entity: Entity?, slot: Int, selected: Boolean ) {
+    override fun inventoryTick( stack: ItemStack, world: World, entity: Entity, slot: Int, selected: Boolean ) {
 
         super.inventoryTick( stack, world, entity, slot, selected )
 
-        if ( !world!!.isClient ) return;            queryTick(stack!!)
+        if ( !world.isClient ) return;            queryTick(stack)
 
     }
 
-    override fun use( world: World?, user: PlayerEntity?, hand: Hand? ): TypedActionResult<ItemStack> {
+    override fun use( world: World, user: PlayerEntity, hand: Hand ): TypedActionResult<ItemStack> {
 
-        val stack = user!!.getStackInHand(hand);            val canOpen = canOpenMenu( user, stack )
+        val stack = user.getStackInHand(hand);            val canOpen = canOpenMenu( user, stack )
 
-        val action = super.use( world, user, hand );        if ( !world!!.isClient || !canOpen ) return action
+        val action = super.use( world, user, hand );        if ( !world.isClient || !canOpen ) return action
 
         client().setScreen( FloppyDiskScreen(stack) );      return action
 

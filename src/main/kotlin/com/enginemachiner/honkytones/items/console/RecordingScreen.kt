@@ -60,7 +60,7 @@ class RecordingScreen( private val screen: DigitalConsoleScreen ) : Screen( Text
 
             screen.recordingFileName = fileName;        sequencer!!.start()
 
-            screen.channel = channelField!!.text.toInt()
+            screen.channel = channelField!!.text.toInt() - 1
 
             val nbt = NBT.get(stack);       nbt.putBoolean( "damage", true )
 
@@ -82,7 +82,7 @@ class RecordingScreen( private val screen: DigitalConsoleScreen ) : Screen( Text
 
     override fun tick() { channelField!!.tick() }
 
-    override fun render( matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float ) {
+    override fun render( matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float ) {
 
         renderBackground(matrices);         super.render( matrices, mouseX, mouseY, delta )
 
@@ -96,17 +96,9 @@ class RecordingScreen( private val screen: DigitalConsoleScreen ) : Screen( Text
 
         if ( ModFile(path).isFile ) overwrite = "($overwriteTitle)"
 
-        textRenderer.draw(
-            matrices, "$fileNameTitle: $overwrite",
-            fileNameField!!.x.toFloat(), fileNameField!!.y.toFloat() - 12,
-            0xFFFFFF
-        )
+        textRenderer.draw( matrices, "$fileNameTitle: $overwrite", fileNameField!!.x.toFloat(), fileNameField!!.y.toFloat() - 12, 0xFFFFFF )
 
-        textRenderer.draw(
-            matrices, "$channelTitle:",
-            channelField!!.x.toFloat(), channelField!!.y.toFloat() - 12,
-            0xFFFFFF
-        )
+        textRenderer.draw( matrices, "$channelTitle:", channelField!!.x.toFloat(), channelField!!.y.toFloat() - 12, 0xFFFFFF )
 
     }
 

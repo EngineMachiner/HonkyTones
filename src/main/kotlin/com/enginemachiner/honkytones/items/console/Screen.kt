@@ -77,7 +77,7 @@ class DigitalConsoleScreenHandler(
 
     }
 
-    override fun close( player: PlayerEntity? ) {
+    override fun close(player: PlayerEntity) {
 
         super.close(player);    val stack = inventory.getStack(0)
 
@@ -89,11 +89,11 @@ class DigitalConsoleScreenHandler(
 
     }
 
-    override fun canUse( player: PlayerEntity? ): Boolean { return true }
+    override fun canUse(player: PlayerEntity): Boolean { return true }
 
-    override fun transferSlot( player: PlayerEntity?, index: Int ): ItemStack { return ItemStack.EMPTY }
+    override fun transferSlot( player: PlayerEntity, index: Int ): ItemStack { return ItemStack.EMPTY }
 
-    override fun onSlotClick( slotIndex: Int, button: Int, actionType: SlotActionType?, player: PlayerEntity? ) {
+    override fun onSlotClick( slotIndex: Int, button: Int, actionType: SlotActionType, player: PlayerEntity ) {
 
         val title = Translation.item("digital_console.select")
 
@@ -109,7 +109,7 @@ class DigitalConsoleScreenHandler(
 
         )
 
-        player!!.openHandledScreen(screenFactory)
+        player.openHandledScreen(screenFactory)
 
     }
 
@@ -140,7 +140,7 @@ class DigitalConsoleScreen(
     private val flatKeyTexture = textureID( path + "flat.png" )
 
 
-    var recordingFileName = "";      var channel = 1
+    var recordingFileName = "";      var channel = 0
 
     var recordCheckbox: CheckboxWidget? = null
 
@@ -184,7 +184,7 @@ class DigitalConsoleScreen(
 
     override fun shouldPause(): Boolean { return false }
 
-    override fun drawBackground( matrices: MatrixStack?, delta: Float, mouseX: Int, mouseY: Int ) {
+    override fun drawBackground( matrices: MatrixStack, delta: Float, mouseX: Int, mouseY: Int ) {
 
         RenderSystem.setShader( GameRenderer::getPositionTexShader )
         RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
@@ -333,7 +333,7 @@ class DigitalConsoleScreen(
 
     }
 
-    override fun render( matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float ) {
+    override fun render( matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float ) {
 
         renderBackground(matrices);         super.render( matrices, mouseX, mouseY, delta )
 
@@ -344,7 +344,7 @@ class DigitalConsoleScreen(
         
         textRenderer.draw( matrices, octaveTitle, width * 0.5f + 10, height * 0.5f - 65, Color.WHITE.rgb )
 
-        drawTime(matrices!!);       recordCheckbox!!.renderButton( matrices, mouseX, mouseY, delta)
+        drawTime(matrices);       recordCheckbox!!.renderButton( matrices, mouseX, mouseY, delta )
 
     }
 
@@ -378,9 +378,7 @@ class DigitalConsoleScreen(
 
     private fun drawTime(matrices: MatrixStack) {
 
-        if ( !canRecord() ) return
-
-        val tick = sequencer!!.tickPosition
+        if ( !canRecord() ) return;         val tick = sequencer!!.tickPosition
 
         val minutes = tick / ( 20 * 60 );    val seconds = ( tick / 20 ) % 60
 
@@ -424,7 +422,7 @@ class DigitalConsoleScreen(
 
     private fun renderKey(
         textureID: Identifier, keyBinding: KeyBinding,
-        matrices: MatrixStack?, x: Int, y: Int, w: Int, h: Int
+        matrices: MatrixStack, x: Int, y: Int, w: Int, h: Int
     ) {
 
         RenderSystem.setShaderTexture( 0, textureID )
@@ -510,13 +508,13 @@ class PickStackScreenHandler( syncID: Int, playerInventory: PlayerInventory ) : 
 
     }
 
-    override fun canUse( player: PlayerEntity? ): Boolean { return true }
+    override fun canUse(player: PlayerEntity): Boolean { return true }
 
-    override fun transferSlot( player: PlayerEntity?, index: Int ): ItemStack { return ItemStack.EMPTY }
+    override fun transferSlot( player: PlayerEntity, index: Int ): ItemStack { return ItemStack.EMPTY }
 
-    override fun onSlotClick( slotIndex: Int, button: Int, actionType: SlotActionType?, player: PlayerEntity? ) {
+    override fun onSlotClick( slotIndex: Int, button: Int, actionType: SlotActionType, player: PlayerEntity ) {
 
-        if ( slotIndex < 0 || player!!.world.isClient ) return
+        if ( slotIndex < 0 || player.world.isClient ) return
 
         val slotStack = slots[slotIndex].stack;     if ( slotStack.item !is Instrument ) return
 
@@ -586,7 +584,7 @@ class PickStackScreen(
 
     override fun shouldPause(): Boolean { return false }
 
-    override fun drawBackground( matrices: MatrixStack?, delta: Float, mouseX: Int, mouseY: Int ) {
+    override fun drawBackground( matrices: MatrixStack, delta: Float, mouseX: Int, mouseY: Int ) {
 
         RenderSystem.setShader( GameRenderer::getPositionTexShader )
         RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
@@ -602,7 +600,7 @@ class PickStackScreen(
 
     }
 
-    override fun render( matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float ) {
+    override fun render( matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float ) {
 
         renderBackground(matrices);     super.render( matrices, mouseX, mouseY, delta )
 

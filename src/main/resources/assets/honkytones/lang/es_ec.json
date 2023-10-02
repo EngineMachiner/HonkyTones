@@ -53,7 +53,8 @@
 
   "block.honkytones.music_player": "Reproductor",
   "block.honkytones.music_player.rate": "Tempo PPM",
-  "block.honkytones.music_player.downloads": "Sincronizar",
+  "block.honkytones.music_player.listen": "Escuchar",
+  "block.honkytones.music_player.repeat": "Modo Repetición",
 
   "item.honkytones.digital_console": "Consola digital",
   "category.honkytones.digital_console": "Consola digital HonkyTones",
@@ -145,7 +146,7 @@
   "honkytones.help.keep_downloads": "Almacenar permanente los contenidos de las peticiones.",
   "honkytones.help.keep_videos": "Almacenar videos.",
   "honkytones.help.audio_quality": "Calidad de audio de 0 a 10.",
-  "honkytones.help.sync_all": "Sincronizar con todos los reproductores.",
+  "honkytones.help.listen_all": "Escuchar a todos los reproductores.",
   "honkytones.help.max_length": "Segundos limite para una petición youtube-dl.",
 
   "honkytones.help.mobs_playing_delay": "Cambiar el intervalo de los sonidos de las creaturas (Tiene que ser mayor a 120).",

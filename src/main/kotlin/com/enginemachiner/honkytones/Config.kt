@@ -25,7 +25,7 @@ val clientConfigKeys = mutableMapOf(
 
     Boolean::class to listOf(
         "keep_downloads", "keep_videos", "mob_particles", "write_device_info",
-        "player_particles", "sync_all", "music_particles"
+        "player_particles", "listen_all", "music_particles"
     ),
 
     Int::class to listOf( "audio_quality", "max_length" ),
@@ -169,7 +169,7 @@ class ClientConfigFile(path: String) : ConfigFile(path) {
     companion object {
 
         private val default = mapOf(
-            "sync_all" to "false",              "music_particles" to "true",
+            "listen_all" to "false",              "music_particles" to "true",
             "ffmpeg_directory" to "",           "youtube-dl_path" to "youtube-dl",
             "mob_particles" to "true",          "write_device_info" to "true",
             "player_particles" to "true",       "keep_downloads" to "false",

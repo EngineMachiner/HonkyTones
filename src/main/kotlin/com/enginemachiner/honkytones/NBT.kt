@@ -49,7 +49,7 @@ object NBT {
 
         val holder = stack.holder;      if ( holder !is PlayerEntity ) return
 
-        putInt( get(stack), "PlayerID", holder.id )
+        putInt( get(stack), "PlayerID", holder.id ) // TODO: Consider using UUID as string.
 
     }
 
@@ -112,6 +112,8 @@ object NBT {
     @JvmStatic
     @Environment(EnvType.CLIENT)
     fun networkNBT(nbt: NbtCompound) {
+
+        if ( !canNetwork() ) return
 
         val buf = PacketByteBufs.create();      buf.writeNbt(nbt)
 

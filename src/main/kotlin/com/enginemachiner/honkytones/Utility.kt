@@ -131,15 +131,15 @@ private fun threadID(): Long { return Thread.currentThread().id }
 
 class Timer( private val tickLimit: Int,     private val function: () -> Unit ) {
 
-    private val id = threadID()
+    private val id = threadID();        var remove = false
 
     private var ticks = 0;      init { timers.add(this) }
 
-    private fun kill() { timers.remove(this) }
+    private fun kill() { remove = true }
 
     fun tick() {
 
-        if ( id != threadID() ) { return }
+        if ( id != threadID() || remove ) { return }
 
         if ( ticks > tickLimit ) { function(); kill() } else ticks++
 
@@ -149,7 +149,13 @@ class Timer( private val tickLimit: Int,     private val function: () -> Unit ) 
 
         val timers = mutableListOf<Timer?>()
 
-        fun tickTimers() { timers.filterNotNull().forEach { it.tick() } }
+        fun tickTimers() {
+
+            val list = timers.filterNotNull();      list.forEach { it.tick() }
+
+            list.forEach { if ( it.remove ) timers.remove(it) }
+
+        }
 
     }
 

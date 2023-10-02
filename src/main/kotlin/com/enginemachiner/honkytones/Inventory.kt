@@ -13,7 +13,7 @@ interface CustomInventory : SidedInventory {
 
     fun items(): DefaultedList<ItemStack>
 
-    override fun getAvailableSlots( side: Direction? ): IntArray {
+    override fun getAvailableSlots(side: Direction): IntArray {
 
         val result = IntArray( items().size );       for ( i in result.indices ) result[i] = i
 
@@ -21,9 +21,9 @@ interface CustomInventory : SidedInventory {
 
     }
 
-    override fun canInsert( slot: Int, stack: ItemStack?, direction: Direction? ): Boolean { return true }
+    override fun canInsert( slot: Int, stack: ItemStack, direction: Direction? ): Boolean { return true }
 
-    override fun canExtract( slot: Int, stack: ItemStack?, direction: Direction? ): Boolean { return true }
+    override fun canExtract( slot: Int, stack: ItemStack, direction: Direction ): Boolean { return true }
 
     override fun size(): Int { return items().size }
 
@@ -50,9 +50,9 @@ interface CustomInventory : SidedInventory {
         return Inventories.removeStack( items(), slot )
     }
 
-    override fun setStack( slot: Int, stack: ItemStack? ) {
+    override fun setStack( slot: Int, stack: ItemStack ) {
 
-        items()[slot] = stack!!
+        items()[slot] = stack
 
         if ( stack.count > maxCountPerStack ) stack.count = maxCountPerStack
 
@@ -60,7 +60,7 @@ interface CustomInventory : SidedInventory {
 
     override fun clear() { items().clear() };       override fun markDirty() {}
 
-    override fun canPlayerUse( player: PlayerEntity? ): Boolean { return true }
+    override fun canPlayerUse(player: PlayerEntity): Boolean { return true }
 
 }
 

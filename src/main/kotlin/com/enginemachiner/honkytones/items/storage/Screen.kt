@@ -84,15 +84,15 @@ class StorageScreenHandler(
 
     }
 
-    override fun close( player: PlayerEntity? ) {
+    override fun close(player: PlayerEntity) {
 
         super.close(player);        storage.close(stack);       inventory.markDirty()
 
     }
 
-    override fun canUse( player: PlayerEntity? ): Boolean { return inventory.canPlayerUse(player) }
+    override fun canUse(player: PlayerEntity): Boolean { return inventory.canPlayerUse(player) }
 
-    override fun transferSlot( player: PlayerEntity?, index: Int ): ItemStack {
+    override fun transferSlot( player: PlayerEntity, index: Int ): ItemStack {
 
         var currentStack = ItemStack.EMPTY;    val currentSlot = slots[index]
 
@@ -115,7 +115,7 @@ class StorageScreenHandler(
     }
 
     override fun onSlotClick(
-        slotIndex: Int, button: Int, actionType: SlotActionType?, player: PlayerEntity?
+        slotIndex: Int, button: Int, actionType: SlotActionType, player: PlayerEntity
     ) {
 
         // THROW action.
@@ -160,7 +160,7 @@ class StorageScreen(
 
     init { backgroundHeight += 60;     playerInventoryTitleY += 55;     titleX += 40 }
 
-    override fun drawBackground( matrices: MatrixStack?, delta: Float, mouseX: Int, mouseY: Int ) {
+    override fun drawBackground( matrices: MatrixStack, delta: Float, mouseX: Int, mouseY: Int ) {
 
         RenderSystem.setShader( GameRenderer::getPositionTexShader )
         RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
@@ -193,7 +193,7 @@ class StorageScreen(
 
     }
 
-    override fun render( matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float ) {
+    override fun render( matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float ) {
 
         renderBackground(matrices);         super.render( matrices, mouseX, mouseY, delta )
 

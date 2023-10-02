@@ -53,7 +53,8 @@
 
   "block.honkytones.music_player": "Music Player",
   "block.honkytones.music_player.rate": "Tempo BPM",
-  "block.honkytones.music_player.downloads": "Sync downloads",
+  "block.honkytones.music_player.listen": "Listen",
+  "block.honkytones.music_player.repeat": "Repeat Mode",
 
   "item.honkytones.digital_console": "Digital Console",
   "category.honkytones.digital_console": "HonkyTones Digital Console",
@@ -145,7 +146,7 @@
   "honkytones.help.keep_downloads": "Keep downloads permanently when requesting web content.",
   "honkytones.help.keep_videos": "Keep videos when requesting web content.",
   "honkytones.help.audio_quality": "Choose from 0 to 10.",
-  "honkytones.help.sync_all": "Sync with all the music players.",
+  "honkytones.help.listen_all": "Listen to all the music players.",
   "honkytones.help.max_length": "Max seconds for a youtube-dl request.",
 
   "honkytones.help.mobs_playing_delay": "Change the delay of mobs playing (Has to be > 120).",

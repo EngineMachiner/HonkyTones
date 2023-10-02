@@ -2,10 +2,7 @@ package com.enginemachiner.honkytones
 
 import com.enginemachiner.honkytones.MusicTheory.instrumentFiles
 import com.enginemachiner.honkytones.Timer.Companion.tickTimers
-import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlock
-import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlockEntity
-import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerScreen
-import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerScreenHandler
+import com.enginemachiner.honkytones.blocks.musicplayer.*
 import com.enginemachiner.honkytones.items.console.DigitalConsole
 import com.enginemachiner.honkytones.items.console.DigitalConsoleScreen
 import com.enginemachiner.honkytones.items.console.DigitalConsoleScreenHandler
@@ -24,9 +21,12 @@ import net.fabricmc.api.Environment
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.minecraft.block.Block
+import net.minecraft.client.MinecraftClient
+import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.item.BlockItem
 import net.minecraft.item.Item
@@ -34,6 +34,7 @@ import net.minecraft.sound.SoundEvent
 import net.minecraft.util.registry.Registry
 import kotlin.reflect.full.createInstance
 
+// TODO: Check shadow / inheritance instead of double casting for mixin objects.
 // TODO: Check inherited methods on vanilla classes.
 // TODO: Add advancements.
 
@@ -88,7 +89,7 @@ class Init : ModInitializer, ClientModInitializer {
 
         }
 
-        fun registerBlock( block: Block, itemSettings: Item.Settings ): Block? {
+        fun registerBlock( block: Block, itemSettings: Item.Settings ): Block {
 
             val s = ( block as ModID ).className().replace( "_block", "" )
 
@@ -108,7 +109,7 @@ class Init : ModInitializer, ClientModInitializer {
 
         }
 
-        private fun registerSound(path: String): SoundEvent? {
+        private fun registerSound(path: String): SoundEvent {
 
             val id = modID(path);      val event = SoundEvent(id)
 
@@ -162,7 +163,7 @@ class Init : ModInitializer, ClientModInitializer {
 
             Fuel.register();      NoteProjectileEntity.register()
 
-            for ( i in 1..9 ) hitSounds.add( registerSound("hit$i")!! )
+            for ( i in 1..9 ) hitSounds.add( registerSound("hit$i") )
 
             registerSound("magic.c3-e3_")
 

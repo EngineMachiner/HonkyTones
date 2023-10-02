@@ -59,10 +59,7 @@ import net.minecraft.server.world.ServerWorld
 import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvent
 import net.minecraft.tag.BlockTags
-import net.minecraft.util.ActionResult
-import net.minecraft.util.ClickType
-import net.minecraft.util.Hand
-import net.minecraft.util.TypedActionResult
+import net.minecraft.util.*
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.RaycastContext
@@ -106,13 +103,13 @@ open class Instrument(
 
     override fun trackTick( stack: ItemStack, slot: Int ) { trackHand(stack);    trackSlot( stack, slot ) }
 
-    override fun inventoryTick( stack: ItemStack?, world: World?, entity: Entity?, slot: Int, selected: Boolean ) {
+    override fun inventoryTick( stack: ItemStack, world: World, entity: Entity, slot: Int, selected: Boolean ) {
 
         super.inventoryTick( stack, world, entity, slot, selected )
 
-        val nbt = NBT.get(stack!!)
+        val nbt = NBT.get(stack)
 
-        if ( !world!!.isClient || entity !is PlayerEntity ) return
+        if ( !world.isClient || entity !is PlayerEntity ) return
 
         val isOnConsole = currentScreen() is DigitalConsoleScreen
         val shouldStop = nbt.getInt("Hand") == -1 && entity.activeItem != stack
@@ -127,19 +124,19 @@ open class Instrument(
     }
 
     override fun onClicked(
-        stack: ItemStack?, otherStack: ItemStack?, slot: Slot?, clickType: ClickType?,
-        player: PlayerEntity?, cursorStackReference: StackReference?
+        stack: ItemStack, otherStack: ItemStack, slot: Slot, clickType: ClickType,
+        player: PlayerEntity, cursorStackReference: StackReference
     ): Boolean {
 
-        val world = player!!.world
+        val world = player.world
 
-        if ( world.isClient ) { stopSounds(stack!!); stopDeviceSounds(stack) }
+        if ( world.isClient ) { stopSounds(stack); stopDeviceSounds(stack) }
 
         return super.onClicked( stack, otherStack, slot, clickType, player, cursorStackReference )
 
     }
 
-    override fun getAttributeModifiers( slot: EquipmentSlot? ): Multimap<EntityAttribute, EntityAttributeModifier> {
+    override fun getAttributeModifiers(slot: EquipmentSlot): Multimap<EntityAttribute, EntityAttributeModifier> {
 
         val onMain = slot == EquipmentSlot.MAINHAND
 
@@ -147,25 +144,17 @@ open class Instrument(
 
     }
 
-    // TODO: Add player pose when playing on use.
-    override fun use( world: World?, user: PlayerEntity, hand: Hand? ): TypedActionResult<ItemStack>? {
+    override fun getUseAction(stack: ItemStack): UseAction { return UseAction.BOW }
+
+    override fun use( world: World, user: PlayerEntity, hand: Hand ): TypedActionResult<ItemStack> {
 
         val stack = user.getStackInHand(hand);      val nbt = NBT.get(stack)
 
-        val mainStack = user.mainHandStack;         val action = TypedActionResult.pass(stack)
+        val action = TypedActionResult.pass(stack)
 
-        val wasActive = user.activeItem == stack
+        if ( !shouldUse( user, stack, hand ) ) return action
 
-        // Only set the hand when the player has one instrument.
-        var hasOne = hand == Hand.OFF_HAND && mainStack.item !is Instrument
-        hasOne = hasOne || hand == Hand.MAIN_HAND
-
-        // Using setCurrentHand() can control the sound length.
-        if (hasOne) user.setCurrentHand(hand)
-
-        if (wasActive) return action;       rangedAttack( stack, user )
-
-        if ( !world!!.isClient ) return action
+        rangedAttack( stack, user );    if ( !world.isClient ) return action
 
         val isRanged = nbt.getString("Action") == "Ranged"
         if ( !isRanged ) particles.clientSpawn( user, "simple" )
@@ -176,13 +165,12 @@ open class Instrument(
 
     }
 
-    // TODO: Interactive (menu) mobs trigger this a lot, idk why.
+    // TODO: Interactive (menu) mobs trigger this a lot, I don't know why.
     override fun useOnEntity(
-        stack: ItemStack?, player: PlayerEntity?, entity: LivingEntity?, hand: Hand?
+        stack: ItemStack, player: PlayerEntity, entity: LivingEntity, hand: Hand
     ): ActionResult {
 
-        val player = player!!;          val entity = entity!!
-        val nbt = NBT.get(stack!!);     val action = nbt.getString("Action")
+        val nbt = NBT.get(stack);     val action = nbt.getString("Action")
         val result = ActionResult.PASS
 
         // Mute a player.
@@ -201,18 +189,17 @@ open class Instrument(
 
     }
 
-    override fun getMaxUseTime( stack: ItemStack? ): Int { return 200 }
+    override fun getMaxUseTime(stack: ItemStack): Int { return 200 }
 
     override fun onStoppedUsing(
-        stack: ItemStack?, world: World?, user: LivingEntity?, remainingUseTicks: Int 
+        stack: ItemStack, world: World, user: LivingEntity, remainingUseTicks: Int
     ) {
 
-        val user = user!!;      val world = world!!
-
-        if ( !world.isClient || NBT.get(stack!!).getBoolean("onKey") ) return
+        if ( !world.isClient || NBT.get(stack).getBoolean("onKey") ) return
 
         // Stop the off hand stack instrument if there are 2 stacks on hands.
         val mainStack = user.mainHandStack;       val offStack = user.offHandStack
+
         if ( stack == mainStack && offStack.item is Instrument ) {
             offStack.onStoppedUsing( world, user, remainingUseTicks )
         }
@@ -658,6 +645,22 @@ open class Instrument(
 
         }
 
+        fun shouldUse( user: PlayerEntity, stack: ItemStack, hand: Hand ): Boolean {
+
+            val mainStack = user.mainHandStack;     val isActive = user.activeItem == stack
+
+            // Only set the hand when the player has one instrument.
+            var hasOne = hand == Hand.OFF_HAND && mainStack.item !is Instrument
+            hasOne = hasOne || hand == Hand.MAIN_HAND
+
+
+            // Using setCurrentHand() can control the sound length.
+            if (hasOne) user.setCurrentHand(hand)
+
+            if (isActive) return false;     return true
+
+        }
+
         fun mobPlay(mob: MobEntity) {
 
             val world = mob.world
@@ -1083,21 +1086,21 @@ open class ElectricGuitar : Instrument( 4f, -2.4f, MusicalRedstone() ) {
     private val miningSpeed = MusicalRedstone().miningSpeedMultiplier
     private val effectiveBlocks = BlockTags.AXE_MINEABLE
 
-    override fun getMiningSpeedMultiplier( stack: ItemStack?, state: BlockState? ): Float {
+    override fun getMiningSpeedMultiplier( stack: ItemStack, state: BlockState ): Float {
 
-        return if ( state!!.isIn(effectiveBlocks) ) miningSpeed else 1.0f
+        return if ( state.isIn(effectiveBlocks) ) miningSpeed else 1.0f
 
     }
 
-    override fun canMine( state: BlockState?, world: World?, pos: BlockPos?, miner: PlayerEntity? ): Boolean { return true }
+    override fun canMine( state: BlockState, world: World, pos: BlockPos, miner: PlayerEntity ): Boolean { return true }
 
     override fun postMine(
-        stack: ItemStack?, world: World?, state: BlockState?, pos: BlockPos?, miner: LivingEntity?
+        stack: ItemStack, world: World, state: BlockState, pos: BlockPos, miner: LivingEntity
     ): Boolean {
 
-        if ( state!!.isIn(effectiveBlocks) ) {
+        if ( state.isIn(effectiveBlocks) ) {
 
-            stack!!.damage( 1, miner ) { breakEquipment( miner, stack ) }
+            stack.damage( 1, miner ) { breakEquipment( miner, stack ) }
 
         }
 
@@ -1126,26 +1129,31 @@ class ElectricGuitarClean : ElectricGuitar() {
 
     }
 
-    override fun use( world: World?, user: PlayerEntity, hand: Hand? ): TypedActionResult<ItemStack>? {
+    override fun use( world: World, user: PlayerEntity, hand: Hand ): TypedActionResult<ItemStack> {
 
-        val stack = user.getStackInHand(hand)
+        val stack = user.getStackInHand(hand);      val action = TypedActionResult.pass(stack)
 
-        if ( user.isOnFire && user.isSneaking ) ability(stack, user, user)
-        else super.use( world, user, hand )
+        if ( user.isOnFire && user.isSneaking ) {
 
-        return TypedActionResult.pass(stack)
+            if ( !shouldUse( user, stack, hand ) ) return action
+
+            ability( stack, user, user )
+
+        } else super.use( world, user, hand )
+
+        return action
 
     }
 
     override fun useOnEntity(
-        stack: ItemStack?, player: PlayerEntity?, entity: LivingEntity?, hand: Hand?
+        stack: ItemStack, player: PlayerEntity, entity: LivingEntity, hand: Hand
     ): ActionResult {
 
-        val canHelp = entity!!.wasOnFire && entity !is HostileEntity
+        val canHelp = entity.wasOnFire && entity !is HostileEntity
 
         return if (canHelp) {
 
-            ability( stack!!, player!!, entity );   ActionResult.CONSUME
+            ability( stack, player, entity );   ActionResult.CONSUME
 
         } else super.useOnEntity( stack, player, entity, hand )
 
@@ -1161,7 +1169,7 @@ class Oboe : Instrument( 3.25f, -1f, MusicalIron() )
 
 open class Trombone : Instrument( 5f, -3f, MusicalRedstone() ) {
 
-    override fun use( world: World?, user: PlayerEntity, hand: Hand? ): TypedActionResult<ItemStack>? {
+    override fun use( world: World, user: PlayerEntity, hand: Hand ): TypedActionResult<ItemStack> {
 
         val result = super.use( world, user, hand );    val stack = user.getStackInHand(hand)
 
@@ -1169,7 +1177,7 @@ open class Trombone : Instrument( 5f, -3f, MusicalRedstone() ) {
 
         val rotation = user.rotationVector.multiply(4.0);       val pos = user.eyePos
 
-        val raycast = world!!.raycast( RaycastContext( pos, pos.add(rotation), RaycastContext.ShapeType.OUTLINE, RaycastContext.FluidHandling.NONE, user ) )
+        val raycast = world.raycast( RaycastContext( pos, pos.add(rotation), RaycastContext.ShapeType.OUTLINE, RaycastContext.FluidHandling.NONE, user ) )
 
         var canThrust = action != "Thrust" || !user.isOnGround
         canThrust = canThrust || world.getBlockState( raycast.blockPos ).block is AirBlock

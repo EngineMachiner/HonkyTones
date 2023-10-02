@@ -49,24 +49,24 @@ class MusicalStorage : Item( defaultSettings() ), StackMenu {
     }
 
     override fun inventoryTick(
-        stack: ItemStack?, world: World?, entity: Entity?, slot: Int, selected: Boolean
+        stack: ItemStack, world: World, entity: Entity, slot: Int, selected: Boolean
     ) {
 
         super.inventoryTick( stack, world, entity, slot, selected )
 
-        createModels(stack!!)
+        createModels(stack)
 
     }
 
-    override fun use( world: World?, user: PlayerEntity?, hand: Hand? ): TypedActionResult<ItemStack> {
+    override fun use( world: World, user: PlayerEntity, hand: Hand ): TypedActionResult<ItemStack> {
 
-        val stack = user!!.getStackInHand(hand)
+        val stack = user.getStackInHand(hand)
 
         val canOpen = canOpenMenu( user, stack )
 
         val action = TypedActionResult.consume(stack)
 
-        if ( world!!.isClient ) return TypedActionResult.pass(stack)
+        if ( world.isClient ) return TypedActionResult.pass(stack)
 
         if ( !canOpen ) return action
 
@@ -278,9 +278,7 @@ class MusicalStorage : Item( defaultSettings() ), StackMenu {
         createModels(stack)
 
 
-        val user = stack.holder!! as PlayerEntity
-
-        val world = user.world
+        val user = stack.holder!! as PlayerEntity;  val world = user.world
 
         val nbt = NBT.get(stack);                   val stackID = nbt.getInt("ID")
 

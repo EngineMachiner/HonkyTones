@@ -97,11 +97,11 @@ object MusicTheory {
     }
 
     /** Parse and build according to template and range. **/
-    private fun builder( template: Set<String>?, range: Set<Int> ): Set<String>{
+    private fun builder( template: Set<String>, range: Set<Int> ): Set<String>{
 
         val output = mutableSetOf<String>()
 
-        for ( n in range ) {    for ( t in template!! ) {
+        for ( n in range ) {    for ( t in template ) {
 
             var s: String
 
