@@ -1,61 +1,53 @@
 {
 
-  "schemaVersion": 1,
-  "id": "honkytones",
-  "version": "4.0.0",
-  "name": "HonkyTones",
-  "description": "Mod that reads MIDI stuff and does other things.",
+	"schemaVersion": 1,
 
-  "authors": [ "Engine_Machiner" ],
+	"id": "honkytones", "version": "${version}", "name": "HonkyTones",
+	"description": "It adds a very musical experience!",
+	"license": "GNU Lesser General Public License version 3 (LGPLv3)",
+	"icon": "assets/honkytones/icon.png",
+	"authors": ["Engine_Machiner"],
 
-  "contact": {
-    "homepage": "https://modrinth.com/mod/honkytones",
-    "issues": "https://github.com/EngineMachiner/HonkyTones/issues",
-    "sources": "https://github.com/EngineMachiner/HonkyTones"
-  },
+	"contact": {
+		"homepage": "https://modrinth.com/mod/honkytones",
+		"issues": "https://github.com/EngineMachiner/HonkyTones/issues",
+		"sources": "https://github.com/EngineMachiner/HonkyTones"
+	},
 
-  "license": "GNU Lesser General Public License version 3 (LGPLv3)",
-  "icon": "assets/honkytones/mod-icon.png",
-  "environment": "*",
+	"environment": "*",
+	"entrypoints": {
 
-  "entrypoints": {
+		"main": [
+			"com.enginemachiner.honkytones.Init",
+			"com.enginemachiner.honkytones.Particles"
+		],
 
-    "main": [
+		"client": [
+			"com.enginemachiner.honkytones.Init",
+			"com.enginemachiner.honkytones.Particles",
+			"com.enginemachiner.honkytones.Projectiles"
+		],
 
-      {
-        "adapter": "kotlin",
-        "value": "com.enginemachiner.honkytones.Init"
-      },
+		"server": [ "com.enginemachiner.honkytones.Commands" ]
 
-      {
-        "adapter": "kotlin",
-        "value": "com.enginemachiner.honkytones.Particles"
-      }
+	},
 
-    ],
+	"mixins": [
+		"honkytones.mixins.json",
+		"honkytones.mixins.mob.json",
+		"honkytones.mixins.chest.json",
+		"honkytones.mixins.player.json",
+		"honkytones.mixins.enchantments.json"
+	],
 
-    "client": [
-      "com.enginemachiner.honkytones.Init",
-      "com.enginemachiner.honkytones.Particles",
-      "com.enginemachiner.honkytones.Projectiles"
-    ]
+	"depends": {
+		"fabricloader": ">=0.14.22",
+		"minecraft": "~1.19.2",
+		"java": ">=17",
+		"fabric-api": "*",
+		"fabric-language-kotlin": ">=1.9.10"
+	},
 
-  },
-
-  "depends": {
-    "fabricloader": ">=0.11.7",
-    "fabric": "*",
-    "fabric-language-kotlin": ">=1.7.4+kotlin.1.6.21",
-    "minecraft": "1.19.x",
-    "java": ">=16"
-  },
-
-  "mixins": [
-    "honkytones.mixins.json",
-    "honkytones.mixins.mob.json",
-    "honkytones.mixins.chest.json",
-    "honkytones.mixins.player.json",
-    "honkytones.mixins.enchantments.json"
-  ]
-
+	"suggests": { "another-mod": "*" }
+	
 }

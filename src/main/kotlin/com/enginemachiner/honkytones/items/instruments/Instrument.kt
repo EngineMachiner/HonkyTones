@@ -70,7 +70,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
-val particles = Instrument.Companion.ActionParticles
+private val particles = Instrument.Companion.ActionParticles
 
 open class Instrument(
     val damage: Float, val useSpeed: Float, material: ToolMaterial
@@ -1078,6 +1078,7 @@ interface NoFading
 
 open class Keyboard : Instrument( 5f, -2.4f, MusicalQuartz() )
 class Organ : Instrument( 5f, -3.5f, MusicalIron() )
+
 open class DrumSet : Instrument( 3.5f, -3f, MusicalIron() ), PlayCompletely
 open class AcousticGuitar : Instrument( 3f, -2.4f, MusicalString() )
 
@@ -1162,10 +1163,11 @@ class ElectricGuitarClean : ElectricGuitar() {
 }
 
 class Harp : Instrument( 2f, -1f, MusicalString() )
-open class Viola : Instrument( 3.5f, -2f, MusicalString() )
-open class Violin : Instrument( 3.75f, -2f, MusicalRedstone() )
 class Recorder : Instrument( 1.25f, -1.5f, MusicalString() )
 class Oboe : Instrument( 3.25f, -1f, MusicalIron() )
+
+open class Viola : Instrument( 3.5f, -2f, MusicalString() )
+open class Violin : Instrument( 3.75f, -2f, MusicalRedstone() )
 
 open class Trombone : Instrument( 5f, -3f, MusicalRedstone() ) {
 
@@ -1214,11 +1216,11 @@ class Rhodes : Keyboard()
 
 abstract class Synth : Keyboard()
 
-class BassSynth : Synth();           class BassLeadSynth : Synth()
-class Bass2Synth : Synth();          class CelesteSynth : Synth()
-class DocSynth : Synth();            class MetalPadSynth : Synth()
-class PolySynth : Synth();           class SawSynth : Synth()
-class SineSynth : Synth();           class SquareSynth : Synth()
+class BassSynth : Synth();              class BassLeadSynth : Synth()
+class Bass2Synth : Synth();             class CelesteSynth : Synth()
+class DocSynth : Synth();               class MetalPadSynth : Synth()
+class PolySynth : Synth();              class SawSynth : Synth()
+class SineSynth : Synth();              class SquareSynth : Synth()
 class StringsSynth : Synth()
 
 class Banjo : AcousticGuitar();         class Cello : Instrument( 2f, -2f, MusicalString() )

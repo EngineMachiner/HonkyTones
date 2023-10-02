@@ -1,4 +1,4 @@
-package com.enginemachiner.honkytones.mixins;
+package com.enginemachiner.honkytones.mixin;
 
 import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayer;
 import net.minecraft.client.world.ClientWorld;

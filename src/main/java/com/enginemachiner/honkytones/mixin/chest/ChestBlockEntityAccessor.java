@@ -1,4 +1,4 @@
-package com.enginemachiner.honkytones.mixins.chest;
+package com.enginemachiner.honkytones.mixin.chest;
 
 import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.block.entity.ChestLidAnimator;

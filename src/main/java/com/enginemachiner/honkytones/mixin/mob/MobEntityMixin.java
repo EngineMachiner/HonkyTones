@@ -1,4 +1,4 @@
-package com.enginemachiner.honkytones.mixins.mob;
+package com.enginemachiner.honkytones.mixin.mob;
 
 import com.enginemachiner.honkytones.MixinLogic;
 import com.enginemachiner.honkytones.NBT;
@@ -10,6 +10,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -22,6 +23,7 @@ import static com.enginemachiner.honkytones.ConfigKt.serverConfig;
 @Mixin( MobEntity.class )
 public class MobEntityMixin {
 
+    @Unique
     private static final Instrument.Companion companion = Instrument.Companion;
 
     /** Make mobs play instruments when attacking. */

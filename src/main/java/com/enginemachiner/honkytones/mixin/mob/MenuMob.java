@@ -1,4 +1,4 @@
-package com.enginemachiner.honkytones.mixins.mob;
+package com.enginemachiner.honkytones.mixin.mob;
 
 import com.enginemachiner.honkytones.MixinLogic;
 import net.minecraft.entity.mob.MobEntity;

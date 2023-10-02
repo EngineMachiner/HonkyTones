@@ -63,6 +63,7 @@ open class YTDLRequest(input: String) : YoutubeDLRequest(input) {
     public override fun buildOptions(): String { return super.buildOptions() }
 }
 
+@Environment(EnvType.CLIENT)
 private val mapper = ObjectMapper()
 
 @Environment(EnvType.CLIENT)

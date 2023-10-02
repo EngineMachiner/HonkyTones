@@ -4,7 +4,6 @@ import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.Init.Companion.MOD_NAME
 import com.enginemachiner.honkytones.Init.Companion.directories
 import com.enginemachiner.honkytones.items.instruments.Instrument
-import com.enginemachiner.honkytones.items.instruments.particles
 import com.mojang.blaze3d.systems.RenderSystem
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
@@ -44,6 +43,8 @@ import javax.sound.midi.MidiEvent
 import javax.sound.midi.MidiSystem
 import javax.sound.midi.Sequence
 import javax.sound.midi.ShortMessage
+
+private val particles = Instrument.Companion.ActionParticles
 
 class DigitalConsoleScreenHandler(
     syncID: Int, private val playerInventory: PlayerInventory, val inventory: Inventory

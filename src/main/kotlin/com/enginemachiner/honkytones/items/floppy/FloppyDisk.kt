@@ -93,6 +93,8 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
 
     }
 
+    /* TODO: This interrupt query thing keeps requesting twice.
+    *  To replicate set a link, interrupt and spam open a menu. */
     /** Queries the source title when requested. */
     private fun queryTick(stack: ItemStack) {
 

@@ -9,8 +9,7 @@ import net.minecraft.util.Identifier
 import net.minecraft.util.Language
 import net.minecraft.util.math.Vec3f
 import org.apache.commons.validator.routines.UrlValidator
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
+import org.slf4j.LoggerFactory
 import kotlin.math.PI
 import kotlin.reflect.KClass
 
@@ -24,7 +23,7 @@ object Utility {
 /** Verify logic or methods if they are based on vanilla behaviour, etc. */
 annotation class Verify( val reason: String )
 
-private val logger: Logger = LogManager.getLogger("HonkyTones")
+private val logger = LoggerFactory.getLogger("HonkyTones")
 
 fun modPrint( any: Any? ) { logger.info("$any") }
 

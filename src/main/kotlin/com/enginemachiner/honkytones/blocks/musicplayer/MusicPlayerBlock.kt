@@ -87,7 +87,7 @@ private val coroutine = CoroutineScope( Dispatchers.IO )
 
 private fun lookupPlayer( world: World, floppy: ItemStack ): PlayerEntity? {
 
-    val players = world.players;   if ( floppy.isEmpty ) return null
+    val players = world.players;   if ( !NBT.has(floppy) ) return null
 
     val nbt = NBT.get(floppy);     return players.find { it.id == nbt.getInt("PlayerID") }
 
@@ -342,6 +342,16 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
         const val INVENTORY_SIZE = 16 + 1;      lateinit var type: BlockEntityType<MusicPlayerBlockEntity>
 
+        fun tick( world: World, pos: BlockPos ) {
+
+            val blockEntity = world.getBlockEntity(pos)
+
+            if ( blockEntity !is MusicPlayerBlockEntity ) return
+
+            blockEntity.entityTick();      blockEntity.musicPlayerTick()
+
+        }
+
         fun networking() {
 
             var id = netID("set_user_listening")
@@ -404,26 +414,6 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
         }
 
-        fun tick( world: World, pos: BlockPos ) {
-
-            val blockEntity = world.getBlockEntity(pos)
-
-            if ( blockEntity !is MusicPlayerBlockEntity ) return
-
-            blockEntity.entityTick();      blockEntity.musicPlayerTick()
-
-        }
-
-    }
-
-    fun isPlaying(): Boolean { return cachedState.get(PLAYING) }
-
-    fun setPlaying(isPlaying: Boolean) {
-
-        val next = cachedState.with( PLAYING, isPlaying )
-
-        world!!.setBlockState( pos, next )
-
     }
 
     @Environment(EnvType.CLIENT)
@@ -448,18 +438,12 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
     }
 
-    /** Get the list of users synced / listening to the block entity, including the owner of the floppy. */
-    fun usersListening(floppy: ItemStack): Set<PlayerEntity> {
+    @Environment(EnvType.CLIENT)
+    fun clientInit() {
 
-        val users = usersListening.toMutableSet()
+        val listenAll = clientConfig["listen_all"] as Boolean
 
-        for ( user in users ) if ( user.isRemoved ) usersListening.remove(user)
-
-        val owner = lookupPlayer( world!!, floppy ) ?: return users
-
-        if ( !users.contains(owner) ) users.add(owner)
-
-        return users
+        if ( !listenAll ) return;     isListening = true;    setUserListeningState(true)
 
     }
 
@@ -475,18 +459,34 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
     }
 
-    fun spawnEntity( entity: MusicPlayerEntity ) {
+    fun isPlaying(): Boolean { return cachedState.get(PLAYING) }
 
-        world!!.spawnEntity(entity);    entity.init();   this.entity = entity
+    fun setPlaying(isPlaying: Boolean) {
+
+        val next = cachedState.with( PLAYING, isPlaying )
+
+        world!!.setBlockState( pos, next )
 
     }
 
-    @Environment(EnvType.CLIENT)
-    fun clientInit() {
+    /** Get the list of users synced / listening to the block entity, including the owner of the floppy. */
+    fun usersListening(floppy: ItemStack): Set<PlayerEntity> {
 
-        val listenAll = clientConfig["listen_all"] as Boolean
+        val users = usersListening.toMutableSet()
 
-        if ( !listenAll ) return;     isListening = true;    setUserListeningState(true)
+        for ( user in users ) if ( user.isRemoved ) usersListening.remove(user)
+
+        val owner = lookupPlayer( world!!, floppy ) ?: return users
+
+        if ( !users.contains(owner) ) users.add(owner)
+
+        return users
+
+    }
+
+    fun spawnEntity( entity: MusicPlayerEntity ) {
+
+        world!!.spawnEntity(entity);    entity.init();   this.entity = entity
 
     }
 
@@ -598,19 +598,19 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
 
     override fun getName(): Text { return Text.of( Translation.block("music_player") ) }
 
-    fun setPos(blockPos: BlockPos) {
-
-        val newPos = Vec3d.of(blockPos).add( 0.5, 0.0, 0.5 )
-
-        setPosition(newPos)
-
-    }
-
     fun init() {
 
         val facing = world.getBlockState(blockPos).get(FACING)
 
         this.yaw = facing.asRotation()
+
+    }
+
+    fun setPos(blockPos: BlockPos) {
+
+        val newPos = Vec3d.of(blockPos).add( 0.5, 0.0, 0.5 )
+
+        setPosition(newPos)
 
     }
 
@@ -637,17 +637,15 @@ class MusicPlayer( val id: Int ) {
 
     private var onQuery = false;                    private var isDirectAudio = false
 
-    var sound: ExternalSound? = null
+    var sound: ExternalSound? = null;               init { list.add(this) }
 
     val items: DefaultedList<ItemStack> = DefaultedList.ofSize( INVENTORY_SIZE, ItemStack.EMPTY )
 
     private val actions = mapOf( "play" to ::play, "pause" to ::pause )
 
-    init { list.add(this) };    fun pos(): BlockPos { return blockEntity!!.pos }
-
     override fun toString(): String { return "Music Player: ${ pos() }" }
 
-    fun stopSequencer() { sequencer!!.stop() }
+    fun stopSequencer() { sequencer!!.stop() };     fun pos(): BlockPos { return blockEntity!!.pos }
 
     fun isFormerPlayer(): Boolean {
 
