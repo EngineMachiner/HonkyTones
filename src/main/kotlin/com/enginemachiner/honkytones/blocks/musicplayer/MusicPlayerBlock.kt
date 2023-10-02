@@ -109,11 +109,11 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
         builder.add( *arrayOf( FACING, PLAYING ) )
     }
 
-    override fun getPlacementState( context: ItemPlacementContext ): BlockState {
+    override fun getPlacementState(context: ItemPlacementContext): BlockState {
 
         val direction = context.playerFacing.opposite
 
-        return defaultState!!.with( FACING, direction ).with( PLAYING, false )
+        return defaultState.with( FACING, direction ).with( PLAYING, false )
 
     }
 
