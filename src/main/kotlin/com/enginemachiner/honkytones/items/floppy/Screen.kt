@@ -36,6 +36,10 @@ class FloppyDiskScreen( private val stack: ItemStack ) : Screen( Text.of(screenT
 
         if ( lastPath == path ) { super.close(); return }
 
+        // Reset volume and rate.
+
+        nbt.putFloat( "Rate", 1f );     nbt.putFloat( "Volume", 1f )
+
         nbt.remove("hasRequestDisplay")
 
         if ( path.isNotBlank() ) {
@@ -102,7 +106,7 @@ class FloppyDiskScreen( private val stack: ItemStack ) : Screen( Text.of(screenT
 
     }
 
-    override fun render( matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float ) {
+    override fun render( matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float ) {
 
         renderBackground(matrices)
 
@@ -114,11 +118,7 @@ class FloppyDiskScreen( private val stack: ItemStack ) : Screen( Text.of(screenT
         title = stack.name.string
         DrawableHelper.drawCenteredTextWithShadow( matrices, textRenderer, title, ( width * 0.5 ).toInt(), 30, 0xFFFFFF )
 
-        textRenderer.draw(
-            matrices, "$pathTitle:",
-            searchField!!.x.toFloat(), searchField!!.y.toFloat() - 12,
-            0xFFFFFF
-        )
+        textRenderer.draw( matrices, "$pathTitle:", searchField!!.x.toFloat(), searchField!!.y.toFloat() - 12, 0xFFFFFF )
 
     }
 

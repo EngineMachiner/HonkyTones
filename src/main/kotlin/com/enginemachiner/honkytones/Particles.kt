@@ -126,7 +126,7 @@ open class FollowingParticle( clientWorld: ClientWorld, x: Double, y: Double, z:
 
     override fun tick() {
 
-        entity ?: return;       val entity = entity!!
+        val entity = entity ?: return
 
         if ( entity.isRemoved ) { markDead(); return };     followEntity()
 
@@ -185,12 +185,12 @@ open class BaseParticle( clientWorld: ClientWorld, x: Double, y: Double, z: Doub
             }
 
             override fun createParticle(
-                parameters: DefaultParticleType?, world: ClientWorld?,
+                parameters: DefaultParticleType, world: ClientWorld,
                 x: Double, y: Double, z: Double,
                 velocityX: Double, velocityY: Double, velocityZ: Double
             ): Particle {
 
-                val particle = template( world!!, x, y, z );        particle.setSprite(spriteProvider)
+                val particle = template( world, x, y, z );        particle.setSprite(spriteProvider)
 
                 return particle
 

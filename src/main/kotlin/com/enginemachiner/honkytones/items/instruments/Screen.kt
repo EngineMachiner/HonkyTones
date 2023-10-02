@@ -253,7 +253,7 @@ class InstrumentsScreen( private val stack: ItemStack ) : Screen( Text.of("Instr
 
     }
 
-    override fun render( matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float ) {
+    override fun render( matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float ) {
 
         renderBackground(matrices)
 
@@ -266,24 +266,14 @@ class InstrumentsScreen( private val stack: ItemStack ) : Screen( Text.of("Instr
         }
 
         val title = stack.name.string
-        textRenderer.draw( matrices, title, width - title.length * 5f - 20,
-            10f, 0xFFFFFF
-        )
+        textRenderer.draw( matrices, title, width - title.length * 5f - 20, 10f, 0xFFFFFF )
 
-        textRenderer.draw(
-            matrices, "$sequenceTitle:",
-            sequenceField!!.x.toFloat(), sequenceField!!.y.toFloat() - 12,
-            0xFFFFFF
-        )
+        textRenderer.draw( matrices, "$sequenceTitle:", sequenceField!!.x.toFloat(), sequenceField!!.y.toFloat() - 12, 0xFFFFFF )
 
-        textRenderer.draw(
-            matrices, "$channelTitle: ",
-            channelField!!.x.toFloat() - 45, channelField!!.y.toFloat() + 5,
-            0xFFFFFF
-        )
+        textRenderer.draw( matrices, "$channelTitle: ", channelField!!.x.toFloat() - 45, channelField!!.y.toFloat() + 5, 0xFFFFFF )
 
         // Show device name on change using a "tween".
-        deviceNameDraw( matrices )
+        deviceNameDraw(matrices)
 
     }
 
@@ -315,7 +305,7 @@ class InstrumentsScreen( private val stack: ItemStack ) : Screen( Text.of("Instr
 
     private fun resetTween() { tweenStack.replaceAll { 0 } }
 
-    private fun deviceNameDraw( matrices: MatrixStack? ) {
+    private fun deviceNameDraw(matrices: MatrixStack) {
 
         val t = tweenStack
 

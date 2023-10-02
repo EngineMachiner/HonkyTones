@@ -27,11 +27,11 @@ val hands = arrayOf( Hand.MAIN_HAND, Hand.OFF_HAND )
 
 private val equipment = arrayOf( EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND )
 
-fun breakEquipment( entity: LivingEntity?, stack: ItemStack ) {
+fun breakEquipment( entity: LivingEntity, stack: ItemStack ) {
 
     val index = NBT.get(stack).getInt("Hand")
 
-    entity!!.sendEquipmentBreakStatus( equipment[index] )
+    entity.sendEquipmentBreakStatus( equipment[index] )
 
 }
 
@@ -63,7 +63,11 @@ object ItemGroup: Item( Settings() ), ModID {
 
 }
 
-fun defaultSettings(): Item.Settings { return Item.Settings().maxCount(1) }
+fun defaultSettings(): Item.Settings {
+
+    return Item.Settings().maxCount(1)
+
+}
 
 interface StackMenu {
 
@@ -79,11 +83,11 @@ interface StackMenu {
 
 private interface Trackable {
 
-    fun tick( stack: ItemStack?, world: World?, entity: Entity?, slot: Int ) {
+    fun tick( stack: ItemStack, world: World, entity: Entity, slot: Int ) {
 
-        stack!!.holder = entity
+        stack.holder = entity
 
-        if ( world!!.isClient ) return;     trackTick( stack, slot )
+        if ( world.isClient ) return;     trackTick( stack, slot )
 
         if ( !NBT.has(stack) ) setupNBT(stack);     val nbt = NBT.get(stack)
 
@@ -110,11 +114,11 @@ private interface Trackable {
 abstract class ToolItem( material: ToolMaterial, settings: Settings ) : ToolItem( material, settings ), Trackable, ModID {
 
     override fun allowNbtUpdateAnimation(
-        player: PlayerEntity?, hand: Hand?, oldStack: ItemStack?, newStack: ItemStack?
+        player: PlayerEntity, hand: Hand, oldStack: ItemStack, newStack: ItemStack
     ): Boolean { return false }
 
     override fun inventoryTick(
-        stack: ItemStack?, world: World?, entity: Entity?, slot: Int, selected: Boolean
+        stack: ItemStack, world: World, entity: Entity, slot: Int, selected: Boolean
     ) { tick( stack, world, entity, slot ) }
 
 }
@@ -122,11 +126,11 @@ abstract class ToolItem( material: ToolMaterial, settings: Settings ) : ToolItem
 abstract class Item(settings: Settings) : Item(settings), Trackable, ModID {
 
     override fun allowNbtUpdateAnimation(
-        player: PlayerEntity?, hand: Hand?, oldStack: ItemStack?, newStack: ItemStack?
+        player: PlayerEntity, hand: Hand, oldStack: ItemStack, newStack: ItemStack
     ): Boolean { return false }
 
     override fun inventoryTick(
-        stack: ItemStack?, world: World?, entity: Entity?, slot: Int, selected: Boolean
+        stack: ItemStack, world: World, entity: Entity, slot: Int, selected: Boolean
     ) { tick( stack, world, entity, slot ) }
 
 }

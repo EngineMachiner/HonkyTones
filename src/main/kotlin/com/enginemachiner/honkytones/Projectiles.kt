@@ -97,9 +97,9 @@ class NoteProjectileEntity : PersistentProjectileEntity {
 
     }
 
-    override fun onEntityHit( entityHitResult: EntityHitResult? ) {
+    override fun onEntityHit(entityHitResult: EntityHitResult) {
 
-        val stack = stack ?: return;    val entity = entityHitResult!!.entity
+        val stack = stack ?: return;    val entity = entityHitResult.entity
 
         if ( this.owner == entity || entity !is LivingEntity ) return
 
@@ -115,7 +115,7 @@ class NoteProjectileEntity : PersistentProjectileEntity {
 
     }
 
-    override fun onBlockHit( blockHitResult: BlockHitResult? ) { discard() }
+    override fun onBlockHit(blockHitResult: BlockHitResult) { discard() }
 
     override fun getSoundCategory(): SoundCategory { return SoundCategory.PLAYERS }
 
@@ -226,26 +226,26 @@ class NoteProjectileEntity : PersistentProjectileEntity {
         @Environment(EnvType.CLIENT)
         class Renderer( context: EntityRendererFactory.Context ) : EntityRenderer<NoteProjectileEntity>(context) {
 
-            override fun getTexture( entity: NoteProjectileEntity? ): Identifier {
+            override fun getTexture( entity: NoteProjectileEntity ): Identifier {
                 return textureID("particle/note/projectile.png")
             }
 
             override fun render(
-                entity: NoteProjectileEntity?, yaw: Float, tickDelta: Float,
-                matrices: MatrixStack?, vertexConsumers: VertexConsumerProvider?,
+                entity: NoteProjectileEntity, yaw: Float, tickDelta: Float,
+                matrices: MatrixStack, vertexConsumers: VertexConsumerProvider,
                 light: Int
             ) {
 
-                matrices!!.push()
+                matrices.push()
 
-                val light = WorldRenderer.getLightmapCoordinates( entity!!.world, entity.blockPos )
+                val light = WorldRenderer.getLightmapCoordinates( entity.world, entity.blockPos )
 
                 val entry = matrices.peek()
                 val posMatrix: Matrix4f = entry.positionMatrix
                 val normalMatrix: Matrix3f = entry.normalMatrix
 
                 val layer = RenderLayer.getEntityTranslucent( getTexture(entity) )
-                val consumer = vertexConsumers!!.getBuffer(layer)
+                val consumer = vertexConsumers.getBuffer(layer)
                 val rotation = dispatcher.rotation
 
                 matrices.scale( SCALE, SCALE, SCALE )

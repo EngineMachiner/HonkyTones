@@ -1,4 +1,4 @@
-package com.enginemachiner.honkytones.mixins.player;
+package com.enginemachiner.honkytones.mixin.player;
 
 import com.enginemachiner.honkytones.items.instruments.Instrument;
 import net.fabricmc.api.EnvType;
@@ -13,7 +13,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 // I learnt that to point to the right method you have to use the bytecode reader.
 
-@Environment(EnvType.CLIENT)
 @Mixin( ClientPlayerEntity.class )
 public class ClientPlayerMixin {
 

@@ -8,9 +8,8 @@ import net.minecraft.text.Text
 import net.minecraft.util.Identifier
 import net.minecraft.util.Language
 import org.apache.commons.validator.routines.UrlValidator
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
 import org.joml.Vector3f
+import org.slf4j.LoggerFactory
 import kotlin.math.PI
 import kotlin.reflect.KClass
 
@@ -24,7 +23,7 @@ object Utility {
 /** Verify logic or methods if they are based on vanilla behaviour, etc. */
 annotation class Verify( val reason: String )
 
-private val logger: Logger = LogManager.getLogger("HonkyTones")
+private val logger = LoggerFactory.getLogger("HonkyTones")
 
 fun modPrint( any: Any? ) { logger.info("$any") }
 
@@ -131,15 +130,15 @@ private fun threadID(): Long { return Thread.currentThread().id }
 
 class Timer( private val tickLimit: Int,     private val function: () -> Unit ) {
 
-    private val id = threadID()
+    private val id = threadID();        var remove = false
 
     private var ticks = 0;      init { timers.add(this) }
 
-    private fun kill() { timers.remove(this) }
+    private fun kill() { remove = true }
 
     fun tick() {
 
-        if ( id != threadID() ) { return }
+        if ( id != threadID() || remove ) { return }
 
         if ( ticks > tickLimit ) { function(); kill() } else ticks++
 
@@ -149,7 +148,13 @@ class Timer( private val tickLimit: Int,     private val function: () -> Unit ) 
 
         val timers = mutableListOf<Timer?>()
 
-        fun tickTimers() { timers.filterNotNull().forEach { it.tick() } }
+        fun tickTimers() {
+
+            val list = timers.filterNotNull();      list.forEach { it.tick() }
+
+            list.forEach { if ( it.remove ) timers.remove(it) }
+
+        }
 
     }
 

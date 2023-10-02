@@ -49,7 +49,7 @@ object NBT {
 
         val holder = stack.holder;      if ( holder !is PlayerEntity ) return
 
-        putInt( get(stack), "PlayerID", holder.id )
+        putInt( get(stack), "PlayerID", holder.id ) // TODO: Consider using UUID as string.
 
     }
 
@@ -70,7 +70,7 @@ object NBT {
         if ( !nbt.contains("BlockPos") ) return null
 
         val slot = nbt.getInt("Slot")
-        val list = nbt.getString("BlockPos").replace( " ","" ).split(',')
+        val list = nbt.getString("BlockPos").replace( " ", "" ).split(',')
         val blockPos = BlockPos( list[0].toInt(), list[1].toInt(), list[2].toInt() )
         val inventory = world.getBlockEntity(blockPos) ?: return null
 
@@ -112,6 +112,8 @@ object NBT {
     @JvmStatic
     @Environment(EnvType.CLIENT)
     fun networkNBT(nbt: NbtCompound) {
+
+        if ( !canNetwork() ) return
 
         val buf = PacketByteBufs.create();      buf.writeNbt(nbt)
 

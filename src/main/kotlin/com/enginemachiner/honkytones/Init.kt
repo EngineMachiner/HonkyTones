@@ -36,6 +36,7 @@ import net.minecraft.registry.Registry
 import net.minecraft.sound.SoundEvent
 import kotlin.reflect.full.createInstance
 
+// TODO: Check shadow / inheritance instead of double casting for mixin objects.
 // TODO: Check inherited methods on vanilla classes.
 // TODO: Add advancements.
 
@@ -90,17 +91,15 @@ class Init : ModInitializer, ClientModInitializer {
 
         }
 
-        fun registerBlock( block: Block, itemSettings: Item.Settings ): Block? {
+        fun registerBlock( block: Block, itemSettings: Item.Settings ): Block {
 
             val s = ( block as ModID ).className().replace( "_block", "" )
 
             val id = modID(s);       val block = Registry.register( Registries.BLOCK, id, block )
 
-            val item = BlockItem( block, itemSettings )
+            val item = BlockItem( block, itemSettings );    Registry.register( Registries.ITEM, id, item )
 
-            ItemGroupEvents.modifyEntriesEvent(itemGroup).register { it.add(item) }
-
-            Registry.register( Registries.ITEM, id, item );     return block
+            return block
 
         }
 
@@ -114,7 +113,7 @@ class Init : ModInitializer, ClientModInitializer {
 
         }
 
-        private fun registerSound(path: String): SoundEvent? {
+        private fun registerSound(path: String): SoundEvent {
 
             val id = modID(path);      val event = SoundEvent.of(id)
 
@@ -148,7 +147,6 @@ class Init : ModInitializer, ClientModInitializer {
         private fun register() {
 
             // Item group first.
-
             registerItem(ItemGroup)
 
             registerItem( FloppyDisk() );       registerItem( DigitalConsole() )
@@ -169,7 +167,7 @@ class Init : ModInitializer, ClientModInitializer {
 
             Fuel.register();      NoteProjectileEntity.register()
 
-            for ( i in 1..9 ) hitSounds.add( registerSound("hit$i")!! )
+            for ( i in 1..9 ) hitSounds.add( registerSound("hit$i") )
 
             registerSound("magic.c3-e3_")
 

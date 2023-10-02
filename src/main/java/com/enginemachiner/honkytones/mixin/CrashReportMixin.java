@@ -1,4 +1,4 @@
-package com.enginemachiner.honkytones.mixins;
+package com.enginemachiner.honkytones.mixin;
 
 import net.minecraft.util.crash.CrashReport;
 import org.spongepowered.asm.mixin.Mixin;

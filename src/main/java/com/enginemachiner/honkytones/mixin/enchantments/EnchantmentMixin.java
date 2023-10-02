@@ -1,4 +1,4 @@
-package com.enginemachiner.honkytones.mixins.enchantments;
+package com.enginemachiner.honkytones.mixin.enchantments;
 
 import com.enginemachiner.honkytones.items.instruments.Instrument;
 import com.google.common.collect.Multimap;

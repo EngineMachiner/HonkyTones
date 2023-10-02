@@ -16,11 +16,11 @@ import net.minecraft.world.World
 
 class DigitalConsole : Item( defaultSettings().maxDamage(6) ), StackMenu {
 
-    override fun use( world: World?, user: PlayerEntity?, hand: Hand? ): TypedActionResult<ItemStack> {
+    override fun use( world: World, user: PlayerEntity, hand: Hand ): TypedActionResult<ItemStack> {
 
-        val stack = user!!.getStackInHand(hand);        val canOpen = canOpenMenu( user, stack )
+        val stack = user.getStackInHand(hand);        val canOpen = canOpenMenu( user, stack )
 
-        val action = TypedActionResult.pass(stack);     if ( world!!.isClient || !canOpen ) return action
+        val action = TypedActionResult.pass(stack);     if ( world.isClient || !canOpen ) return action
 
         user.openHandledScreen( createMenu(stack) )
 
@@ -37,18 +37,18 @@ class DigitalConsole : Item( defaultSettings().maxDamage(6) ), StackMenu {
     override fun trackTick( stack: ItemStack, slot: Int ) { trackHand(stack) }
 
     override fun inventoryTick(
-        stack: ItemStack?, world: World?, entity: Entity?, slot: Int, selected: Boolean
+        stack: ItemStack, world: World, entity: Entity, slot: Int, selected: Boolean
     ) {
 
         super.inventoryTick( stack, world, entity, slot, selected )
 
-        val nbt = NBT.get(stack!!)
+        val nbt = NBT.get(stack)
 
-        if ( world!!.isClient || !nbt.contains("damage") ) return
+        if ( world.isClient || !nbt.contains("damage") ) return
 
         entity as PlayerEntity;         nbt.remove("damage")
 
-        stack.damage( 1, entity ) { breakEquipment(entity, stack) }
+        stack.damage( 1, entity ) { breakEquipment( entity, stack ) }
 
     }
 

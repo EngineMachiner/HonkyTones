@@ -37,9 +37,9 @@ class MusicPlayerScreenHandler(
     syncID: Int, playerInventory: PlayerInventory, private val inventory: Inventory
 ) : StrictSlotScreen( type, syncID ) {
 
-    private val player = playerInventory.player;        val world: World = player.world
+    private val player = playerInventory.player;            val world: World = player.world
 
-    var pos: BlockPos? = null
+    @Environment(EnvType.CLIENT) var forceListen = "false";     var pos: BlockPos? = null
 
     constructor( syncID: Int, playerInventory: PlayerInventory, buf: PacketByteBuf ) : this( syncID, playerInventory, SimpleInventory(INVENTORY_SIZE) ) {
 
@@ -137,9 +137,9 @@ class MusicPlayerScreenHandler(
 
     }
 
-    override fun onClosed(player: PlayerEntity?) { inventory.markDirty();      super.onClosed(player) }
+    override fun onClosed(player: PlayerEntity) { inventory.markDirty();      super.onClosed(player) }
 
-    override fun quickMove( player: PlayerEntity?, slotIndex: Int ): ItemStack {
+    override fun quickMove( player: PlayerEntity, slotIndex: Int ): ItemStack {
 
         val slot = slots[slotIndex]
 
@@ -149,15 +149,13 @@ class MusicPlayerScreenHandler(
 
         if ( !transfer ) return ItemStack.EMPTY
 
-        updateClients(16)
-
-        return slot.stack.copy()
+        updateClients(16);      return slot.stack.copy()
 
     }
 
     /** Place instruments and floppy disks only and move inventory freely. */
     override fun onSlotClick(
-        slotIndex: Int, button: Int, actionType: SlotActionType?, player: PlayerEntity?
+        slotIndex: Int, button: Int, actionType: SlotActionType, player: PlayerEntity
     ) {
 
         fun onSlotClick() { super.onSlotClick( slotIndex, button, actionType, player ) }
@@ -183,7 +181,7 @@ class MusicPlayerScreenHandler(
 
     }
 
-    override fun canUse( player: PlayerEntity? ): Boolean { return inventory.canPlayerUse(player) }
+    override fun canUse(player: PlayerEntity): Boolean { return inventory.canPlayerUse(player) }
 
     companion object: ModID {
 
@@ -227,13 +225,13 @@ class MusicPlayerScreenHandler(
 
     private fun updateClients(slotIndex: Int) {
 
-        if ( world.isClient ) return;       var floppyStack = stacks[16]
+        if ( world.isClient ) { if ( forceListen == "false" ) forceListen = "true"; return }
 
-        val musicPlayer = inventory as MusicPlayerBlockEntity
+        var floppy = stacks[16];    val musicPlayer = inventory as MusicPlayerBlockEntity
 
-        if ( floppyStack.nbt == null ) floppyStack = cursorStack
+        if ( !NBT.has(floppy) ) floppy = cursorStack
 
-        trackPos(slotIndex);        musicPlayer.read(floppyStack)
+        trackPos(slotIndex);    musicPlayer.read(floppy)
 
     }
 
@@ -248,7 +246,8 @@ class MusicPlayerScreen(
 
     private val musicPlayer = world.getBlockEntity(pos) as MusicPlayerBlockEntity
 
-    private var syncButton: ButtonWidget? = null
+    private var listenButton: ButtonWidget? = null
+    private var repeatButton: ButtonWidget? = null
     private var slider = Slider( 30, 15, 100, 20, handler )
     private val genericTexture = Identifier("textures/gui/container/generic_54.png")
 
@@ -270,23 +269,41 @@ class MusicPlayerScreen(
 
         val on = Translation.get("gui.on");     val off = Translation.get("gui.off")
 
-        val downloadsText = Translation.block("music_player.downloads")
-
-        val isSynced = musicPlayer.isSynced
         val switch = mutableMapOf( true to on, false to off )
-        syncButton = createButton( x, y, - w2 * 1.8f, height * 0.65f, w, h, w2, 10f ) {
 
-            musicPlayer.isSynced = !musicPlayer.isSynced
+        val listenButtonTitle = Translation.block("music_player.listen")
 
-            val isSynced = musicPlayer.isSynced;        musicPlayer.setUserSyncStatus(isSynced)
+        val isListening = musicPlayer.isListening
+        listenButton = createButton( x, y, - w2 * 1.8f, height * 0.65f, w, h, (w2 * 0.75f).toInt(), 10f ) {
 
-            it.message = Text.of("$downloadsText: ${ switch[isSynced] }")
+            musicPlayer.isListening = !musicPlayer.isListening
+
+            val isListening = musicPlayer.isListening;        musicPlayer.setUserListeningState(isListening)
+
+            it.message = Text.of("$listenButtonTitle: ${ switch[isListening] }")
 
         }
 
-        syncButton!!.message = Text.of("$downloadsText: ${ switch[isSynced] }")
+        listenButton!!.message = Text.of("$listenButtonTitle: ${ switch[isListening] }")
 
-        addDrawableChild(syncButton);       super.init()
+        addDrawableChild(listenButton)
+
+        val repeatButtonTitle = Translation.block("music_player.repeat")
+
+        val repeatPlay = musicPlayer.repeatOnPlay
+        repeatButton = createButton( width - x, y, - w2 * 2.2f, height * 0.65f, w, h, w2, 10f ) {
+
+            musicPlayer.repeatOnPlay = !musicPlayer.repeatOnPlay
+
+            val repeatPlay = musicPlayer.repeatOnPlay;        musicPlayer.setRepeatMode(repeatPlay)
+
+            it.message = Text.of("$repeatButtonTitle: ${ switch[repeatPlay] }")
+
+        }
+
+        repeatButton!!.message = Text.of("$repeatButtonTitle: ${ switch[repeatPlay] }")
+
+        addDrawableChild(repeatButton);     super.init()
 
     }
 
@@ -306,7 +323,7 @@ class MusicPlayerScreen(
 
     }
 
-    override fun drawBackground( matrices: MatrixStack?, delta: Float, mouseX: Int, mouseY: Int ) {
+    override fun drawBackground( matrices: MatrixStack, delta: Float, mouseX: Int, mouseY: Int ) {
 
         RenderSystem.setShader( GameRenderer::getPositionTexProgram )
         RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
@@ -341,7 +358,17 @@ class MusicPlayerScreen(
 
     }
 
-    override fun render( matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float ) {
+    override fun handledScreenTick() {
+
+        val forceState = handler.forceListen == "true" && !musicPlayer.isListening
+
+        if (forceState) { listenButton!!.onPress(); handler.forceListen = "done" }
+
+        if ( world.getBlockEntity(pos) !is MusicPlayerBlockEntity ) close()
+
+    }
+
+    override fun render( matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float ) {
 
         renderBackground(matrices);         super.render( matrices, mouseX, mouseY, delta )
 
@@ -388,15 +415,17 @@ class MusicPlayerScreen(
 
             private val pos = handler.pos;      private val world = handler.world
 
-            private val musicPlayer = world.getBlockEntity(pos) as MusicPlayerBlockEntity
+            private val blockEntity = world.getBlockEntity(pos) as MusicPlayerBlockEntity
 
-            private var floppyStack = musicPlayer.getStack(16)
+            private val musicPlayer = MusicPlayer.get( blockEntity.id )
+
+            private var floppy = blockEntity.getStack(16)
 
             private var init = false
             private var title = "";     private var valueText = 1
             private var key = "";       private var scale = 2f
 
-            init { visible = false }
+            init { visible = false;     musicPlayer.items[16] = floppy }
 
             override fun mouseDragged( mouseX: Double, mouseY: Double, button: Int, deltaX: Double, deltaY: Double ): Boolean {
 
@@ -426,7 +455,7 @@ class MusicPlayerScreen(
 
             override fun applyValue() {
 
-                val nbt = NBT.get(floppyStack);       val value1 = value * scale
+                val nbt = NBT.get(floppy);       val value1 = value * scale
 
                 if ( nbt.getFloat(key).toDouble() == value1 && init ) return
 
@@ -438,17 +467,19 @@ class MusicPlayerScreen(
 
             }
 
-            override fun render( matrices: MatrixStack?, mouseX: Int, mouseY: Int, delta: Float ) {
+            override fun render( matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float ) {
 
                 super.render( matrices, mouseX, mouseY, delta )
 
-                floppyStack = musicPlayer.getStack(16)
+                floppy = blockEntity.getStack(16)
 
-                visible = !floppyStack.isEmpty;     if ( !visible ) return
+                visible = !floppy.isEmpty;     if ( !visible ) return
 
-                visible = musicPlayer.inputExists() && !isMuted( musicPlayer.entity!! )
+                visible = musicPlayer.inputExists() && !isMuted( blockEntity.entity!! )
 
-                check(floppyStack)
+                if ( !musicPlayer.isFormerPlayer() && key == "Rate" ) visible = false
+
+                check(floppy)
 
             }
 
@@ -482,7 +513,7 @@ class MusicPlayerScreen(
 
             private fun getValue(): Double {
 
-                return NBT.get(floppyStack).getFloat(key).toDouble()
+                return NBT.get(floppy).getFloat(key).toDouble()
 
             }
 

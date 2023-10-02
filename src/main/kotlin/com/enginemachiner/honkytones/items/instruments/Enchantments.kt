@@ -7,11 +7,9 @@ import net.minecraft.entity.EquipmentSlot
 import net.minecraft.item.ItemStack
 
 class RangedEnchantment : Enchantment(
-    Rarity.UNCOMMON, EnchantmentTarget.WEAPON, EquipmentSlot.values()
+    Rarity.UNCOMMON, EnchantmentTarget.WEAPON, EquipmentSlot.entries.toTypedArray()
 ), ModID {
 
-    override fun isAcceptableItem( stack: ItemStack? ): Boolean {
-        return stack!!.item is Instrument
-    }
+    override fun isAcceptableItem(stack: ItemStack): Boolean { return stack.item is Instrument }
 
 }

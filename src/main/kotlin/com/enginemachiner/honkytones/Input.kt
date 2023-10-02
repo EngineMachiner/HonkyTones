@@ -72,7 +72,7 @@ abstract class GenericReceiver : Receiver {
 
     var entity: Entity? = null;     var instruments = mutableListOf<ItemStack>()
 
-    override fun send( message: MidiMessage?, timeStamp: Long ) {
+    override fun send( message: MidiMessage, timeStamp: Long ) {
 
         if ( message !is ShortMessage ) return;     client().send { onSend(message) }
 
@@ -84,9 +84,11 @@ abstract class GenericReceiver : Receiver {
 
     open fun onPlay( sound: InstrumentSound, stack: ItemStack, entity: Entity ) {
 
-        if ( stack.holder != entity ) stack.holder = entity;    sound.play(stack)
+        checkHolder( stack, entity );    sound.play(stack)
 
     }
+
+    fun checkHolder( stack: ItemStack, entity: Entity ) { if ( stack.holder != entity ) stack.holder = entity }
 
     private fun onSend(message: ShortMessage) {
 

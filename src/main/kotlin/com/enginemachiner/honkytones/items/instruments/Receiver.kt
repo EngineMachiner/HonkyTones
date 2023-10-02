@@ -12,6 +12,8 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.util.collection.DefaultedList
 
+private val particles = Instrument.Companion.ActionParticles
+
 @Environment(EnvType.CLIENT)
 class InstrumentReceiver( private val deviceID: String ) : GenericReceiver() {
 

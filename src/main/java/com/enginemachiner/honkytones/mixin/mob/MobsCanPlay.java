@@ -1,4 +1,4 @@
-package com.enginemachiner.honkytones.mixins.mob;
+package com.enginemachiner.honkytones.mixin.mob;
 
 import com.enginemachiner.honkytones.ItemKt;
 import com.enginemachiner.honkytones.MixinLogic;
@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 // DrownedEntity.class and PillagerEntity.class are ranged mobs, they can't use instruments, big sad.
+// TODO: Make them throw projectiles.
 
 @Mixin( {
         MobEntity.class, AbstractSkeletonEntity.class,

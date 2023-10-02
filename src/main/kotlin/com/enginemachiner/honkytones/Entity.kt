@@ -1,5 +1,7 @@
 package com.enginemachiner.honkytones
 
+import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlockEntity
+import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerEntity
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.minecraft.block.BlockWithEntity
@@ -81,10 +83,24 @@ interface CanBeMuted {
 
         val blacklist = mutableMapOf<Entity, Particle>()
 
-        fun isMuted(entity: Entity): Boolean { return blacklist.contains(entity) }
+        fun isMuted(entity: Entity): Boolean {
+
+            if ( entity is MusicPlayerEntity ) {
+
+                val musicPlayer = world()!!.getBlockEntity( entity.blockPos )
+
+                if ( musicPlayer !is MusicPlayerBlockEntity ) return true
+
+                return !musicPlayer.isListening
+
+            }
+
+            return blacklist.contains(entity)
+
+        }
 
     }
 
 }
 
-abstract class BlockWithEntity( settings: Settings? ) : BlockWithEntity(settings), ModID
+abstract class BlockWithEntity(settings: Settings) : BlockWithEntity(settings), ModID
