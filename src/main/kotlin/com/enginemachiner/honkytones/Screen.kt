@@ -32,6 +32,8 @@ abstract class StrictSlotScreen( type: ScreenHandlerType<*>, syncID: Int ) : Scr
 
 }
 
+// TODO: Check and re-do screen widgets. Specially createButton().
+
 @Environment(EnvType.CLIENT)
 class MidiChannelField( textRenderer: TextRenderer, x: Int, y: Int, w: Int, h: Int ) : TextFieldWidget(
     textRenderer, x, y, w, h, Text.of("Midi Channel Field")
