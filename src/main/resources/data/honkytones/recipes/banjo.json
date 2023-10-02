@@ -1,0 +1,19 @@
+{
+
+  "type": "minecraft:crafting_shaped",
+
+  "pattern": [
+    " SC",
+    "SCS",
+    "PS "
+  ],
+
+  "key": {
+    "S": { "item": "minecraft:string" },
+    "C": { "item": "minecraft:stick" },
+    "P": { "tag": "minecraft:planks" }
+  },
+
+  "result": { "item": "honkytones:banjo", "count": 1 }
+
+}
