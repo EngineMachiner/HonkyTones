@@ -30,7 +30,13 @@ class MusicPlayerReceiver( private val musicPlayer: MusicPlayer ) : GenericRecei
 
     override fun canPlay( stack: ItemStack, channel: Int ): Boolean {
 
-        if ( world() == null ) { musicPlayer.stopSequencer(); musicPlayer.spawnParticles = false; return false }
+        if ( world() == null ) {
+            
+            musicPlayer.stopSequencer();     musicPlayer.spawnParticles = false
+            
+            return false 
+        
+        }
 
         val instrument = stack.item;    val index = instruments.indexOf(stack)
 
