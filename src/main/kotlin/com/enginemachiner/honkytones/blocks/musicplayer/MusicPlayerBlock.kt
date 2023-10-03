@@ -181,7 +181,7 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
 
         val blockEntity = Registries.BLOCK_ENTITY_TYPE.get(id)
 
-        return checkType( type, blockEntity ) {
+        return validateTicker( type, blockEntity ) {
 
             world: World, blockPos: BlockPos, _: BlockState, _: Any ->
 

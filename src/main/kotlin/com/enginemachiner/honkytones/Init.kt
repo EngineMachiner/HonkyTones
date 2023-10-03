@@ -91,6 +91,15 @@ class Init : ModInitializer, ClientModInitializer {
 
         }
 
+        private fun addToGroup(item: Item) {
+
+            if ( item == ItemGroup ) return
+
+            ItemGroupEvents.modifyEntriesEvent( ItemGroup.registry )
+                .register { it.add(item) }
+
+        }
+
         fun registerBlock( block: Block, itemSettings: Item.Settings ): Block {
 
             val s = ( block as ModID ).className().replace( "_block", "" )
@@ -99,22 +108,17 @@ class Init : ModInitializer, ClientModInitializer {
 
             val item = BlockItem( block, itemSettings );    Registry.register( Registries.ITEM, id, item )
 
-            return block
+            addToGroup(item);   return block
 
         }
 
         private fun registerItem(item: Item) {
 
-            if ( item != ItemGroup ) {
-
-                ItemGroupEvents.modifyEntriesEvent( ItemGroup.registry )
-                    .register { it.add(item) }
-
-            }
-
             val id = ( item as ModID ).classID()
 
             Registry.register( Registries.ITEM, id, item )
+
+            addToGroup(item)
 
         }
 
@@ -130,6 +134,7 @@ class Init : ModInitializer, ClientModInitializer {
 
             val path = ( enchantment as ModID ).className()
                 .replace("_enchantment", "")
+
 
             Registry.register( Registries.ENCHANTMENT, modID(path), enchantment )
 
@@ -152,6 +157,8 @@ class Init : ModInitializer, ClientModInitializer {
         private fun register() {
 
             // Item group first.
+            Registry.register( Registries.ITEM_GROUP, ItemGroup.registry, itemGroup )
+
             registerItem(ItemGroup)
 
             registerItem( FloppyDisk() );       registerItem( DigitalConsole() )
@@ -176,7 +183,7 @@ class Init : ModInitializer, ClientModInitializer {
 
             registerSound("magic.c3-e3_")
 
-            registerEnchantment( RangedEnchantment() )
+            registerEnchantment( RangedEnchantment )
 
             registerScreenHandlers();    registerCallbacks();   Screen.networking()
 

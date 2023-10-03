@@ -6,7 +6,7 @@ import net.minecraft.enchantment.EnchantmentTarget
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.item.ItemStack
 
-class RangedEnchantment : Enchantment(
+object RangedEnchantment : Enchantment(
     Rarity.UNCOMMON, EnchantmentTarget.WEAPON, EquipmentSlot.entries.toTypedArray()
 ), ModID {
 

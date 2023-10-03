@@ -108,7 +108,7 @@ class FloppyDiskScreen( private val stack: ItemStack ) : Screen( Text.of(screenT
 
     override fun render( context: DrawContext, mouseX: Int, mouseY: Int, delta: Float ) {
 
-        renderBackground(context)
+        renderBackground( context, mouseX, mouseY, delta )
 
         children().forEach { it as Drawable;     it.render( context, mouseX, mouseY, delta ) }
 

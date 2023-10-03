@@ -116,7 +116,7 @@ open class FollowingParticle( clientWorld: ClientWorld, x: Double, y: Double, z:
 
     private fun followEntity() {
 
-        val entity = entity!!;      val height = entity.boundingBox.yLength
+        val entity = entity!!;      val height = entity.boundingBox.lengthY
 
         val pos = entity.pos.add(offset).add( Vec3d( 0.0, height + scale * 3.5, 0.0 ) )
 

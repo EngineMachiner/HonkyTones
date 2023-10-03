@@ -41,7 +41,7 @@ class MidiChannelField( textRenderer: TextRenderer, x: Int, y: Int, w: Int, h: I
 
     init { setMaxLength(2) }
 
-    override fun tick() {
+    fun tick() {
 
         // Only allow 1-16 as input.
 
@@ -53,7 +53,7 @@ class MidiChannelField( textRenderer: TextRenderer, x: Int, y: Int, w: Int, h: I
 
         if (b3) b3 = s[0] != '1' || "${ s[1] }".contains( Regex("[^0-6]") )
 
-        if ( b1 || b2 || b3 ) text = "1";       super.tick()
+        if ( b1 || b2 || b3 ) text = "1"
 
     }
 

@@ -85,7 +85,9 @@ class RecordingScreen( private val screen: DigitalConsoleScreen ) : Screen( Text
 
     override fun render( context: DrawContext, mouseX: Int, mouseY: Int, delta: Float ) {
 
-        renderBackground(context);         super.render( context, mouseX, mouseY, delta )
+        renderBackground( context, mouseX, mouseY, delta )
+
+        super.render( context, mouseX, mouseY, delta )
 
         children().forEach { it as Drawable;     it.render( context, mouseX, mouseY, delta ) }
 

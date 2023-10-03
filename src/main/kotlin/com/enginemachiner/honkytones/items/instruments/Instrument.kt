@@ -453,8 +453,8 @@ open class Instrument(
 
                 val box = entity.boundingBox
 
-                val x = box.xLength * 0.75f;     val y = box.yLength * 0.5f
-                val z = box.zLength * 0.75f
+                val x = box.lengthX * 0.75f;     val y = box.lengthY * 0.5f
+                val z = box.lengthZ * 0.75f
 
                 for ( i in 1..n ) {
 
@@ -724,7 +724,7 @@ open class Instrument(
 
             }
 
-            builder.put( Enchantments.MENDING, 1 );       builder.put( RangedEnchantment(), 1 )
+            builder.put( Enchantments.MENDING, 1 );       builder.put( RangedEnchantment, 1 )
 
             enchants = builder.build()
 

@@ -337,7 +337,9 @@ class DigitalConsoleScreen(
 
     override fun render( context: DrawContext, mouseX: Int, mouseY: Int, delta: Float ) {
 
-        renderBackground(context);         super.render( context, mouseX, mouseY, delta )
+        renderBackground( context, mouseX, mouseY, delta )
+
+        super.render( context, mouseX, mouseY, delta )
 
         children().forEach { it as Drawable;     it.render( context, mouseX, mouseY, delta ) }
 
@@ -601,7 +603,9 @@ class PickStackScreen(
 
     override fun render( context: DrawContext, mouseX: Int, mouseY: Int, delta: Float ) {
 
-        renderBackground(context);     super.render( context, mouseX, mouseY, delta )
+        renderBackground( context, mouseX, mouseY, delta )
+
+        super.render( context, mouseX, mouseY, delta )
 
         drawMouseoverTooltip( context, mouseX, mouseY )
 

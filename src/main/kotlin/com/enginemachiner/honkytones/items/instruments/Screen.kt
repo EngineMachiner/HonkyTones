@@ -255,7 +255,7 @@ class InstrumentsScreen( private val stack: ItemStack ) : Screen( Text.of("Instr
 
     override fun render( context: DrawContext, mouseX: Int, mouseY: Int, delta: Float ) {
 
-        renderBackground(context)
+        renderBackground( context, mouseX, mouseY, delta )
 
         children().forEach {
 
