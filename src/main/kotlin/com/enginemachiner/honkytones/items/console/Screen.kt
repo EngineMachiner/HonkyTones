@@ -22,7 +22,6 @@ import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.client.option.KeyBinding
 import net.minecraft.client.render.GameRenderer
 import net.minecraft.client.util.InputUtil
-import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventory

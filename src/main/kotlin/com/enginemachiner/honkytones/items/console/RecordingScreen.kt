@@ -10,9 +10,10 @@ import net.minecraft.client.gui.Drawable
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.TextFieldWidget
-import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.text.Text
-import javax.sound.midi.*
+import javax.sound.midi.MidiSystem
+import javax.sound.midi.Sequence
+import javax.sound.midi.Sequencer
 
 @Environment(EnvType.CLIENT)
 class RecordingScreen( private val screen: DigitalConsoleScreen ) : Screen( Text.of("RecordingScreen") ) {

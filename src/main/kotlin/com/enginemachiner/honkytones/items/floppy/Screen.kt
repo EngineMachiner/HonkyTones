@@ -2,8 +2,8 @@ package com.enginemachiner.honkytones.items.floppy
 
 import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.Init.Companion.MOD_NAME
-import com.enginemachiner.honkytones.NBT.networkNBT
 import com.enginemachiner.honkytones.NBT.keepDisplay
+import com.enginemachiner.honkytones.NBT.networkNBT
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.minecraft.client.gui.DrawContext
@@ -12,7 +12,6 @@ import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.TextFieldWidget
 import net.minecraft.client.util.Clipboard
-import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.item.ItemStack
 import net.minecraft.text.Text
 
