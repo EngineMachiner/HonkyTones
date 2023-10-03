@@ -1,8 +1,6 @@
 package com.enginemachiner.honkytones.mixin.player;
 
 import com.enginemachiner.honkytones.items.instruments.Instrument;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
