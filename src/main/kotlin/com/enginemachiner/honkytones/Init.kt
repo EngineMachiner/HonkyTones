@@ -91,6 +91,14 @@ class Init : ModInitializer, ClientModInitializer {
 
         }
 
+        private fun addToGroup(item: Item) {
+
+            if ( item == ItemGroup ) return
+
+            ItemGroupEvents.modifyEntriesEvent(itemGroup).register { it.add(item) }
+
+        }
+
         fun registerBlock( block: Block, itemSettings: Item.Settings ): Block {
 
             val s = ( block as ModID ).className().replace( "_block", "" )
@@ -99,17 +107,17 @@ class Init : ModInitializer, ClientModInitializer {
 
             val item = BlockItem( block, itemSettings );    Registry.register( Registries.ITEM, id, item )
 
-            return block
+            addToGroup(item);   return block
 
         }
 
         private fun registerItem(item: Item) {
 
-            if ( item != ItemGroup ) ItemGroupEvents.modifyEntriesEvent(itemGroup).register { it.add(item) }
-
             val id = ( item as ModID ).classID()
 
             Registry.register( Registries.ITEM, id, item )
+
+            addToGroup(item)
 
         }
 
