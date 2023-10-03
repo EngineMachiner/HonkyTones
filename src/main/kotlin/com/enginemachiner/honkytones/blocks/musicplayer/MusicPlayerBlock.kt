@@ -1,7 +1,6 @@
 package com.enginemachiner.honkytones.blocks.musicplayer
 
 import com.enginemachiner.honkytones.*
-import com.enginemachiner.honkytones.BlockWithEntity
 import com.enginemachiner.honkytones.CanBeMuted.Companion.isMuted
 import com.enginemachiner.honkytones.Init.Companion.directories
 import com.enginemachiner.honkytones.Init.Companion.registerBlock
@@ -31,7 +30,10 @@ import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricEntityTypeBuilder
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory
-import net.minecraft.block.*
+import net.minecraft.block.Block
+import net.minecraft.block.BlockRenderType
+import net.minecraft.block.BlockState
+import net.minecraft.block.Material
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.BlockEntityTicker
 import net.minecraft.block.entity.BlockEntityType
@@ -76,7 +78,6 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
-import net.minecraft.world.explosion.Explosion
 import java.net.URL
 import javax.sound.midi.MidiSystem
 import javax.sound.midi.Sequencer
