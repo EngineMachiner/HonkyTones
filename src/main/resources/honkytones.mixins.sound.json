@@ -1,9 +1,7 @@
 {
   "required": true,
-  "package": "com.enginemachiner.honkytones.mixins.sound",
-  "compatibilityLevel": "JAVA_16",
-  "injectors": {
-    "defaultRequire": 1
-  },
+  "package": "com.enginemachiner.honkytones.mixin.sound",
+  "compatibilityLevel": "JAVA_17",
+  "injectors": { "defaultRequire": 1 },
   "client": ["SoundInstanceMixin", "SoundSystemMixin"]
 }

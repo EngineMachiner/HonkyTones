@@ -1,0 +1,13 @@
+{
+
+  "type": "minecraft:crafting_shapeless",
+
+  "ingredients": [
+    { "item": "honkytones:electric_guitar" },
+    { "item": "minecraft:blue_dye" },
+    { "item": "minecraft:lever" }
+  ],
+
+  "result": { "item": "honkytones:electric_guitar_clean", "count": 1 }
+
+}
