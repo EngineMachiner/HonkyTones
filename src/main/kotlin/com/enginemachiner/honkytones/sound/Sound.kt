@@ -102,6 +102,7 @@ open class FadingSound( val path: String ) : MovingSoundInstance(
         if ( !canNetwork() || !shouldNetwork ) return
 
         fadeOutOnClients()
+        
     }
 
     fun setPitch(f: Float) { pitch = f }
