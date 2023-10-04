@@ -85,6 +85,8 @@ interface CanBeMuted {
 
         fun isMuted(entity: Entity): Boolean {
 
+            if ( entity.isRemoved ) return false
+            
             if ( entity is MusicPlayerEntity ) {
 
                 val musicPlayer = world()!!.getBlockEntity( entity.blockPos )

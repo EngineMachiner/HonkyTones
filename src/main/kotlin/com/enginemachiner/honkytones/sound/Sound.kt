@@ -27,7 +27,7 @@ open class FadingSound( val path: String ) : MovingSoundInstance(
     var entity: Entity? = null;         var maxVolume = 1f
     private var fadeIn = false;         private var fadeOut = false
     var shouldNetwork = true;           var canReplay = true
-    private var timesStopped = 0;       private var lastVolume: Float? = null
+    private var timesStopped = 0;       private var volumeRate = maxVolume
 
     private var isPlaying = false;      protected var pos: Vec3d = Vec3d.ZERO
 
@@ -45,15 +45,13 @@ open class FadingSound( val path: String ) : MovingSoundInstance(
 
     private fun getRate(): Float {
 
-        if ( lastVolume == null ) lastVolume = volume
-
-        return 0.125f * lastVolume!! / ( timesStopped + 1 )
+        return 0.125f * volumeRate / ( timesStopped + 1 )
 
     }
 
     private fun fadeInTick() {
 
-        if ( !fadeIn ) return
+        if ( !fadeIn || fadeOut ) return
 
         val nextVolume = volume + getRate()
         if ( nextVolume < maxVolume ) volume = nextVolume else fadeIn = false
@@ -91,17 +89,20 @@ open class FadingSound( val path: String ) : MovingSoundInstance(
 
         getManager().stop(this);        volume = maxVolume
 
-        if ( !canReplay ) setDone();           lastVolume = null
+        if ( !canReplay ) setDone()
 
     }
 
-    fun fadeIn() { fadeIn = true;   volume = 0f }
+    open fun fadeIn() { fadeIn = true;   volume = 0f }
 
     open fun fadeOut() {
 
-        fadeOut = true;     if ( !canNetwork() || !shouldNetwork ) return
+        fadeOut = true;     volumeRate = volume
+
+        if ( !canNetwork() || !shouldNetwork ) return
 
         fadeOutOnClients()
+        
     }
 
     fun setPitch(f: Float) { pitch = f }
