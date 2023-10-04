@@ -1,18 +1,20 @@
 {
+
   "type": "minecraft:crafting_shaped",
+
   "pattern": [
-    " CN",
-    "LSN",
-    "LLN"
+    " ER",
+    "LS ",
+    "EL "
   ],
+
   "key": {
-    "C": { "item": "minecraft:orange_dye" },
-    "N": { "item": "minecraft:blaze_rod" },
+    "E": { "item": "minecraft:emerald" },
+    "R": { "item": "minecraft:blaze_rod" },
     "S": { "item": "minecraft:string" },
     "L": { "tag": "minecraft:logs" }
   },
-  "result": {
-    "item": "honkytones:violin",
-    "count": 1
-  }
+
+  "result": { "item": "honkytones:violin", "count": 1 }
+
 }
