@@ -1,0 +1,19 @@
+{
+
+  "type": "minecraft:crafting_shaped",
+
+  "pattern": [
+    "PBP",
+    "IBI",
+    "PBP"
+  ],
+
+  "key": {
+    "B": { "item": "minecraft:book" },
+    "P": { "tag": "minecraft:planks" },
+    "I": { "item": "minecraft:iron_ingot" }
+  },
+
+  "result": { "item": "honkytones:accordion", "count": 1 }
+
+}

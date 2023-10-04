@@ -1,0 +1,18 @@
+{
+
+  "type": "minecraft:crafting_shaped",
+
+  "pattern": [
+    " G ",
+    "GNG",
+    " G "
+  ],
+
+  "key": {
+    "N": { "item": "minecraft:note_block" },
+    "G": { "item": "minecraft:gold_ingot" }
+  },
+
+  "result": { "item": "honkytones:music_box", "count": 1 }
+
+}

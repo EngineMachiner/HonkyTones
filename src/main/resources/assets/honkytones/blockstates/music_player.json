@@ -1,0 +1,24 @@
+{
+
+  "variants": {
+
+    "facing=east,playing=false": { "model": "honkytones:block/music_player", "y": 90 },
+
+    "facing=north,playing=false": { "model": "honkytones:block/music_player" },
+
+    "facing=south,playing=false": { "model": "honkytones:block/music_player", "y": 180 },
+
+    "facing=west,playing=false": { "model": "honkytones:block/music_player", "y": 270 },
+
+
+    "facing=east,playing=true": { "model": "honkytones:block/music_player_on", "y": 90 },
+
+    "facing=north,playing=true": { "model": "honkytones:block/music_player_on" },
+
+    "facing=south,playing=true": { "model": "honkytones:block/music_player_on", "y": 180 },
+
+    "facing=west,playing=true": { "model": "honkytones:block/music_player_on", "y": 270 }
+
+  }
+
+}

@@ -1,6 +1,7 @@
 package com.enginemachiner.honkytones
 
 import com.enginemachiner.honkytones.items.instruments.Instrument
+import com.enginemachiner.honkytones.sound.NoteProjectileSound
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
@@ -10,7 +11,6 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.PacketSender
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricEntityTypeBuilder
-import net.fabricmc.loader.impl.FabricLoaderImpl
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.client.render.*
@@ -24,212 +24,181 @@ import net.minecraft.network.PacketByteBuf
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvent
-import net.minecraft.sound.SoundEvents
 import net.minecraft.util.Identifier
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult
-import net.minecraft.util.math.Matrix3f
-import net.minecraft.util.math.Matrix4f
-import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.Vec3f
+import net.minecraft.util.math.*
 import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
-import java.util.*
-import kotlin.concurrent.schedule
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.random.Random
 
 class Projectiles : ClientModInitializer {
 
-    override fun onInitializeClient() {
-        NoteProjectileEntity.clientRegister()
-    }
+    override fun onInitializeClient() { NoteProjectileEntity.clientRegister() }
 
-    companion object {
-        fun networking() { NoteProjectileEntity.networking() }
-    }
+    companion object { fun networking() { NoteProjectileEntity.networking() } }
 
 }
 
-class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
+class NoteProjectileEntity : PersistentProjectileEntity {
 
-    constructor(entityType: EntityType<out PersistentProjectileEntity>, world: World)
-            : super(entityType, world)
+    constructor( entityType: EntityType<out PersistentProjectileEntity>, world: World ) : super( entityType, world )
 
-    constructor(world: World, x: Double, y: Double, z: Double)
-            : super(Companion.type, x, y, z, world)
-
-    constructor(world: World, entity: LivingEntity)
-            : super(Companion.type, entity, world)
+    constructor( world: World, entity: LivingEntity ) : super( Companion.type, entity, world )
 
     constructor( stack: ItemStack, world: World ) : this( world, stack.holder as LivingEntity ) {
 
-        this.stack = stack
-        val living = stack.holder!!
+        this.stack = stack;         val holder = stack.holder!!
 
-        val rot = living.rotationVecClient.multiply(1.25)
-        setVelocityClient(rot.x, rot.y, rot.z)
+        // Set projectile aim.
+        val rotation = holder.rotationVecClient.multiply(1.25)
+        setVelocity( rotation.x, rotation.y, rotation.z )
 
-        if ( !world.isClient ) return
-
-        owner as LivingEntity
-
-        val inst = stack.item as Instrument
-        val sounds = inst.getSounds(stack, "notes")
-        val list = sounds.filterNotNull();      val sound = list.random()
-
-        val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
-        nbt.putString( "projectileSound", sound.id.toString() )
-        Network.sendNbtToServer(nbt)
+        onOffHand();        direction.normalize()
 
     }
 
-    private var stack: ItemStack? = null
-    private val color: Vec3f = getRandomColor()
-    private var tickCount = 0
-    private val tickLimit = 100
-    private val randomTexture = (0..1).random() == 0
+    @Environment(EnvType.CLIENT)
+    val textureKey = ( 1..2 ).random()
 
-    // initSpeed, rate
-    private var speedData = mutableListOf( 0.0, 0.1 )
+    private var stack: ItemStack? = null;       private val color = randomColor()
 
-    private val randomPattern = (0..4).random()
+    private var tickCount = 0;      private val tickLimit = 50
+
+    private val direction = Vec3f( 1f, 0f, 1f )
+    private val patternIndex = ( 0..4 ).random()
     private val patterns = mutableListOf(
-        this::patternOne, this::patternTwo, this::patternThree,
-        this::patternFour, this::patternFive
+
+        fun() { movement( Direction.EAST.unitVector ) },
+
+        fun() { movement( Direction.UP.unitVector, 3f ); movement( direction, 3f ) },
+
+        fun() { movement( Direction.SOUTH.unitVector ) },
+
+        fun() { movement(direction) },
+
+        fun() { movement( Direction.UP.unitVector, 3f ); movement( direction, 3f ) }
+
     )
 
-    init {
-        if ( (0..1).random() == 1 ) speedData[1] = - speedData[1]
-    }
-
     override fun tick() {
-        tickCount++;    if ( tickCount > tickLimit ) discard()
-        for ( i in 0..4 ) { if ( randomPattern == i ) patterns[i]() }
+
+        tickCount++;    if ( tickCount > tickLimit && !isRemoved ) discard()
+
+        for ( i in 0..4 ) if ( patternIndex == i ) { patterns[i](); break }
+
         super.tick()
+
     }
 
-    override fun onEntityHit( entityHitResult: EntityHitResult? ) {
+    override fun onEntityHit(entityHitResult: EntityHitResult) {
 
-        val collideEntity = entityHitResult!!.entity
-        if ( this.owner == collideEntity ) return
+        val stack = stack ?: return;    val entity = entityHitResult.entity
 
-        val stack = stack ?: return
-        if ( stack.item !is Instrument ) return
+        if ( this.owner == entity || entity !is LivingEntity ) return
 
         val instrument = stack.item as Instrument
-        val entity = entityHitResult.entity
 
-        if ( entity is LivingEntity ) {
+        Instrument.Companion.ActionParticles.hit( entity, Particles.NOTE_IMPACT3, 2 )
 
-            Instrument.spawnHitParticles( entity, Particles.NOTE_IMPACT )
+        chanceHit( instrument, entity );        damage = instrument.damage.toDouble()
 
-            var num = 30 - instrument.material.enchantability
-            num = (num * 0.5f).toInt()
+        super.onEntityHit(entityHitResult);     entity.stuckArrowCount = 0
 
-            if ( (0..num).random() == 0 ) entity.addVelocity(0.0, 0.625 * 0.5f, 0.0)
-
-        }
-
-        damage = 2.0
-        super.onEntityHit(entityHitResult)
-
-        val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
-
-        val pitch = (5..15).random() * 0.1f
-        var volume = nbt.getFloat("Volume")
-        if (volume == 0f) volume = 0.25f
-
-        val players = world.players
-        val id = Identifier( Base.MOD_NAME, "projectile_sound" )
-        val buf = PacketByteBufs.create()
-
-        buf.writeString( nbt.getString("projectileSound") )
-        buf.writeFloat( volume );   buf.writeFloat( pitch )
-        buf.writeBlockPos(blockPos)
-
-        for (player in players) {
-            player as ServerPlayerEntity
-            ServerPlayNetworking.send(player, id, buf)
-        }
+        playHitSound(entity)
 
     }
 
-    override fun onBlockHit( blockHitResult: BlockHitResult? ) { discard() }
-
-    override fun playSound(sound: SoundEvent?, volume: Float, pitch: Float) {
-        super.playSound(sound, volume, pitch)
-    }
+    override fun onBlockHit(blockHitResult: BlockHitResult) { discard() }
 
     override fun getSoundCategory(): SoundCategory { return SoundCategory.PLAYERS }
 
-    override fun getHitSound(): SoundEvent { return SoundEvents.BLOCK_NOTE_BLOCK_COW_BELL }
+    override fun getHitSound(): SoundEvent {
+
+        val hitSound = Instrument.hitSounds.random()
+
+        return Registry.SOUND_EVENT.get( hitSound.id )!!
+
+    }
 
     override fun asItemStack(): ItemStack { return ItemStack.EMPTY }
 
-    override fun getStack(): ItemStack { return asItemStack() }
+    private fun onOffHand() {
 
-    private fun patternTemplate(x: Double, y: Double, z: Double) {
-        patternTemplate(x, y, z, null, true)
-    }
+        val holder = stack!!.holder!! as LivingEntity
 
-    private fun patternTemplate(x: Double, y: Double, z: Double, lim: Double?, b: Boolean ) {
+        if ( holder.offHandStack != stack ) return
 
-        val lim = lim ?: 0.5
-        if ( speedData[0] > lim || speedData[0] < - lim ) {
-            speedData[1] = - speedData[1]
-        }
+        var yaw = holder.yaw.toDouble();     yaw = degreeToRadians(yaw)
 
-        val rate = speedData[1]
-        velocity = velocity.add(rate * x, rate * y, rate * z)
-
-        if (b) speedData[0] += rate
+        val offset = Vec3d( cos(yaw), 0.0, sin(yaw) ).multiply(1.5)
+        setPosition( pos.add(offset) )
 
     }
 
-    private fun patternOne() { patternTemplate(1.0, 0.0, 0.0) }
+    private fun playHitSound(hitEntity: Entity) {
 
-    private fun patternTwo() {
-        patternTemplate(0.0, 1.0, 0.0, 0.5, true)
-        if (velocity.y < - 0.25) velocity = Vec3d( velocity.x, - 0.25, velocity.z )
+        val id = netID("hit_sound");        val players = world.players
+
+        val buf = PacketByteBufs.create();      buf.writeItemStack(stack);      buf.writeInt( hitEntity.id )
+
+        for ( player in players ) ServerPlayNetworking.send( player as ServerPlayerEntity, id, buf )
+
     }
 
-    private fun patternThree() { patternTemplate(0.0, 0.0, 1.0) }
+    private fun chanceHit( instrument: Instrument, entity: LivingEntity ) {
 
-    private fun patternFour() { patternTemplate(1.0, 0.0, 1.0) }
+        var max = 30 - instrument.material.enchantability
 
-    private fun patternFive() {
-        patternTemplate(0.0, 1.0, 0.0, 0.25, false)
-        if (velocity.y < - 0.25) velocity = Vec3d( velocity.x, - 0.25, velocity.z )
-        patternTemplate(1.0, 0.0, 1.0)
+        max = ( max * 0.5f ).toInt();       if ( ( 0..max ).random() > 0 ) return
+
+        entity.addVelocity( 0.0, 0.3, 0.0 )
+
     }
 
-    companion object {
+    private var sum = 0f
+    private var rate = Random.nextInt( 15, 40 ) * 0.001f
+
+    private fun movement( direction: Vec3f ) { movement( direction, 0.125f ) }
+    private fun movement( direction: Vec3f, limit: Float ) {
+
+        val direction = Vec3d( direction.x.toDouble(), direction.y.toDouble(), direction.z.toDouble() )
+
+        if ( sum > limit || sum < - limit ) rate = - rate * 1.125f
+
+        velocity = velocity.add( direction.multiply( rate.toDouble() ) )
+
+        if ( ( 0..1 ).random() == 1 ) sum += rate
+
+    }
+
+    companion object : ModID {
 
         private lateinit var type: EntityType<NoteProjectileEntity>
-        val id = Identifier( Base.MOD_NAME, "note_projectile" )
 
         fun networking() {
 
-            if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.CLIENT ) return
+            if ( !isClient() ) return
 
-            val id = Identifier( Base.MOD_NAME, "projectile_sound" )
+            val id = netID("hit_sound")
             ClientPlayNetworking.registerGlobalReceiver(id) {
-                    client: MinecraftClient, _: ClientPlayNetworkHandler,
-                    buf: PacketByteBuf, _: PacketSender ->
 
-                val id = buf.readString();      val volume = buf.readFloat()
-                val pitch = buf.readFloat();    val pos = buf.readBlockPos()
+                client: MinecraftClient, _: ClientPlayNetworkHandler,
+                buf: PacketByteBuf, _: PacketSender ->
+
+                val stack = buf.readItemStack();        val id = buf.readInt()
 
                 client.send {
 
-                    val sound = CustomSoundInstance(id)
+                    val entity = entity(id) ?: return@send
+                    val instrument = stack.item as Instrument
 
-                    client.soundManager.play(sound)
-                    sound.volume = volume * 0.5f;      sound.pitch = pitch
-                    sound.setPos(pos);      sound.setPlayState()
+                    val sound1 = instrument.stackSounds(stack).randomNote()
+                    val sound2 = NoteProjectileSound( sound1.path, entity.pos, sound1.semitones() )
 
-                    Timer().schedule( (0..3).random() * 150L ) {
-                        sound.setStopState(true)
-                    }
+                    sound2.play(stack);      Timer( Random.nextInt(10) ) { sound2.fadeOut() }
 
                 }
 
@@ -239,12 +208,11 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
 
         fun register() {
 
-            val typeBuilt = FabricEntityTypeBuilder.create(SpawnGroup.MISC, ::NoteProjectileEntity)
-                .dimensions( EntityDimensions.fixed(0.25f, 0.25f) )
-                .trackRangeBlocks(4).trackedUpdateRate(10)
+            type = FabricEntityTypeBuilder.create( SpawnGroup.MISC, ::NoteProjectileEntity )
+                .dimensions( EntityDimensions.fixed( 0.5f, 0.5f ) )
                 .build()
 
-            type = Registry.register( Registry.ENTITY_TYPE, id, typeBuilt )
+            Registry.register( Registry.ENTITY_TYPE, classID(), type )
 
         }
 
@@ -252,42 +220,46 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
         fun clientRegister() { EntityRendererRegistry.register(type) { Renderer(it) } }
 
         @Environment(EnvType.CLIENT)
-        class Renderer( ctx: EntityRendererFactory.Context )
-        : EntityRenderer<NoteProjectileEntity>(ctx) {
+        class Renderer( context: EntityRendererFactory.Context ) : EntityRenderer<NoteProjectileEntity>(context) {
 
-            override fun getTexture( entity: NoteProjectileEntity? ): Identifier {
-                var s = ""
-                if ( entity!!.randomTexture ) s = "-2"
-                return Identifier( Base.MOD_NAME, "textures/particle/note/projectile$s.png" )
+            override fun getTexture( entity: NoteProjectileEntity ): Identifier {
+                return textureID("particle/note/projectile.png")
             }
 
             override fun render(
-                entity: NoteProjectileEntity?, yaw: Float, tickDelta: Float,
-                matrices: MatrixStack?, vertexConsumers: VertexConsumerProvider?,
+                entity: NoteProjectileEntity, yaw: Float, tickDelta: Float,
+                matrices: MatrixStack, vertexConsumers: VertexConsumerProvider,
                 light: Int
             ) {
 
-                matrices!!.push()
+                matrices.push()
 
-                val light = WorldRenderer.getLightmapCoordinates( entity!!.world, entity.blockPos )
+                val light = WorldRenderer.getLightmapCoordinates( entity.world, entity.blockPos )
 
                 val entry = matrices.peek()
-                val mMat: Matrix4f = entry.model
-                val nMat: Matrix3f = entry.normal
+                val posMatrix: Matrix4f = entry.model
+                val normalMatrix: Matrix3f = entry.normal
 
                 val layer = RenderLayer.getEntityTranslucent( getTexture(entity) )
-                val front = vertexConsumers!!.getBuffer( layer )
-                val rot = dispatcher.rotation
+                val consumer = vertexConsumers.getBuffer(layer)
+                val rotation = dispatcher.rotation
 
-                matrices.scale(scale, scale, scale)
-                matrices.multiply( rot )
-                matrices.multiply( Vec3f.POSITIVE_X.getDegreesQuaternion(180.0f) )
+                matrices.scale( SCALE, SCALE, SCALE )
+                matrices.multiply(rotation)
+                matrices.multiply( Vec3f.POSITIVE_X.getDegreesQuaternion(180f) )
                 matrices.translate( -1.0, 0.0, -1.0 )
 
-                vertex(mMat, nMat, front, 0f, 1f, 0f, 0f, 1f, 0, 0, 1, light, entity.color)
-                vertex(mMat, nMat, front, 1f, 1f, 0f, 1f, 1f, 0, 0, 1, light, entity.color)
-                vertex(mMat, nMat, front, 1f, 0f, 0f, 1f, 0f, 0, 0, 1, light, entity.color)
-                vertex(mMat, nMat, front, 0f, 0f, 0f, 0.0f, 0f, 0, 0, 1, light, entity.color)
+                if ( entity.textureKey == 2 ) {
+
+                    matrices.multiply( Vec3f.POSITIVE_Y.getDegreesQuaternion(180f) )
+                    matrices.translate( -1.0, 0.0, 0.0 )
+
+                }
+
+                vertex( posMatrix, normalMatrix, consumer, 0f, 1f, 0f, 0f, 1f, 0, 0, 1, light, entity.color )
+                vertex( posMatrix, normalMatrix, consumer, 1f, 1f, 0f, 1f, 1f, 0, 0, 1, light, entity.color )
+                vertex( posMatrix, normalMatrix, consumer, 1f, 0f, 0f, 1f, 0f, 0, 0, 1, light, entity.color )
+                vertex( posMatrix, normalMatrix, consumer, 0f, 0f, 0f, 0.0f, 0f, 0, 0, 1, light, entity.color )
 
                 matrices.pop()
 
@@ -295,7 +267,7 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
 
             companion object {
 
-                const val scale = 1.25f
+                const val SCALE = 1.25f
 
                 private fun vertex(
                     modelMatrix: Matrix4f, normalMatrix: Matrix3f, vertexConsumer: VertexConsumer,
@@ -303,13 +275,13 @@ class NoteProjectileEntity : PersistentProjectileEntity, FlyingItemEntity {
                     normalX: Int, normalY: Int, normalZ: Int, light: Int,
                     color: Vec3f
                 ) {
-                    vertexConsumer.vertex(modelMatrix, x, y, z)
-                        .color(color.x.toInt(), color.y.toInt(), color.z.toInt(), 255)
-                        .texture(u, v)
-                        .overlay(OverlayTexture.DEFAULT_UV)
-                        .light(light)
-                        .normal(normalMatrix, normalX.toFloat(), normalY.toFloat(), normalZ.toFloat())
+
+                    vertexConsumer.vertex( modelMatrix, x, y, z )
+                        .color( color.x.toInt(), color.y.toInt(), color.z.toInt(), 255 )
+                        .texture( u, v ).overlay( OverlayTexture.DEFAULT_UV ).light(light)
+                        .normal( normalMatrix, normalX.toFloat(), normalY.toFloat(), normalZ.toFloat() )
                         .next()
+
                 }
 
             }

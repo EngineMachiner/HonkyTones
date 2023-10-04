@@ -1,63 +1,42 @@
 package com.enginemachiner.honkytones
 
-import com.enginemachiner.honkytones.items.console.DigitalConsoleScreen
-import com.enginemachiner.honkytones.items.instruments.DrumSet
 import com.enginemachiner.honkytones.items.instruments.Instrument
 import com.enginemachiner.honkytones.items.instruments.InstrumentReceiver
-import net.fabricmc.api.ClientModInitializer
+import com.enginemachiner.honkytones.sound.InstrumentSound
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
-import net.minecraft.client.MinecraftClient
 import net.minecraft.entity.Entity
 import net.minecraft.item.ItemStack
+import net.minecraft.util.Language
 import javax.sound.midi.*
 
 @Environment(EnvType.CLIENT)
-class Input : ClientModInitializer {
+object Midi {
 
-    private val devicesMap = mutableMapOf< MidiDevice, MutableMap< List<Transmitter>, List<Receiver> > >()
+    /** Sets and links midi transmitters and receivers. */
+    fun configDevices() {
 
-    private fun checkDevices() {
+        MidiSystem.getMidiDeviceInfo().forEach {
 
-        // MIDI setup
-        val midiInfo = MidiSystem.getMidiDeviceInfo()
+            val device = MidiSystem.getMidiDevice(it);      val info = device.deviceInfo
 
-        if ( midiInfo.isNotEmpty() ) {
+            if ( device.maxTransmitters == 0 ) return@forEach
 
-            for ( deviceInfo in midiInfo ) {
+            device.transmitter.receiver = InstrumentReceiver( info.name )
 
-                val device = MidiSystem.getMidiDevice(deviceInfo)
+            if ( device.isOpen ) return@forEach
 
-                // MIDI Devices with max transmitters == -1 are weird
-                if ( device.maxTransmitters != 0 ) {
+            // To consider opening the device when the world loads and closing on exit.
 
-                    devicesMap[device] = mutableMapOf()
-                    val formerMap = devicesMap[device]!!
+            try {
 
-                    val receiverList = mutableListOf<Receiver>()
-                    val transmitterList = device.transmitters
+                device.open();      modPrint( "MIDI device found: $info." )
 
-                    for (trans in transmitterList) {
-                        val receiver = InstrumentReceiver(device.deviceInfo.name)
-                        trans.receiver = receiver
-                        receiverList.add(receiver)
-                    }
+            } catch( e: MidiUnavailableException ) {
 
-                    val formerTransmitter = device.transmitter
-                    formerTransmitter.receiver = InstrumentReceiver(device.deviceInfo.name)
-                    formerMap[transmitterList] = receiverList
+                modPrint( "MIDI device $info is unavailable." )
 
-                    if ( !device.isOpen ) {
-                        try {
-                            device.open()
-                            println( Base.DEBUG_NAME + "MIDI device found: ${device.deviceInfo}" )
-                        } catch(e: MidiUnavailableException) {
-                            println( Base.DEBUG_NAME + "MIDI device ${device.deviceInfo} is unavailable.")
-                            e.printStackTrace()
-                        }
-                    }
-
-                }
+                e.printStackTrace()
 
             }
 
@@ -65,12 +44,24 @@ class Input : ClientModInitializer {
 
     }
 
-    override fun onInitializeClient() {
+    fun hasSystemSequencer(): Boolean {
 
-        checkDevices()
+        try { MidiSystem.getSequencer() } catch ( e: Exception ) {
 
-        Instrument.registerKeyBindings()
-        DigitalConsoleScreen.registerKeyBindings()
+            val key = "error.midi_sequencer"
+
+            if ( Language.getInstance().hasTranslation(key) ) {
+
+                warnUser( Translation.get(key) )
+                warnUser( Translation.get("message.check_console") )
+
+            } else modPrint( "ERROR: Couldn't load MIDI Devices!" )
+
+            e.printStackTrace();        return false
+
+        }
+
+        return true
 
     }
 
@@ -79,78 +70,69 @@ class Input : ClientModInitializer {
 @Environment(EnvType.CLIENT)
 abstract class GenericReceiver : Receiver {
 
-    var entity: Entity? = null
-    var instruments = mutableListOf<ItemStack>()
+    var entity: Entity? = null;     var instruments = mutableListOf<ItemStack>()
 
-    override fun send( msg: MidiMessage?, timeStamp: Long ) {
+    override fun send( message: MidiMessage, timeStamp: Long ) {
 
-        val client = MinecraftClient.getInstance()
+        if ( message !is ShortMessage ) return;     client().send { onSend(message) }
 
-        if ( msg !is ShortMessage ) return
+    }
 
-        client.send {
+    abstract fun setData()
 
-            init()
-            if ( shouldCancel() || entity == null ) return@send
+    abstract fun canPlay( stack: ItemStack, channel: Int ): Boolean
 
-            val entity = entity!!
+    open fun onPlay( sound: InstrumentSound, stack: ItemStack, entity: Entity ) {
 
-            val channel = msg.channel
-            val command = msg.command
+        checkHolder( stack, entity );    sound.play(stack)
 
-            for ( stack in instruments ) {
+    }
 
-                val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
-                if ( canPlay( stack, channel ) ) {
+    fun checkHolder( stack: ItemStack, entity: Entity ) { if ( stack.holder != entity ) stack.holder = entity }
 
-                    val instrument = stack.item as Instrument
-                    val sounds = instrument.getSounds(stack, "notes")
-                    val index = instrument.getIndexIfCentered(stack, msg.data1)
-                    val sound = sounds[index] ?: return@send
-                    val volume = msg.data2 / 127f
+    private fun onSend(message: ShortMessage) {
 
-                    val isNoteOn = command == ShortMessage.NOTE_ON
-                    val isNoteOff = command == ShortMessage.NOTE_OFF
-                    if ( isNoteOn && stack.holder != entity ) stack.holder = entity
+        setData();      if ( client().isPaused ) return
 
-                    val shouldPlay = volume > 0 && isNoteOn
+        val entity = entity!!;      val channel = message.channel;      val command = message.command
 
-                    val shouldStop = ( isNoteOff || ( isNoteOn && volume == 0f ) )
-                            && instrument !is DrumSet
+        instruments.forEach {
 
-                    if ( shouldPlay ) {
+            val canPlay = canPlay( it, channel )
 
-                        sound.volume = volume * nbt.getFloat("Volume")
+            if ( !canPlay ) return@forEach;         val nbt = NBT.get(it)
 
-                        onPlay( sound, stack, entity )
+            val instrument = it.item as Instrument
+            val sounds = instrument.stackSounds(it).deviceNotes
+            val index = instrument.soundIndex( it, message.data1 )
 
-                    } else if ( shouldStop ) onStop( sound, stack, entity )
+            if ( index > sounds.size ) return@forEach
 
-                }
+            val sound = sounds[index] ?: return@forEach
 
-            }
+            val volume = message.data2 / 127f
+
+            val isNoteOn = command == ShortMessage.NOTE_ON
+            val isNoteOff = command == ShortMessage.NOTE_OFF
+
+            val play = volume > 0 && isNoteOn
+
+            var stop = ( isNoteOn && volume == 0f ) || isNoteOff
+
+            // Make sure the stack is the same and not null.
+            // It can happen when playing midi and switching channels at the same time.
+            stop = stop && sound.stack == it
+
+            if (play) {
+
+                sound.maxVolume = volume * nbt.getFloat("Volume")
+
+                onPlay( sound, it, entity )
+
+            } else if (stop) sound.fadeOut()
 
         }
 
-    }
-
-    abstract fun init()
-    abstract fun canPlay( stack: ItemStack, channel: Int ): Boolean
-
-    open fun shouldCancel(): Boolean {
-
-        val client = MinecraftClient.getInstance()
-        val screen = client.currentScreen
-        return screen != null && screen.isPauseScreen
-
-    }
-
-    open fun onPlay( sound: CustomSoundInstance, stack: ItemStack, entity: Entity ) {
-        sound.playSound(stack)
-    }
-
-    open fun onStop( sound: CustomSoundInstance, stack: ItemStack, entity: Entity ) {
-        sound.stopSound(stack)
     }
 
 }
