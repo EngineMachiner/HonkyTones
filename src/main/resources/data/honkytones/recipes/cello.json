@@ -1,0 +1,20 @@
+{
+
+  "type": "minecraft:crafting_shaped",
+
+  "pattern": [
+    " BC",
+    "LS ",
+    "LL "
+  ],
+
+  "key": {
+    "B": { "tag": "minecraft:buttons" },
+    "C": { "item": "minecraft:stick" },
+    "S": { "item": "minecraft:string" },
+    "L": { "tag": "minecraft:logs" }
+  },
+
+  "result": { "item": "honkytones:cello", "count": 1 }
+
+}

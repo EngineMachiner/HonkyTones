@@ -1,0 +1,19 @@
+{
+
+  "type": "minecraft:crafting_shaped",
+
+  "pattern": [
+    "L L",
+    "ILI",
+    "PIP"
+  ],
+
+  "key": {
+    "L": { "item": "minecraft:leather" },
+    "I": { "item": "minecraft:iron_block" },
+    "P": { "tag": "minecraft:planks" }
+  },
+
+  "result": { "item": "honkytones:drum_set", "count": 1 }
+
+}

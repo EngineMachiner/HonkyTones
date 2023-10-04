@@ -1,0 +1,13 @@
+{
+
+  "type": "minecraft:crafting_shapeless",
+
+  "ingredients": [
+    { "item": "honkytones:keyboard" },
+    { "item": "minecraft:light_blue_dye" },
+    { "item": "minecraft:gold_ingot" }
+  ],
+
+  "result": { "item": "honkytones:metal_pad_synth", "count": 1 }
+
+}

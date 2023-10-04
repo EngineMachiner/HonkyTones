@@ -1,18 +1,20 @@
 {
+
   "type": "minecraft:crafting_shaped",
+
   "pattern": [
-    " CN",
-    "LSN",
-    "LLN"
+    " GC",
+    "LS ",
+    "GL "
   ],
+
   "key": {
-    "C": { "item": "minecraft:brown_dye" },
-    "N": { "item": "minecraft:stick" },
+    "G": { "item": "minecraft:gold_ingot" },
+    "C": { "item": "minecraft:stick" },
     "S": { "item": "minecraft:string" },
     "L": { "tag": "minecraft:logs" }
   },
-  "result": {
-    "item": "honkytones:viola",
-    "count": 1
-  }
+
+  "result": { "item": "honkytones:viola", "count": 1 }
+
 }
