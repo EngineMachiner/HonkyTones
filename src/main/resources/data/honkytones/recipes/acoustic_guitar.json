@@ -1,0 +1,19 @@
+{
+
+  "type": "minecraft:crafting_shaped",
+
+  "pattern": [
+    " SC",
+    "SCS",
+    "LS "
+  ],
+
+  "key": {
+    "S": { "item": "minecraft:string" },
+    "C": { "item": "minecraft:stick" },
+    "L": { "tag": "minecraft:logs" }
+  },
+
+  "result": { "item": "honkytones:acoustic_guitar", "count": 1 }
+
+}

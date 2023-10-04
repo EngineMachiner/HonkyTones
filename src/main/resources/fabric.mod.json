@@ -1,65 +1,65 @@
 {
-  "schemaVersion": 1,
-  "id": "honkytones",
-  "version": "3.0.2",
-  "name": "HonkyTones",
-  "description": "Mod that reads MIDI stuff and does other things.",
-  "authors": [ "Engine_Machiner" ],
-  "contact": {
-    "homepage": "https://modrinth.com/mod/honkytones",
-    "issues": "https://github.com/EngineMachiner/HonkyTones/issues",
-    "sources": "https://github.com/EngineMachiner/HonkyTones"
-  },
-  "license": "GNU Lesser General Public License version 3 (LGPLv3)",
-  "icon": "assets/honkytones/mod-icon.png",
-  "environment": "*",
-  "entrypoints": {
 
-    "main": [
+	"schemaVersion": 1,
 
-      {
-        "adapter": "kotlin",
-        "value": "com.enginemachiner.honkytones.Base"
-      },
+	"id": "honkytones", "version": "${version}", "name": "HonkyTones",
+	"description": "It adds a very musical experience!",
+	"license": "GNU Lesser General Public License version 3 (LGPLv3)",
+	"icon": "assets/honkytones/icon.png",
+	"authors": ["Engine_Machiner"],
 
-      {
-        "adapter": "kotlin",
-        "value": "com.enginemachiner.honkytones.Particles"
-      }
+	"contact": {
+		"homepage": "https://modrinth.com/mod/honkytones",
+		"issues": "https://github.com/EngineMachiner/HonkyTones/issues",
+		"sources": "https://github.com/EngineMachiner/HonkyTones"
+	},
 
-    ],
+	"environment": "*",
+	"entrypoints": {
 
-    "client": [
-      "com.enginemachiner.honkytones.Base",
-      "com.enginemachiner.honkytones.Input",
-      "com.enginemachiner.honkytones.Particles",
-      "com.enginemachiner.honkytones.Projectiles"
-    ]
+		"main": [
+			"com.enginemachiner.honkytones.Init",
+			"com.enginemachiner.honkytones.Particles"
+		],
 
-  },
-  "depends": {
-    "fabricloader": ">=0.11.7",
-    "fabric": "*",
-    "fabric-language-kotlin": ">=1.7.4+kotlin.1.6.21",
-    "minecraft": "1.18",
-    "java": ">=16"
-  },
-  "mixins": [
+		"client": [
+			"com.enginemachiner.honkytones.Init",
+			"com.enginemachiner.honkytones.Particles",
+			"com.enginemachiner.honkytones.Projectiles"
+		],
 
-    {
-      "config": "honkytones.mixins.sound.json",
-      "environment": "client"
-    },
+		"server": [ "com.enginemachiner.honkytones.Commands" ]
 
-    "honkytones.mixins.json",
-    "honkytones.mixins.mob.json",
-    "honkytones.mixins.player.json",
-    "honkytones.mixins.enchantments.json"
+	},
 
-  ],
-  "custom": {
-    "loom:injected_interfaces": {
-      "net/minecraft/class_1113": ["com/enginemachiner/honkytones/FabricSoundInstance"]
-    }
-  }
+	"mixins": [
+
+		{ "config": "honkytones.mixins.sound.json", "environment": "client" },
+
+		"honkytones.mixins.json",
+		"honkytones.mixins.mob.json",
+		"honkytones.mixins.chest.json",
+		"honkytones.mixins.player.json",
+		"honkytones.mixins.enchantments.json"
+
+	],
+
+	"depends": {
+		"fabricloader": ">=0.14.22",
+		"minecraft": "~1.18",
+		"java": ">=17",
+		"fabric": "*",
+		"fabric-language-kotlin": ">=1.9.10"
+	},
+
+	"suggests": { "another-mod": "*" },
+
+	"custom": {
+
+		"loom:injected_interfaces": {
+			"net/minecraft/class_1113": ["com/enginemachiner/honkytones/FabricSoundInstance"]
+		}
+
+	}
+	
 }
