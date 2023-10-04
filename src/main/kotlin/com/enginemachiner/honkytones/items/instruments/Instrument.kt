@@ -1,10 +1,20 @@
 package com.enginemachiner.honkytones.items.instruments
 
 import com.enginemachiner.honkytones.*
-import com.enginemachiner.honkytones.NoteData.sharpsMap
-import com.enginemachiner.honkytones.NoteData.soundsMap
-import com.enginemachiner.honkytones.NoteData.twoOctaves
-import com.enginemachiner.honkytones.NoteData.wholeNoteSet
+import com.enginemachiner.honkytones.Init.Companion.MOD_NAME
+import com.enginemachiner.honkytones.MusicTheory.completeSet
+import com.enginemachiner.honkytones.MusicTheory.index
+import com.enginemachiner.honkytones.MusicTheory.instrumentFiles
+import com.enginemachiner.honkytones.MusicTheory.noteCount
+import com.enginemachiner.honkytones.MusicTheory.sharpsToFlats
+import com.enginemachiner.honkytones.MusicTheory.shift
+import com.enginemachiner.honkytones.NBT.networkNBT
+import com.enginemachiner.honkytones.NBT.trackHand
+import com.enginemachiner.honkytones.NBT.trackSlot
+import com.enginemachiner.honkytones.items.console.DigitalConsoleScreen
+import com.enginemachiner.honkytones.sound.InstrumentSound
+import com.enginemachiner.honkytones.sound.Sound
+import com.enginemachiner.honkytones.sound.Sound.modSound
 import com.google.common.collect.ImmutableMultimap
 import com.google.common.collect.Multimap
 import net.fabricmc.api.EnvType
@@ -14,462 +24,742 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.PacketSender
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
-import net.fabricmc.fabric.impl.content.registry.FuelRegistryImpl
-import net.fabricmc.loader.impl.FabricLoaderImpl
+import net.minecraft.block.AirBlock
 import net.minecraft.block.BlockState
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.client.option.KeyBinding
 import net.minecraft.client.util.InputUtil
+import net.minecraft.client.world.ClientWorld
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.enchantment.Enchantments
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EquipmentSlot
-import net.minecraft.entity.ItemEntity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.attribute.EntityAttribute
 import net.minecraft.entity.attribute.EntityAttributeModifier
 import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.damage.DamageSource
+import net.minecraft.entity.mob.HostileEntity
 import net.minecraft.entity.mob.MobEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.inventory.StackReference
 import net.minecraft.item.ItemStack
-import net.minecraft.item.ToolItem
 import net.minecraft.item.ToolMaterial
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.network.PacketByteBuf
 import net.minecraft.particle.ParticleEffect
 import net.minecraft.particle.ParticleTypes
 import net.minecraft.screen.slot.Slot
+import net.minecraft.server.MinecraftServer
+import net.minecraft.server.ServerTask
+import net.minecraft.server.network.ServerPlayNetworkHandler
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
+import net.minecraft.sound.SoundCategory
+import net.minecraft.sound.SoundEvent
 import net.minecraft.tag.BlockTags
-import net.minecraft.text.Text
 import net.minecraft.util.*
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.MathHelper
+import net.minecraft.util.math.Vec3d
+import net.minecraft.world.RaycastContext
 import net.minecraft.world.World
 import org.lwjgl.glfw.GLFW
-import java.util.*
-import javax.sound.midi.MidiSystem
 import kotlin.math.abs
-import kotlin.math.pow
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.random.Random
 
-@Environment(EnvType.CLIENT)
-class HitSounds {
+private val particles = Instrument.Companion.ActionParticles
 
-    val list = mutableListOf<CustomSoundInstance?>()
-    private val path = Base.MOD_NAME + ":hit0"
+open class Instrument(
+    val damage: Float, val useSpeed: Float, material: ToolMaterial
+) : ToolItem( material, createSettings(material) ), CanBeMuted {
 
-    init { for ( i in 1..9 ) {
-        val sound = CustomSoundInstance( path + i );    sound.volume = 0.5f
-        sound.index = list.size
-        sound.key = "hits";     list.add( sound )
-    } }
-
-}
-
-@Environment(EnvType.CLIENT)
-class MagicSounds {
-
-    val list = mutableListOf<CustomSoundInstance?>()
-
-    init {
-        val sound = CustomSoundInstance( Base.MOD_NAME + ":magic-c3-e3_" )
-        sound.key = "abilities";        sound.index = list.size
-        sound.volume = 0.5f;        list.add( sound )
-    }
-
-}
-
-@Environment(EnvType.CLIENT)
-class SoundsTemplate {
-
-    var map = mutableMapOf< String, MutableList<CustomSoundInstance?> >(
-        "notes" to MutableList(127) { null },
-        "hits" to HitSounds().list
-    )
-
-}
-
-open class Instrument( private val damage: Float, val speed: Float, material: ToolMaterial )
-    : ToolItem( material, createDefaultItemSettings().maxDamage( material.durability ) ),
-    CanBeMuted {
-
-    val name = classes[this::class]
+    // Instruments sounds to be copied for each new stack.
 
     @Environment(EnvType.CLIENT)
-    private val soundPaths = soundsMap[name]!!
-
-    // Default sounds map copied for each stack
-    @Environment(EnvType.CLIENT)
-    var soundsTemplate = mutableMapOf< String, MutableList<CustomSoundInstance?> >()
+    private var soundsTemplate: SoundsTemplate? = null
 
     @Environment(EnvType.CLIENT)
-    private val stackSounds = mutableMapOf<Int, SoundsTemplate>()
+    private val stacksSounds = mutableMapOf<Int, Sounds>()
 
-    private lateinit var attributes
-            : ImmutableMultimap<EntityAttribute, EntityAttributeModifier>
+    private var attributes: ImmutableMultimap<EntityAttribute, EntityAttributeModifier>? = null
 
-    init {
+    init { init() }
 
-        setAttributes()
+    override fun getSetupNBT(stack: ItemStack): NbtCompound {
 
-        if ( FabricLoaderImpl.INSTANCE.environmentType == EnvType.CLIENT ) {
-            soundsTemplate = SoundsTemplate().map;      loadSounds()
+        val nbt = NbtCompound();              val shouldCenter = stack.item !is DrumSet
+
+        nbt.putString( "Sequence", "" );      nbt.putString( "SequenceInput", "" )
+        nbt.putString( "Action", "Melee" );   nbt.putInt( "MIDI Channel", 1 )
+        nbt.putFloat( "Volume", 1f );         nbt.putBoolean( "Center Notes", shouldCenter )
+        nbt.putInt( "ID", stack.hashCode() )
+
+        return nbt
+
+    }
+
+    override fun trackTick( stack: ItemStack, slot: Int ) { trackHand(stack);    trackSlot( stack, slot ) }
+
+    override fun inventoryTick( stack: ItemStack, world: World, entity: Entity, slot: Int, selected: Boolean ) {
+
+        super.inventoryTick( stack, world, entity, slot, selected )
+
+        val nbt = NBT.get(stack)
+
+        if ( !world.isClient || entity !is PlayerEntity ) return
+
+        val isOnConsole = currentScreen() is DigitalConsoleScreen
+        val shouldStop = nbt.getInt("Hand") == -1 && entity.activeItem != stack
+
+        // Stop playing on screen or when switching stacks.
+        if ( ( shouldStop || isOnScreen() ) && !isOnConsole ) {
+            onStoppedUsing( stack, world, entity, 0 )
         }
 
-    }
-
-    override fun onItemEntityDestroyed(entity: ItemEntity?) {
-        stacks.remove(entity!!.stack)
-    }
-
-    override fun onClicked( stack: ItemStack?, otherStack: ItemStack?, slot: Slot?,
-                            clickType: ClickType?, player: PlayerEntity?,
-                            cursorStackReference: StackReference? ): Boolean {
-        stack!!.holder = player!!
-        stopAllNotes(stack, player.world)
-        return super.onClicked(stack, otherStack, slot, clickType, player, cursorStackReference)
-    }
-
-    override fun inventoryTick( stack: ItemStack?, world: World?, entity: Entity?,
-                                slot: Int, selected: Boolean ) {
-
-        if ( !world!!.isClient ) {
-
-            var nbt = stack!!.nbt!!
-
-            if ( !nbt.contains(Base.MOD_NAME) ) loadNbtData(stack)
-
-            nbt = nbt.getCompound(Base.MOD_NAME)
-
-            if ( stacks.elementAtOrNull( nbt.getInt("Index") ) == null ) {
-                nbt.putInt( "Index", stacks.size );     stacks.add(stack)
-            }
-
-            trackHandOnNbt(stack, entity!!)
-
-        } else {
-
-            val nbt = stack!!.orCreateNbt.getCompound(Base.MOD_NAME)
-            val b = MinecraftClient.getInstance().currentScreen != null
-            if ( b && nbt.getBoolean("isOnUse") ) {
-                onStoppedUsing(stack, world, entity as LivingEntity, 0)
-            }
-
-        }
+        Tick.onKey()
 
     }
 
-    override fun getAttributeModifiers(slot: EquipmentSlot?)
-    : Multimap<EntityAttribute, EntityAttributeModifier> {
-        return if (slot == EquipmentSlot.MAINHAND) attributes
-        else super.getAttributeModifiers(slot)
-    }
+    override fun onClicked(
+        stack: ItemStack, otherStack: ItemStack, slot: Slot, clickType: ClickType,
+        player: PlayerEntity, cursorStackReference: StackReference
+    ): Boolean {
 
-    override fun use( world: World?, user: PlayerEntity, hand: Hand? )
-    : TypedActionResult<ItemStack>? {
+        val world = player.world
 
-        // I need to set the current hand to the hand given
-        // so the item and player is capable of holding input each frame
-        user.setCurrentHand(hand)
+        if ( world.isClient ) { stopSounds(stack); stopDeviceSounds(stack) }
 
-        val stack = user.getStackInHand(hand)
-        val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
-
-        stack.holder = user
-
-        if ( !nbt.getBoolean("isOnUse") ) {
-
-            nbt.putBoolean("isOnUse", true)
-            if ( world!!.isClient ) {
-
-                var b = loadSequence(stack)
-                if ( !b ) playRandomSound(stack)
-                Network.sendNbtToServer(nbt)
-
-                b = !nbt.getBoolean("isOnKeyBindUse")
-                b = b && nbt.getString("Action") != "Ranged"
-                if ( b ) spawnNoteParticle(user, "simple")
-
-            }
-
-        }
-
-        rangedAttack(stack, user)
-
-        return TypedActionResult.pass(stack)
+        return super.onClicked( stack, otherStack, slot, clickType, player, cursorStackReference )
 
     }
 
-    override fun useOnEntity( stack: ItemStack?, player: PlayerEntity?, entity: LivingEntity?,
-                              hand: Hand? ): ActionResult {
+    override fun getAttributeModifiers(slot: EquipmentSlot): Multimap<EntityAttribute, EntityAttributeModifier> {
 
-        val nbt = stack!!.nbt!!.getCompound(Base.MOD_NAME)
-        val action = nbt.getString("Action")
-        val player = player!!;      val entity = entity!!
+        val onMain = slot == EquipmentSlot.MAINHAND
 
-        // Player mute
+        return if (onMain) attributes!! else super.getAttributeModifiers(slot)
+
+    }
+
+    override fun getUseAction(stack: ItemStack): UseAction { return UseAction.BOW }
+
+    override fun use( world: World, user: PlayerEntity, hand: Hand ): TypedActionResult<ItemStack> {
+
+        val stack = user.getStackInHand(hand);      val nbt = NBT.get(stack)
+
+        val action = TypedActionResult.pass(stack)
+
+        if ( !shouldUse( user, stack, hand ) ) return action
+
+        rangedAttack( stack, user );    if ( !world.isClient ) return action
+
+        val isRanged = nbt.getString("Action") == "Ranged"
+        if ( !isRanged ) particles.clientSpawn( user, "simple" )
+
+        if ( !loadSequence(stack) ) stackSounds(stack).randomNote().play(stack)
+
+        networkNBT(nbt);        return action
+
+    }
+
+    // TODO: Interactive (menu) mobs trigger this a lot, I don't know why.
+    override fun useOnEntity(
+        stack: ItemStack, player: PlayerEntity, entity: LivingEntity, hand: Hand
+    ): ActionResult {
+
+        val nbt = NBT.get(stack);     val action = nbt.getString("Action")
+        val result = ActionResult.PASS
+
+        // Mute a player.
         val isRanged = action == "Ranged"
-        if ( !isRanged && shouldBlacklist( player, entity, PlayerEntity::class ) ) {
-            return ActionResult.PASS
-        }
+
+        val willMute = !isRanged && mute( player, entity, PlayerEntity::class )
+        if ( willMute || isRanged ) return result
+
+        use( player.world, player, hand )
 
         val cooldown = player.getAttackCooldownProgress(0.5f)
+        if ( action == "Melee" ) attack( stack, player, entity, cooldown )
+        if ( action == "Push" ) push( stack, player, entity, cooldown )
 
-        if (isRanged) return ActionResult.PASS
-
-        use(player.world, player, hand)
-        stack.holder = player
-
-        if (action == "Melee") attack(stack, player, entity, cooldown)
-        if (action == "Push") push(stack, player, entity, cooldown)
-
-        return ActionResult.PASS
+        return result
 
     }
 
-    override fun getMaxUseTime( stack: ItemStack? ): Int { return 200 }
+    override fun getMaxUseTime(stack: ItemStack): Int { return 200 }
 
-    override fun onStoppedUsing( stack: ItemStack?, world: World?, user: LivingEntity?,
-                                 remainingUseTicks: Int ) {
+    override fun onStoppedUsing(
+        stack: ItemStack, world: World, user: LivingEntity, remainingUseTicks: Int
+    ) {
 
-        val nbt = stack!!.nbt!!.getCompound(Base.MOD_NAME)
-        stack.holder = user
+        if ( !world.isClient || NBT.get(stack).getBoolean("onKey") ) return
 
-        if ( nbt.getBoolean("isOnUseKeyBind") ) return
+        // Stop the off hand stack instrument if there are 2 stacks on hands.
+        val mainStack = user.mainHandStack;       val offStack = user.offHandStack
 
-        nbt.putBoolean("isOnUse", false)
+        if ( stack == mainStack && offStack.item is Instrument ) {
+            offStack.onStoppedUsing( world, user, remainingUseTicks )
+        }
 
-        val b = stack.item is DrumSet;      if (b) return
-        stopAllNotes(stack, world)
+        stopSounds(stack)
 
     }
 
-    companion object {
+    companion object : ModID {
+
+        init { setEnchantments() }
+
+        lateinit var enchants : Multimap<Enchantment, Int>
 
         val stacks = mutableListOf<ItemStack>()
 
-        @Environment(EnvType.CLIENT)
-        private lateinit var playKeyBind: KeyBinding
+        val classes = mutableListOf(
 
-        @Environment(EnvType.CLIENT)
-        private lateinit var menuKeyBind: KeyBinding
+            DrumSet::class,
 
-        @Environment(EnvType.CLIENT)
-        private lateinit var replayKeyBind: KeyBinding
+            AcousticGuitar::class,      ElectricGuitar::class,      ElectricGuitarClean::class,
 
-        val classes = mapOf(
-            DrumSet::class to "drumset",
-            Keyboard::class to "keyboard",       Organ::class to "organ",
-            AcousticGuitar::class to "acousticguitar",
-            ElectricGuitar::class to "electricguitar",
-            ElectricGuitarClean::class to "electricguitar-clean",
-            Harp::class to "harp",       Viola::class to "viola",
-            Violin::class to "violin",      Trombone::class to "trombone",
-            Flute::class to "flute",       Oboe::class to "oboe",
+            Harp::class,                Viola::class,               Violin::class,
+            Banjo::class,               Cello::class,               Koto::class,
+
+            Trombone::class,            Recorder::class,            Oboe::class,
+            Accordion::class,           MutedTrumpet::class,        Trumpet::class,
+            Sax::class,
+
+            Kalimba::class,             Marimba::class,             MusicBox::class,
+            SFX::class,                 Xylophone::class,
+
+            Organ::class,               Keyboard::class,               Harpsichord::class,
+            ElectricPiano::class,       Rhodes::class,
+
+            BassSynth::class,           BassLeadSynth::class,       Bass2Synth::class,
+            CelesteSynth::class,        DocSynth::class,            MetalPadSynth::class,
+            PolySynth::class,           SawSynth::class,            SineSynth::class,
+            SquareSynth::class,         StringsSynth::class
+
         )
 
+        val hitSounds = mutableListOf<SoundEvent>()
+
         @Environment(EnvType.CLIENT)
-        private val instrumentsMessage = Text.of(
-            menuMessage.replace("%item%", "instruments")
-        )
+        open class SoundsTemplate( private val instrument: Instrument ) {
 
-        fun mobAction(mob: MobEntity) { mobAction(mob, "") }
+            val notes = MutableList<InstrumentSound?>( noteCount() ) { null }
 
-        fun mobAction( mob: MobEntity, action: String ) {
+            init { loadNotes() }
 
-            val world = mob.world
-            var list: List<PlayerEntity> = world.players
-            list = list.filter { it.squaredDistanceTo(mob) < Sound.minRadius.pow(2) }
-            val id = Identifier( Base.MOD_NAME, "mob_instrument_action" )
+            /** Add the instrument sounds. */
+            private fun loadNotes() {
 
-            for ( player in list ) {
-                val player = player as ServerPlayerEntity
-                val buf = PacketByteBufs.create()
-                buf.writeString(action);    buf.writeInt(mob.id)
-                ServerPlayNetworking.send(player, id, buf)
+                val files = instrumentFiles[ instrument::class ]!!
+
+                val isRanged = files.first().contains( Regex("-[A-Z]") )
+
+                val className = ( instrument as ModID ).className()
+
+                // 1. Assign each sound.
+
+                for ( fileName in files ) {
+
+                    val path = className + '.' + fileName.lowercase()
+
+                    if ( !isRanged ) {
+
+                        // Each file is a sound. No pitch tweaking.
+
+                        val index = completeSet.indexOf(fileName)
+
+                        notes[index] = InstrumentSound(path)
+
+                    } else {
+
+                        // There is a range of notes. There is pitch tweaking.
+
+                        val pair1 = Regex("^[A-Z]-?\\d_?").find(fileName)!!.value
+                        val pair2 = Regex("[A-Z]-?\\d_?$").find(fileName)!!.value
+
+                        // Semitones distance
+                        val index1 = index(pair1);    var index2 = index(pair2)
+
+                        index2 = shift( index2, index1 );   val length = index2 - index1
+
+                        for ( i in 0..length ) {
+
+                            val sound = InstrumentSound( path, i )
+                            val index = completeSet.indexOf(pair1) + i
+                            notes[index] = sound
+
+                        }
+
+                    }
+
+                }
+
+                if ( instrument is DrumSet ) return
+
+                // 2. Add border pitch sounds.
+
+                val lowIndexes = mutableListOf<Int>();       val highIndexes = mutableListOf<Int>()
+
+                notes.filterNotNull().forEach {
+
+                    // Only pick sounds with no pitch tweaking and assign their indexes.
+
+                    if ( it.semitones() != 0 ) return@forEach
+
+                    val i = notes.indexOf(it)
+
+                    val back = notes[ i - 1 ];           val front = notes[ i + 1 ]
+
+                    if ( back == null && front != null ) lowIndexes.add(i)
+                    else if ( back != null && front == null ) highIndexes.add(i)
+
+                }
+
+                border( lowIndexes, -1 );       border( highIndexes, 1 )
+
             }
 
-        }
+            private fun border( indexes: MutableList<Int>, direction: Int ) {
 
-        @Environment(EnvType.CLIENT)
-        fun registerKeyBindings() {
+                for ( i in indexes ) {
 
-            var category = Base.MOD_NAME + ".instrument"
-            category = "category.$category"
+                    val path = notes[i]!!.path
 
-            val key = "key." + Base.MOD_NAME
+                    // 12 semitones max.
+                    ( 1..12 ).forEach {
 
-            playKeyBind = KeyBindingHelper.registerKeyBinding(
-                KeyBinding("$key.play",      InputUtil.Type.KEYSYM,
-                    GLFW.GLFW_KEY_UNKNOWN,  category )
-            )
+                        val direction = it * direction
+                        val index = i + direction
 
-            menuKeyBind = KeyBindingHelper.registerKeyBinding(
-                KeyBinding("$key.menu",      InputUtil.Type.MOUSE,
-                    GLFW.GLFW_MOUSE_BUTTON_MIDDLE,        category )
-            )
+                        if ( notes[index] != null ) return@forEach
 
-            replayKeyBind = KeyBindingHelper.registerKeyBinding(
-                KeyBinding("$key.replay",      InputUtil.Type.KEYSYM,
-                    GLFW.GLFW_KEY_UNKNOWN,        category )
-            )
+                        val sound = InstrumentSound( path, direction )
 
-        }
+                        notes[index] = sound
 
-        private fun keyBindLogic() {
-
-            val client = MinecraftClient.getInstance()
-            val player = client.player!!;       val world = client.world
-
-            val stacks = player.handItems.toSet();      val size = stacks.size
-            val instStack = stacks.filter { it.item is Instrument }.toSet()
-
-            if ( instStack.isNotEmpty() ) {
-
-                for ( stack in instStack ) {
-
-                    val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
-
-                    if ( menuKeyBind.wasPressed() ) {
-                        if (instStack.size < size) client.setScreen( InstrumentsScreen(stack) )
-                        else player.sendMessage(instrumentsMessage, true)
-                    }
-
-                    if ( replayKeyBind.wasPressed() ) {
-                        val seq = nbt.getString("Sequence")
-                        nbt.putString("TempSequence", seq)
-                        Network.sendNbtToServer(nbt)
-                    }
-
-                    val b = nbt.getBoolean("isOnUseKeyBind")
-                    val inst = stack.item as Instrument
-
-                    if ( playKeyBind.isPressed && !b ) {
-
-                        nbt.putBoolean("isOnUseKeyBind", true)
-                        val index = stacks.indexOf(stack)
-                        inst.use(world, player, hands[index])
-
-                        spawnNoteParticle(player, "simple", true)
-
-                    }
-
-                    if ( !playKeyBind.isPressed && b ) {
-                        stack.holder = player
-                        inst.stopAllNotes(stack, world)
-                        nbt.putBoolean("isOnUseKeyBind", false)
-                        nbt.putBoolean("isOnUse", false)
                     }
 
                 }
 
             }
 
+        }
+
+        @Environment(EnvType.CLIENT)
+        open class Sounds( val instrument: Instrument ) {
+
+            private val template = instrument.soundsTemplate!!
+
+            val notes = MutableList<InstrumentSound?>( noteCount() ) { null }
+            val deviceNotes = notes.toMutableList()
+
+            init { loadNotes() }
+
+            private fun loadNotes() {
+
+                val former = template.notes
+
+                former.forEach {
+
+                    it ?: return@forEach
+
+                    val i = former.indexOf(it)
+                    val path = it.path;     val semitones = it.semitones()
+
+                    notes[i] = InstrumentSound( path, semitones )
+                    deviceNotes[i] = InstrumentSound( path, semitones )
+
+                }
+
+            }
+
+            fun randomNote(): InstrumentSound { return notes.filterNotNull().random() }
+
+        }
+
+        object ActionParticles {
+
+            private val functions = mapOf(
+                "simple" to ::spawnSimpleNote,      "device" to ::spawnDeviceNote
+            )
+
+            // TODO: Ring of notes as shield.
+
+            @Environment(EnvType.CLIENT)
+            private fun spawnDeviceNote(entity: Entity) {
+
+                val slices = 12
+                val radius = Random.nextInt(750) * 0.001 + 1
+                val angle = Random.nextInt(slices) * 360.0 / slices
+                val height =  Random.nextInt( 50,175 ) * 0.01
+
+                val data = Vec3d( radius, angle, height )
+
+                spawnNote( Particles.DEVICE_NOTE, entity, data )
+
+            }
+
+            private var onMainHand = false
+
+            @Environment(EnvType.CLIENT)
+            private fun spawnSimpleNote(entity: Entity) {
+
+                var data = Vec3d( 1.5, 0.0, 1.5 )
+
+                var n = 0
+                entity.handItems.forEach { if ( it.item is Instrument ) n++; }
+
+                if ( n == 2 ) {
+
+                    data = if ( !onMainHand ) Vec3d( data.x, data.y + HANDS_ANGLE, data.z )
+                    else Vec3d( data.x, data.y - HANDS_ANGLE, data.z )
+
+                    onMainHand = !onMainHand
+
+                } else onMainHand = false
+
+                spawnNote( Particles.SIMPLE_NOTE, entity, data )
+
+            }
+
+            @Environment(EnvType.CLIENT)
+            fun spawnNote(particle: ParticleEffect, entity: Entity, data: Vec3d ) {
+
+                val world = entity.world;       if ( world !is ClientWorld ) return
+
+                val radius = data.x;     val angleOffset = data.y;      val height = data.z
+
+                var yaw = entity.bodyYaw + 90.0 + angleOffset;      yaw = degreeToRadians(yaw)
+
+                val angle = Vec3d( cos(yaw), 0.0, sin(yaw) ).multiply(radius)
+
+                val pos = entity.pos.add(angle).add( Vec3d( 0.0, height, 0.0 ) )
+
+                Particles.spawnOne( particle, pos )
+
+            }
+
+            //** Spawn 4 hit particles. */
+            fun hit( entity: Entity, particleType: ParticleEffect ) { hit( entity, particleType, 4 ) }
+
+            //** Spawn hit particles. */
+            fun hit( entity: Entity, particleType: ParticleEffect, n: Int ) {
+
+                val world = entity.world;       if ( world.isClient ) return
+
+                val box = entity.boundingBox
+
+                val x = box.xLength * 0.75f;     val y = box.yLength * 0.5f
+                val z = box.zLength * 0.75f
+
+                for ( i in 1..n ) {
+
+                    val x = x * Random.nextInt( - 100, 100 ) * 0.01
+                    val y = y * ( 1 + Random.nextInt( - 100, 100 ) * 0.01 )
+                    val z = z * Random.nextInt( - 100, 100 ) * 0.01
+
+                    val pos = entity.pos.add( Vec3d( x, y, z ) )
+
+                    Particles.spawnOne( world as ServerWorld, particleType, pos )
+
+                }
+
+            }
+
+            private fun canSpawn( config: Map<String, Any>, entity: Entity ): Boolean {
+
+                val playerParticles = config["player_particles"] as Boolean
+                val mobParticles = config["mob_particles"] as Boolean
+
+                var canSpawn = entity.isPlayer && playerParticles
+                canSpawn = canSpawn || entity is MobEntity && mobParticles
+
+                return canSpawn
+
+            }
+
+            //** Spawn particles on client to be networked. */
+            @Environment(EnvType.CLIENT)
+            fun clientSpawn( entity: Entity, particleName: String ) {
+
+                val id = netID("particle")
+
+                val buf = PacketByteBufs.create()
+                buf.writeInt( entity.id );          buf.writeString(particleName)
+
+                ClientPlayNetworking.send( id, buf )
+
+            }
+
+            fun serverSpawn( server: MinecraftServer, entityID: Int, particleName: String ) {
+
+                val id = netID("particle")
+
+                val world = server.overworld
+
+                val entity = world.getEntityById(entityID) ?: return
+
+                val buf = PacketByteBufs.create()
+                buf.writeInt(entityID);       buf.writeString(particleName)
+
+                val players = world.players
+
+                players.forEach {
+
+                    val distance = Particles.MIN_DISTANCE
+
+                    var canSpawn = it.blockPos.isWithinDistance( entity.pos, distance )
+                    canSpawn = canSpawn && canSpawn( serverConfig, entity )
+
+                    if ( !canSpawn ) return@forEach
+
+                    ServerPlayNetworking.send( it, id, buf )
+
+                }
+
+            }
+
+            fun networking() {
+
+                val id = netID("particle")
+                ServerPlayNetworking.registerGlobalReceiver(id) {
+
+                    server: MinecraftServer, _: ServerPlayerEntity,
+                    _: ServerPlayNetworkHandler, buf: PacketByteBuf, _: PacketSender ->
+
+                    val id = buf.readInt();      val type = buf.readString()
+
+                    server.send( ServerTask( server.ticks ) { serverSpawn( server, id, type ) } )
+
+                }
+
+                if ( !isClient() ) return
+
+                ClientPlayNetworking.registerGlobalReceiver(id) {
+
+                    client: MinecraftClient, _: ClientPlayNetworkHandler,
+                    buf: PacketByteBuf, _: PacketSender ->
+
+                    val id = buf.readInt();      val type = buf.readString()
+
+                    client.send {
+
+                        val entity = entity(id) ?: return@send
+
+                        val canSpawn = canSpawn( clientConfig, entity )
+
+                        if ( !canSpawn ) return@send
+
+                        functions[type]!!(entity)
+
+                    }
+
+                }
+
+            }
 
         }
 
         @Environment(EnvType.CLIENT)
-        fun tick() { keyBindLogic() }
+        private object Tick {
 
-        lateinit var enchants : Multimap<Enchantment, Int>
+            private fun play(stack: ItemStack) {
+
+                val player = player()!!;       val world = player.world
+
+                val instrument = stack.item as Instrument
+
+                val play = KeyBindings.play!!;      val nbt = NBT.get(stack)
+
+                val isPressed = play.isPressed;     val onKey = nbt.getBoolean("onKey")
+
+                if ( isPressed && !onKey ) {
+
+                    nbt.putBoolean( "onKey", true )
+
+                    instrument.keyUse(stack)
+
+                } else if ( !isPressed && onKey ) {
+
+                    nbt.putBoolean( "onKey", false )
+
+                    instrument.onStoppedUsing( stack, world, player, 0 )
+
+                }
+
+            }
+
+            private var wasPressed = false
+            private fun reset( stack: ItemStack, isLast: Boolean ) {
+
+                val reset = KeyBindings.reset!!;      val isPressed = reset.isPressed
+
+                if ( !isPressed ) wasPressed = false;       if ( wasPressed || !isPressed ) return
+
+                val nbt = NBT.get(stack);                   val sequence = nbt.getString("Sequence")
+
+                nbt.putString( "SequenceInput", sequence );  networkNBT(nbt)
+
+                if ( !isLast ) return
+
+                wasPressed = true
+
+                warnUser( Translation.get("message.resetSequences") )
+
+            }
+
+            /** Won't open if player has two instruments. */
+            private fun menu( stack: ItemStack, canOpen: Boolean ) {
+
+                val client = client()
+
+                val menu = KeyBindings.menu!!;      if ( !menu.isPressed ) return
+
+                if (canOpen) client.setScreen( InstrumentsScreen(stack) )
+
+            }
+
+            fun onKey() {
+
+                val player = player()!!
+
+                val handItems = player.handItems.toSet();      val size = handItems.size
+
+                val instruments = handItems.filter { it.item is Instrument }.toSet()
+
+                if ( instruments.isEmpty() ) return
+
+                for ( stack in instruments ) {
+
+                    play(stack);        reset( stack, stack == instruments.last() )
+
+                    menu( stack, instruments.size < size )
+
+                }
+
+            }
+
+        }
+
+        fun shouldUse( user: PlayerEntity, stack: ItemStack, hand: Hand ): Boolean {
+
+            val mainStack = user.mainHandStack;     val isActive = user.activeItem == stack
+
+            // Only set the hand when the player has one instrument.
+            var hasOne = hand == Hand.OFF_HAND && mainStack.item !is Instrument
+            hasOne = hasOne || hand == Hand.MAIN_HAND
+
+
+            // Using setCurrentHand() can control the sound length.
+            if (hasOne) user.setCurrentHand(hand)
+
+            if (isActive) return false;     return true
+
+        }
+
+        fun mobPlay(mob: MobEntity) {
+
+            val world = mob.world
+
+            val players = world.players.filter {
+                it.blockPos.isWithinDistance( mob.pos, Sound.MIN_DISTANCE )
+            }
+
+            val id = netID("mob_play")
+
+            val buf = PacketByteBufs.create();      buf.writeInt( mob.id )
+
+            players.forEach { ServerPlayNetworking.send( it as ServerPlayerEntity, id, buf ) }
+
+            particles.serverSpawn( mob.server!!, mob.id, "simple" )
+
+        }
+
+        @Environment(EnvType.CLIENT)
+        object KeyBindings {
+
+            var play: KeyBinding? = null;       var menu: KeyBinding? = null;       var reset: KeyBinding? = null
+
+            fun register() {
+
+                val key = "key.$MOD_NAME";      val category = "category.$MOD_NAME.instrument"
+
+                var keybind = KeyBinding( "$key.play", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, category )
+                play = KeyBindingHelper.registerKeyBinding(keybind)
+
+                keybind = KeyBinding( "$key.menu", InputUtil.Type.MOUSE, GLFW.GLFW_MOUSE_BUTTON_MIDDLE, category )
+                menu = KeyBindingHelper.registerKeyBinding(keybind)
+
+                keybind = KeyBinding( "$key.reset", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, category )
+                reset = KeyBindingHelper.registerKeyBinding(keybind)
+
+            }
+
+        }
+
+        private fun createSettings(material: ToolMaterial): Settings {
+            return defaultSettings().maxDamage( material.durability )
+        }
+
+        // Works using the enchanting mixins.
         private fun setEnchantments() {
 
             val builder = ImmutableMultimap.builder<Enchantment, Int>()
 
-            for (i in 1..4) {
-                if (i < 3) {
-                    builder.put(Enchantments.FIRE_ASPECT, i)
-                    builder.put(Enchantments.KNOCKBACK, i)
-                } else if (i < 4) builder.put(Enchantments.LOOTING, i)
-                else builder.put(Enchantments.SMITE, i)
+            for ( i in 1..4 ) {
+
+                if ( i < 3 ) {
+
+                    builder.put( Enchantments.FIRE_ASPECT, i )
+                    builder.put( Enchantments.KNOCKBACK, i )
+
+                }
+
+                if ( i == 3 ) builder.put( Enchantments.LOOTING, i )
+                else builder.put( Enchantments.SMITE, i )
+
             }
 
-            builder.put(Enchantments.MENDING, 1);       builder.put(RangedEnchantment(), 1)
+            builder.put( Enchantments.MENDING, 1 );       builder.put( RangedEnchantment(), 1 )
 
             enchants = builder.build()
 
         }
 
-        fun registerFuel() {
-
-            val registry = FuelRegistryImpl.INSTANCE
-
-            var time = 300 * 3 + 100 * 3
-            registry.add( getRegisteredItem("acousticguitar"), time + 100 )
-            registry.add( getRegisteredItem("harp"), time - 100 )
-            registry.add( getRegisteredItem("viola"), time )
-
-            // + a blaze rod
-            time += 2400;       time += (time * 0.25f).toInt()
-            registry.add( getRegisteredItem("violin" ), time )
-        }
-
         fun networking() {
 
-            if ( serverConfig.isNotEmpty() ) {
+            ActionParticles.networking()
 
-                // Entities UUIDs being read
-                Network.registerServerToClientsHandler(
+            if ( !isClient() ) return
 
-                    "entity_spawn_particle",
-                    Particles.minRadius, Sound.ticksAhead,
-                    serverConfig["playerParticles"] as Boolean
-
-                ) {
-                    val newBuf = PacketByteBufs.create()
-                    newBuf.writeInt(it.readInt())
-                    newBuf.writeString(it.readString())
-                    newBuf.writeString(it.readString())
-                    newBuf
-
-                }
-
-            }
-
-            if ( FabricLoaderImpl.INSTANCE.environmentType != EnvType.CLIENT ) return
-
-            var id = Identifier( Base.MOD_NAME, "entity_spawn_particle" )
+            val id = netID("mob_play")
             ClientPlayNetworking.registerGlobalReceiver(id) {
 
-                    client: MinecraftClient, _: ClientPlayNetworkHandler,
-                    buf: PacketByteBuf, _: PacketSender ->
+                client: MinecraftClient, _: ClientPlayNetworkHandler,
+                buf: PacketByteBuf, _: PacketSender ->
 
-                val id = buf.readInt();     val particleType = buf.readString()
-                val key = buf.readString()
+                val id = buf.readInt()
+                val world = client.world!!
 
                 client.send {
-                    val b = clientConfig[key] as Boolean
-                    val player = client.world!!.getEntityById(id)
-                    if ( !b || player == null ) return@send
-                    if ( particleType.isEmpty() ) spawnNoteParticle(player, "simple", false)
-                    else if ( particleType == "device" ) spawnNoteParticle(player, "device", false)
-                }
 
-            }
-
-            id = Identifier( Base.MOD_NAME, "mob_instrument_action" )
-            ClientPlayNetworking.registerGlobalReceiver(id) {
-                    client: MinecraftClient, _: ClientPlayNetworkHandler,
-                    buf: PacketByteBuf, _: PacketSender ->
-
-                val action = buf.readString()
-                val id = buf.readInt();    val world = client.world!!
-                client.send {
-
-                    val mob = client.world!!.getEntityById(id) ?: return@send
+                    val mob = world.getEntityById(id) ?: return@send
                     mob as MobEntity
 
                     val stack = mob.mainHandStack
-                    val instrument = mob.mainHandStack.item as Instrument
+                    val instrument = stack.item as Instrument
+
                     stack.holder = mob
-                    if ( action == "play" || action.isEmpty() ) instrument.playRandomSound(stack)
-                    if ( action == "stop" || action.isEmpty() ) instrument.stopAllNotes(stack, world)
-                    if ( action.isEmpty() ) spawnNoteParticle(mob, "simple", false)
+
+                    val sounds = instrument.stackSounds(stack)
+                    val sound = sounds.randomNote()
+                    sound.play(stack)
+
+                    instrument.stopSounds(stack)
 
                 }
 
@@ -477,532 +767,346 @@ open class Instrument( private val damage: Float, val speed: Float, material: To
 
         }
 
-        private fun spawnDeviceNote(entity: Entity) {
-            val world = entity.world
-            world.addParticle(
-                Particles.DEVICE_NOTE,
-                entity.x + Random.nextInt(-15, 25) * 0.1f,
-                entity.y + 3 + Random.nextInt(15) * 0.1f,
-                entity.z + Random.nextInt(-15, 25) * 0.1f,
-                0.0, 0.0, 0.0
-            )
-        }
+    }
 
-        private fun spawnSimpleNote(entity: Entity) {
-            val world = entity.world;       val len = 1.5f
-            world.addParticle(
-                Particles.SIMPLE_NOTE,
-                entity.x + entity.rotationVecClient.x * len, entity.y + 1.75f,
-                entity.z + entity.rotationVecClient.z * len,
-                0.0, 0.0, 1.5
-            )
-        }
+    private fun init() {
 
-        fun spawnNoteParticle( entity: Entity, type: String ) {
-            spawnNoteParticle( entity, type, true )
-        }
+        setAttributes();        if ( !isClient() ) return
 
-        fun spawnNoteParticle( entity: Entity, type: String,
-                               shouldNetwork: Boolean ) {
-
-            var key = "mobsParticles"
-            if (entity is PlayerEntity) key = "playerParticles"
-
-            if ( clientConfig[key] as Boolean ) {
-                if ( type.isEmpty() || type == "simple" ) spawnSimpleNote(entity)
-                else if ( type == "device" ) spawnDeviceNote(entity)
-            }
-
-            if ( !shouldNetwork ) return
-
-            val buf = PacketByteBufs.create()
-            buf.writeInt(entity.id)
-            buf.writeString(type);      buf.writeString(key)
-            val id = Identifier( Base.MOD_NAME, "entity_spawn_particle" )
-            ClientPlayNetworking.send( id, buf )
-
-        }
-
-        fun spawnHitParticles( entity: Entity, particleType: ParticleEffect ) {
-
-            val num = 5;        val world = entity.world
-
-            val toDeg = MathHelper.RADIANS_PER_DEGREE
-            val yawDeg = entity.yaw * toDeg
-            val delta = mutableMapOf('x' to - MathHelper.sin( yawDeg ))
-
-            for ( i in 1..num ) {
-
-                if (world is ServerWorld) {
-
-                    delta['y'] = (-100..100).random() * 0.01f
-                    delta['z'] = MathHelper.cos( yawDeg )
-
-                    if ( i == 5 ) { delta['z'] = delta['z']!! * 2 }
-
-                    val pos = mutableMapOf(
-                        'x' to entity.x + ( i - num * 0.5 ) * 0.1,
-                        'y' to entity.getBodyY(0.5),
-                        'z' to entity.z - ( i - num * 0.5 ) * 0.1
-                    )
-
-                    pos['y'] = pos['y']!! + (-75..75).random() * 0.01
-
-                    world.spawnParticles(
-
-                        particleType,
-
-                        pos['x']!!, pos['y']!!, pos['z']!!,
-
-                        0,
-
-                        delta['x']!!.toDouble(),
-                        delta['y']!!.toDouble(),
-                        delta['z']!!.toDouble(),
-
-                        0.0
-
-                    )
-                }
-
-            }
-
-        }
-
-        init { setEnchantments() }
+        soundsTemplate = SoundsTemplate(this)
 
     }
 
-    private fun rangedAttack( stack: ItemStack, user: PlayerEntity ) {
-
-        val world = user.world
-
-        val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
-        if (nbt.getString("Action") != "Ranged") return
-
-        if ( !user.isSneaking ) world.spawnEntity( NoteProjectileEntity(stack, world) )
-        else {
-
-            val num = 6
-            for ( i in 1 .. num ) {
-                val dir = ( 360f / num ) * i
-                val projectile = NoteProjectileEntity(stack, world)
-                projectile.changeLookDirection( dir.toDouble(), 0.0 )
-                world.spawnEntity( projectile )
-            }
-
-            if ( !world.isClient ) {
-                stack.damage(6, user) { sendStatus(it, stack) }
-            }
-
-        }
-
-        if ( (0..1).random() == 0 && !world.isClient ) {
-            stack.damage(1, user ) { sendStatus(it, stack) }
-        }
-
-    }
-
-    // Used for the sequence string
     @Environment(EnvType.CLIENT)
-    fun getIndexIfCentered(stack: ItemStack, index: Int): Int {
+    private fun keyUse(stack: ItemStack) {
 
-        if (index == -1) return -1
+        val player = player()!!
 
-        val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
-        val sounds = getSounds(stack, "notes");     var newIndex = index
+        particles.clientSpawn( player, "simple" )
 
-        if ( nbt.getBoolean("Center Notes") ) {
+        if ( !loadSequence(stack) ) stackSounds(stack).randomNote().play(stack)
 
-            val filter = sounds.filterNotNull()
-            val first = filter.first();     val last = filter.last()
 
-            if (index < sounds.indexOf(first)) {
-                while ( sounds[newIndex] === null ) newIndex += 12
-            } else if (index > sounds.indexOf(last)) {
-                while ( sounds[newIndex] === null ) newIndex -= 12
+    }
+
+    @Environment(EnvType.CLIENT)
+    fun soundIndex(stack: ItemStack, index: Int ): Int {
+
+        if ( index == -1 ) return index
+
+        val nbt = NBT.get(stack);       val sounds = stackSounds(stack).notes
+
+        if ( !nbt.getBoolean("Center Notes") ) return index
+
+        val filter = sounds.filterNotNull();        var next = index
+
+        if ( filter.size < 24 ) return index
+
+        val first = filter.first();     val last = filter.last()
+
+        while ( next > sounds.size - 1 ) next -= 12
+
+        try {
+
+            if ( index < sounds.indexOf(first) ) {
+
+                while ( sounds[next] == null ) next += 12
+
+            } else if ( index > sounds.indexOf(last) ) {
+
+                while ( sounds[next] == null ) next -= 12
+
             }
 
-            if (sounds[newIndex] !== null) return newIndex
+        } catch( _: Exception ) {}
 
-        }
-
-        return index
+        return next
 
     }
 
     @Environment(EnvType.CLIENT)
     private fun loadSequence(stack: ItemStack): Boolean {
 
-        val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
-        var subsequence = nbt.getString("TempSequence")
+        val nbt = NBT.get(stack)
+        var input = nbt.getString("SequenceInput")
 
-        if ( subsequence.isEmpty() ) return false
+        if ( input.isEmpty() ) return false
 
-        val sounds = getSounds(stack, "notes")
-        val user = stack.holder as PlayerEntity
-        val hasBadFormat = Regex("[-,][-,]")
-            .containsMatchIn(subsequence)
+        val sounds = stackSounds(stack).notes
 
-        if ( hasBadFormat ) {
-            val badText = "Subsequence has bad formatting!"
-            user.sendMessage(Text.of(badText), true)
-            nbt.putString("TempSequence","")
+        val first = "${ input.first() }";       val last = "${ input.last() }"
+
+        val regex = Regex("[-,]")
+        val repeats = Regex("[-,][-,]").containsMatchIn(input)
+        var invalid = regex.matches(first) || regex.matches(last)
+        invalid = invalid || repeats
+
+        if (invalid) {
+
+            warnUser( Translation.get("error.invalid_sequence") )
+
+            nbt.putString( "SequenceInput", "" )
+
             return false
+
         }
 
-        val chars = mutableSetOf('-', ',')
-        val first = subsequence.first()
-        val last = subsequence.last()
-        for (char in chars) {
-            if (first == char) subsequence = subsequence.substring(1)
-            if (last == char) subsequence = subsequence.substringBeforeLast(char)
+        var next = input
+
+        val match = Regex("^\\D*\\d*[^-]*").find(input)
+        if ( match != null ) next = match.value
+
+        val notes = next.split(",").toMutableList()
+
+        // Parse sharps.
+        notes.forEach {
+
+            val hasSharps = it.contains("#")
+            if ( !hasSharps ) return@forEach
+
+            val regex = Regex("-?\\d")
+
+            val index = notes.indexOf(it);      val range = regex.find(it)
+
+            val sharpNote = it.replace( regex, "" )
+            val flatNote = sharpsToFlats[sharpNote]
+
+            if ( flatNote != null && range != null ) {
+                notes[index] = flatNote[0] + range.value + flatNote[1]
+            } else warnUser("$it is not a sharp note!")
+
         }
 
-        val match = Regex("^\\D*\\d*[^-]*").find(subsequence)
-        var tempSeq = subsequence
-        if (match != null) tempSeq = match.value
-        val notes = tempSeq.split(",").toMutableList()
+        notes.forEach {
 
-        // Convert sharps
-        for (note in notes) {
-            if (note.contains("#")) {
+            var index = completeSet.indexOf(it)
+            index = soundIndex( stack, index )
 
-                val index = notes.indexOf(note)
-                val sharpNote = note.replace(Regex("-?\\d"), "")
-                val range = Regex("-?\\d").find(note)
-                val flatNote = sharpsMap[sharpNote]
+            if ( index == -1 || sounds[index] == null ) {
+                warnUser("$it note does not exist!")
+            } else sounds[index]!!.play(stack)
 
-                if (flatNote != null && range != null) {
-                    notes[index] = flatNote[0] + range.value + flatNote[1]
-                } else user.sendMessage(getSequenceText(note, 0), false)
-
-            }
         }
 
-        for (note in notes) {
-            var index = wholeNoteSet.indexOf(note)
-            index = getIndexIfCentered(stack, index)
-            if (index != -1 && sounds[index] !== null) {
-                sounds[index]!!.playSound(stack)
-            } else user.sendMessage(getSequenceText(note, 1), false)
-        }
+        input = input.substringAfter(next)
 
-        subsequence = subsequence.substringAfter(tempSeq)
-        if (subsequence.isEmpty()) {
-            user.sendMessage(getSequenceText("", 2), true)
-        }
+        val endMessage = "Sequence has ended!"
 
-        nbt.putString("TempSequence", subsequence)
+        if ( input.isEmpty() ) warnPlayer( endMessage, true )
+        else if ( input.first() == '-' ) input = input.substring(1)
+
+        nbt.putString( "SequenceInput", input )
+
         return true
 
     }
 
-    private fun attack( stack: ItemStack, ply: PlayerEntity, entity: LivingEntity,
-                        cooldown: Float ) {
+    private fun attack( stack: ItemStack, player: PlayerEntity, entity: LivingEntity, cooldown: Float ) {
 
-        // Attack
-        ply.attack(entity)
-        if (ply.world.isClient) playHitSound(stack)
-        else {
+        player.attack(entity);      val world = player.world;       if ( world.isClient ) return
 
-            // Random chance velocity
-            val num = 30 - material.enchantability
-            if ( (0..num).random() == 0 ) {
-                entity.addVelocity(0.0, 0.625, 0.0)
-            }
+        val nbt = NBT.get(stack)
 
-            // Spawn particles
-            spawnHitParticles(entity, Particles.NOTE_IMPACT)
+        // Random chance hit.
+        val n = 30 - material.enchantability
+        if ( ( 0..n ).random() == 0 ) entity.addVelocity( 0.0, 0.6, 0.0 )
 
-            // Set the attack damage
-            var dmg = damage + material.attackDamage;      dmg *= cooldown
-            entity.damage(DamageSource.player(ply), dmg)
+        // Spawn particles.
+        val particle = Particles.hand[ nbt.getInt("Hand") ]
 
-            stack.damage(1, ply) { sendStatus(it, stack) }
+        particles.hit( entity, particle );     playHitSound(entity)
 
-        }
+        // Set the attack damage
+        var damage = damage + material.attackDamage;      damage *= cooldown
+        entity.damage( DamageSource.player(player), damage )
+
+        stack.damage( 1, player ) { breakEquipment( it, stack ) }
 
     }
 
-    @Verify("?")
-    private fun push( stack: ItemStack, ply: PlayerEntity, entity: LivingEntity,
-                      cooldown: Float ) {
+    private fun push( stack: ItemStack, player: PlayerEntity, entity: LivingEntity, cooldown: Float ) {
 
-        ply.resetLastAttackedTicks()
-        if (!ply.world.isClient) {
+        // Pushing is tied to the cooldown and mining speed.
 
-            val pushPlayers = serverConfig["allowPushingPlayers"] as Boolean
-            if ( entity.isPlayer && !pushPlayers ) return
+        player.resetLastAttackedTicks()
 
-            val spd = speed + 4.5 // 3.5 (lowest speed) + 1
-            var value = cooldown / spd;       value = (1 + value) * 0.75f
-            val dir = ply.rotationVector.normalize()
-            val y = cooldown * (abs(dir.y) + 1 / spd) * 0.625f
+        if ( player.world.isClient ) return
 
-            entity.addVelocity(dir.x * value, y, dir.z * value)
+        val canPushPlayers = serverConfig["allow_pushing_players"] as Boolean
+        if ( entity.isPlayer && !canPushPlayers ) return
 
-            stack.damage(1, ply) { sendStatus(it, stack) }
+        val minSpeed = 4.5;     val speed = minSpeed + useSpeed
 
-        }
+        var length = cooldown / speed;       length = ( 1 + length ) * 0.875f
 
-    }
+        val direction = player.rotationVector.normalize()
 
-    @Environment(EnvType.CLIENT)
-    fun getSounds(stack: ItemStack, key: String) : List<CustomSoundInstance?> {
+        val y = cooldown * ( abs( direction.y ) + 1 / speed ) * 0.625f
 
-        val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
-        val hash = nbt.getInt("hashID")
+        var delta = direction.multiply(length);     delta = Vec3d( delta.x, 0.0, delta.z )
+        delta = delta.add( 0.0, y, 0.0 )
 
-        if (stackSounds[hash] == null) {
-            val template = SoundsTemplate()
-            template.map = soundsTemplate.toMutableMap()
-            stackSounds[hash] = template
-        }
+        addVelocity( entity, delta )
 
-        return stackSounds[hash]!!.map[key]!!
+        stack.damage( 1, player ) { breakEquipment( it, stack ) }
 
     }
 
-    @Environment(EnvType.CLIENT)
-    fun playRandomSound(stack: ItemStack) {
-        val sounds = getSounds(stack, "notes")
-        val list = sounds.filterNotNull()
-        list.random().playSound(stack)
-    }
+    //** Spawn from 1 to multiple note projectiles. */
+    private fun rangedAttack( stack: ItemStack, user: PlayerEntity ) {
 
-    /** Return Text related to the sequence playing */
-    @Environment(EnvType.CLIENT)
-    private fun getSequenceText( element: String, i: Int ): Text {
+        val world = user.world;     val nbt = NBT.get(stack)
 
-        val messages = mutableSetOf(
-            " is not a sharp note!",    " note does not exist!",
-            "HonkyTones sequence has ended!"
-        )
+        val isRanged = nbt.getString("Action") == "Ranged"
 
-        return Text.of( element + messages.elementAt(i) )
+        if ( !isRanged ) return;        var damage = 1
 
-    }
+        if ( !user.isSneaking ) {
 
-    /** Get the note relative position (indexes) or distance
-        Needed to get the proper pitch
-    */
-    @Environment(EnvType.CLIENT)
-    private fun getNoteIndex(s: String): Int {
+            val projectile = NoteProjectileEntity( stack, world )
 
-        for (note in twoOctaves) {
+            world.spawnEntity(projectile)
 
-            // Find index by note range
-            val find = s.replace(Regex("-?\\d"), "")
+        } else {
 
-            if (find == note) return twoOctaves.indexOf(note)
+            val n = 6;      var ticks = 0
 
-        }
+            for ( i in 1 .. n ) {
 
-        return -1
+                Timer(ticks) {
 
-    }
+                    val projectile = NoteProjectileEntity( stack, world )
 
-    /** Move a semitone distance up an octave (12 semitones) */
-    private fun up( a: Int, b: Int ): Int { if (a < b) return a + 12;   return a }
-
-    /** Add the sounds to the default sound template */
-    @Environment(EnvType.CLIENT)
-    private fun loadSounds() {
-
-        val list = soundsTemplate["notes"]!!
-        val firstPair = soundPaths.first()
-        val isRanged = firstPair.contains( Regex("-[A-Z]") )
-
-        for ( pair in soundPaths ) {
-
-            val path = Base.MOD_NAME + ':' + name + '-' + pair.lowercase()
-
-            if ( !isRanged ) {
-
-                // No pitch alterations, each sound file is a note
-                // The pair is just a note
-                val index = wholeNoteSet.indexOf(pair)
-                val sound = CustomSoundInstance(path)
-
-                sound.index = index
-                list[index] = sound
-
-            } else {
-
-                // The pair has a range of notes
-                val first = mutableMapOf<String, Any>( "note" to Regex("^[A-Z]-?\\d_?").find(pair)!!.value )
-                val last = mutableMapOf<String, Any>( "note" to Regex("[A-Z]-?\\d_?$").find(pair)!!.value )
-
-                // Semitones distance
-                first["index"] = getNoteIndex( first["note"] as String )
-                last["index"] = getNoteIndex( last["note"] as String )
-
-                last["index"] = up( last["index"] as Int, first["index"] as Int )
-                val length = last["index"] as Int - first["index"] as Int
-
-                // Range
-                first["range"] = Regex("-?\\d")
-                    .find( first["note"] as String )!!.value.toInt()
-
-                last["range"] = Regex("-?\\d")
-                    .find( last["note"] as String )!!.value.toInt()
-
-                for ( i in 0..length ) {
-                    val sound = CustomSoundInstance(path);  sound.toPitch = i
-                    val index = wholeNoteSet.indexOf(first["note"]) + i
-                    sound.index = index
-                    list[index] = sound
-                }
-
-            }
-
-        }
-
-        if (name == "drumset") return
-
-        // Border pitch data
-        val gaps = mutableMapOf< String, MutableList<Int> >(
-            "back" to mutableListOf(),      "forward" to mutableListOf()
-        )
-
-        for ( sound in list.filterNotNull() ) {
-
-            // For border pitch to be added to the list, the former and
-            // last sound must have natural pitch
-
-            if ( sound.toPitch == 0 || sound.toPitch == null ) {
-
-                val index = list.indexOf(sound)
-
-                if ( list[index + 1] !== null && list[index - 1] === null ) {
-                    gaps["back"]!!.add(index)
-                }
-
-                if ( list[index - 1] !== null && list[index + 1] === null ) {
-                    gaps["forward"]!!.add(index)
-                }
-
-            }
-
-        }
-
-        fun addBorderPitch( key: String, multiplier: Int ) {
-
-            for ( index in gaps[key]!! ) {
-
-                val id = list[index]!!.id
-                val path = id.namespace + ":" + id.path
-
-                for ( i in 1..12 ) {
-
-                    val newIndex = i * multiplier
-
-                    if ( list[index + newIndex] === null ) {
-                        val sound = CustomSoundInstance(path)
-                        sound.toPitch = newIndex;     sound.index = index + newIndex
-                        list[index + newIndex] = sound
-                    }
+                    world.spawnEntity(projectile)
 
                 }
 
+                ticks += Random.nextInt( 2, 6 )
+
             }
+
+            damage = 3
 
         }
 
-        addBorderPitch("back", -1)
-        addBorderPitch("forward", 1)
+        // Chance to break.
+        if ( ( 0..1 ).random() == 0 && !world.isClient ) {
+            stack.damage( damage, user ) { breakEquipment( it, stack ) }
+        }
 
     }
 
-    fun loadNbtData(stack: ItemStack) {
+    @Environment(EnvType.CLIENT)
+    fun createSounds(instrument: Instrument): Sounds { return Sounds(instrument) }
 
-        val nbt = NbtCompound()
-        val inst = stack.item as Instrument
-        val shouldCenter = name != "drumset"
+    @Environment(EnvType.CLIENT)
+    fun stackSounds(stack: ItemStack): Sounds {
 
-        nbt.putString("Sequence", "");      nbt.putString("TempSequence", "")
-        nbt.putString("Action", "Melee");  nbt.putInt("MIDI Channel", 1)
-        nbt.putFloat("Volume", 1f);         nbt.putBoolean("Center Notes", shouldCenter)
-        nbt.putString( "MIDI Device", MidiSystem.getMidiDeviceInfo()[0].name )
-        nbt.putBoolean( "isOnUse", false );     nbt.putInt("Index", -1)
-        nbt.putString( "itemID", classes[inst::class] )
-        nbt.putString( "itemClass", "Instruments" )
+        val instrument = stack.item as Instrument
+        val nbt = NBT.get(stack);     val i = nbt.getInt("ID")
 
-        stack.nbt!!.put(Base.MOD_NAME, nbt)
+        if ( stacksSounds[i] == null ) stacksSounds[i] = createSounds(instrument)
+
+        return stacksSounds[i]!!
 
     }
 
     private fun setAttributes() {
 
-        val attributeBuilder
-                : ImmutableMultimap.Builder<EntityAttribute, EntityAttributeModifier>
-                = ImmutableMultimap.builder()
+        val attributeBuilder: ImmutableMultimap.Builder<EntityAttribute, EntityAttributeModifier> = ImmutableMultimap.builder()
 
         attributeBuilder.put(
+
             EntityAttributes.GENERIC_ATTACK_SPEED,
+
             EntityAttributeModifier(
                 ATTACK_SPEED_MODIFIER_ID, "Weapon modifier",
-                speed.toDouble(), EntityAttributeModifier.Operation.ADDITION
+                useSpeed.toDouble(), EntityAttributeModifier.Operation.ADDITION
             )
+
         )
 
         attributes = attributeBuilder.build()
 
     }
 
-    @Environment(EnvType.CLIENT)
-    private fun playHitSound(stack: ItemStack) {
+    private fun playHitSound(entity: LivingEntity) {
 
-        val sound = getSounds(stack, "hits").random()!!;    sound.key = "hits"
-        sound.pitch = (75..125).random() * 0.1f
+        val world = entity.world;               val sounds = hitSounds
 
-        sound.playSound(stack)
+        val sound = sounds.random();            val pitch = ( 75..125 ).random() * 0.1f
+
+        var delay = 0;      var times = 1;     val index = sounds.indexOf(sound)
+
+        if ( index == 5 ) times = Random.nextInt(1, 5)
+        else if ( index in 6..8 ) times = Random.nextInt(4)
+
+        val gap = Random.nextInt( 1, 5 )
+
+        for ( i in 1..times ) {
+
+            Timer(delay) { world.playSoundFromEntity( null, entity, sound, SoundCategory.PLAYERS, 0.5f, pitch ) }
+
+            delay += gap
+
+        }
 
     }
 
-    fun stopAllNotes(stack: ItemStack, world: World?) {
+    @Environment(EnvType.CLIENT)
+    fun stopSounds( stack: ItemStack ) { stopSounds( stackSounds(stack).notes ) }
 
-        if ( world != null && world.isClient ) {
+    @Environment(EnvType.CLIENT)
+    fun stopDeviceSounds( stack: ItemStack ) { stopSounds( stackSounds(stack).deviceNotes ) }
 
-            val sounds = getSounds(stack, "notes")
-            val playingSounds = sounds.filterNotNull()
-                .filter { it.isPlaying && !it.isStopping() }
+    @Environment(EnvType.CLIENT)
+    fun stopSounds( notes: List<InstrumentSound?> ) {
 
-            for (note in playingSounds) { note.stopSound(stack) }
+        val notes = notes.filterNotNull().filter { it.isPlaying() && !it.isStopping() }
 
-        }
+        notes.forEach { it.fadeOut() }
 
     }
 
 }
 
-class Keyboard : Instrument( 5f, -2.4f, MusicalQuartz() )
+/** Instruments that don't fade out and play until the end. */
+interface PlayCompletely
+
+/** Instruments that stop immediately. */
+interface NoFading
+
+open class Keyboard : Instrument( 5f, -2.4f, MusicalQuartz() )
 class Organ : Instrument( 5f, -3.5f, MusicalIron() )
-class DrumSet : Instrument( 3.5f, -3f, MusicalIron() )
-class AcousticGuitar : Instrument( 3f, -2.4f, MusicalString() )
+
+open class DrumSet : Instrument( 3.5f, -3f, MusicalIron() ), PlayCompletely
+open class AcousticGuitar : Instrument( 3f, -2.4f, MusicalString() )
 
 open class ElectricGuitar : Instrument( 4f, -2.4f, MusicalRedstone() ) {
 
     private val miningSpeed = MusicalRedstone().miningSpeedMultiplier
     private val effectiveBlocks = BlockTags.AXE_MINEABLE
-    override fun getMiningSpeedMultiplier(stack: ItemStack?, state: BlockState?): Float {
-        return if ( state!!.isIn(effectiveBlocks) ) miningSpeed else 1.0f
+
+    override fun getMiningSpeedMultiplier( stack: ItemStack, state: BlockState ): Float {
+
+        return if ( state.isIn(effectiveBlocks) ) miningSpeed else 1.0f
+
     }
 
-    override fun canMine(state: BlockState?, world: World?, pos: BlockPos?, miner: PlayerEntity?): Boolean { return true }
+    override fun canMine( state: BlockState, world: World, pos: BlockPos, miner: PlayerEntity ): Boolean { return true }
 
     override fun postMine(
-        stack: ItemStack?, world: World?,
-        state: BlockState?, pos: BlockPos?, miner: LivingEntity?
+        stack: ItemStack, world: World, state: BlockState, pos: BlockPos, miner: LivingEntity
     ): Boolean {
 
-        if ( state!!.isIn(effectiveBlocks) ) {
-            stack!!.damage(1, miner) { sendStatus(miner, stack) }
+        if ( state.isIn(effectiveBlocks) ) {
+
+            stack.damage( 1, miner ) { breakEquipment( miner, stack ) }
+
         }
 
-        // What does the return bool do?
-        return super.postMine(stack, world, state, pos, miner)
+        // What does this bool do?
+        return super.postMine( stack, world, state, pos, miner )
 
     }
 
@@ -1010,101 +1114,120 @@ open class ElectricGuitar : Instrument( 4f, -2.4f, MusicalRedstone() ) {
 
 class ElectricGuitarClean : ElectricGuitar() {
 
-    private fun ability( stack: ItemStack, ply: PlayerEntity, entity: LivingEntity ) {
+    private fun ability( stack: ItemStack, player: PlayerEntity, entity: LivingEntity ) {
 
-        if ( !ply.world.isClient ) {
+        val world = player.world;       if ( world.isClient ) return
 
-            spawnHitParticles(entity, ParticleTypes.LANDING_OBSIDIAN_TEAR)
-            entity.extinguish()
+        particles.hit( entity, ParticleTypes.LANDING_OBSIDIAN_TEAR );   entity.extinguish()
 
-            val damage = ( material.durability * 0.1f ).toInt()
-            stack.damage( damage, ply ) { sendStatus( it, stack ) }
+        val damage = material.durability * 0.1f
 
-        } else {
+        stack.damage( damage.toInt(), player ) { breakEquipment( it, stack ) }
 
-            stack.holder = ply
-            val sound = getSounds(stack, "abilities").random()!!
-            sound.pitch = (75..125).random() * 0.01f
+        val sound = modSound("magic.c3-e3_");           val pitch = ( 75..125 ).random() * 0.01f
 
-            sound.playSound(stack)
-
-        }
+        world.playSoundFromEntity( null, player, sound, SoundCategory.PLAYERS, 0.5f, pitch )
 
     }
 
-    init {
+    override fun use( world: World, user: PlayerEntity, hand: Hand ): TypedActionResult<ItemStack> {
 
-        if ( FabricLoaderImpl.INSTANCE.environmentType == EnvType.CLIENT ) {
-            soundsTemplate["abilities"] = MagicSounds().list
-        }
+        val stack = user.getStackInHand(hand);      val action = TypedActionResult.pass(stack)
 
-    }
+        if ( user.isOnFire && user.isSneaking ) {
 
-    override fun use(world: World?, user: PlayerEntity, hand: Hand?): TypedActionResult<ItemStack>? {
+            if ( !shouldUse( user, stack, hand ) ) return action
 
-        return if (user.isOnFire) {
+            ability( stack, user, user )
 
-            val stack = user.getStackInHand(hand)
-            ability(stack, user, user)
+        } else super.use( world, user, hand )
 
-            TypedActionResult.pass(stack)
-
-        } else super.use(world, user, hand)
+        return action
 
     }
 
     override fun useOnEntity(
-        stack: ItemStack?, player: PlayerEntity?, entity: LivingEntity?, hand: Hand?
+        stack: ItemStack, player: PlayerEntity, entity: LivingEntity, hand: Hand
     ): ActionResult {
 
-        return if ( player!!.isInSneakingPose ) {
+        val canHelp = entity.wasOnFire && entity !is HostileEntity
 
-            ability(stack!!, player, entity!!)
+        return if (canHelp) {
 
-            ActionResult.CONSUME
+            ability( stack, player, entity );   ActionResult.CONSUME
 
-        } else super.useOnEntity(stack, player, entity, hand)
+        } else super.useOnEntity( stack, player, entity, hand )
 
     }
 
 }
 
 class Harp : Instrument( 2f, -1f, MusicalString() )
-class Viola : Instrument( 3.5f, -2f, MusicalString() )
-class Violin : Instrument( 3.75f, -2f, MusicalRedstone() )
-class Flute : Instrument( 1.25f, -1.5f, MusicalString() )
+class Recorder : Instrument( 1.25f, -1.5f, MusicalString() )
 class Oboe : Instrument( 3.25f, -1f, MusicalIron() )
 
-class Trombone : Instrument( 5f, -3f, MusicalRedstone() ) {
+open class Viola : Instrument( 3.5f, -2f, MusicalString() )
+open class Violin : Instrument( 3.75f, -2f, MusicalRedstone() )
 
-    override fun use(world: World?, user: PlayerEntity, hand: Hand?): TypedActionResult<ItemStack>? {
+open class Trombone : Instrument( 5f, -3f, MusicalRedstone() ) {
 
-        val actionResult = super.use(world, user, hand)
-        val stack = user.getStackInHand(hand)
-        val nbt = stack.nbt!!.getCompound(Base.MOD_NAME)
-        val isOnUse = nbt.getBoolean("isOnUse")
+    override fun use( world: World, user: PlayerEntity, hand: Hand ): TypedActionResult<ItemStack> {
 
-        if (isOnUse) {
+        val result = super.use( world, user, hand );    val stack = user.getStackInHand(hand)
 
-            val action = nbt.getString("Action")
-            if ( action == "Thrust" && user.isOnGround ) {
+        val nbt = NBT.get(stack);   val action = nbt.getString("Action")
 
-                if ( world!!.isClient ) {
+        val rotation = user.rotationVector.multiply(4.0);       val pos = user.eyePos
 
-                    val spd = speed + 4.5 // 3.5 (lowest speed) + 1
-                    var value = 1 / spd;    value = (1 + value) * 0.75f
-                    val dir = user.rotationVecClient.normalize().multiply(-value)
+        val raycast = world.raycast( RaycastContext( pos, pos.add(rotation), RaycastContext.ShapeType.OUTLINE, RaycastContext.FluidHandling.NONE, user ) )
 
-                    user.addVelocity(dir.x * 2, dir.y * 1.25, dir.z * 2)
+        var canThrust = action != "Thrust" || !user.isOnGround
+        canThrust = canThrust || world.getBlockState( raycast.blockPos ).block is AirBlock
 
-                } else stack.damage(1, user) { sendStatus(it, stack) }
+        if (canThrust) return result
 
-            }
+        if ( world.isClient ) {
 
-        }
+            // Similar to ranged attack.
+            val minSpeed = 4.5;         val speed = useSpeed + minSpeed
+            var value = 1 / speed;      value = ( 1 + value ) * 0.75f
+            var direction = user.rotationVecClient.normalize().multiply( - value )
+            direction = direction.multiply(2.0, 1.25, 2.0 )
 
-        return actionResult
+            addVelocity( user, direction )
+
+        } else stack.damage( 1, user ) { breakEquipment( it, stack ) }
+
+        return result
 
     }
 
 }
+
+class Accordion : Instrument( 2.25f, -2.5f, MusicalIron() )
+class Kalimba : Instrument( 1f, -0.5f, MusicalIron() ), PlayCompletely
+class Koto : Instrument( 3.5f, -2f, MusicalIron() )
+
+class Marimba : Instrument( 2.5f, -1.25f, MusicalString() ), PlayCompletely
+class Xylophone : Instrument( 2.5f, -1.25f, MusicalString() )
+
+class ElectricPiano : Keyboard();       class Harpsichord : Keyboard()
+class Rhodes : Keyboard()
+
+abstract class Synth : Keyboard()
+
+class BassSynth : Synth();              class BassLeadSynth : Synth()
+class Bass2Synth : Synth();             class CelesteSynth : Synth()
+class DocSynth : Synth();               class MetalPadSynth : Synth()
+class PolySynth : Synth();              class SawSynth : Synth()
+class SineSynth : Synth();              class SquareSynth : Synth()
+class StringsSynth : Synth()
+
+class Banjo : AcousticGuitar();         class Cello : Instrument( 2f, -2f, MusicalString() )
+
+class MutedTrumpet : Trombone();        class Trumpet : Trombone()
+class Sax : Trombone()
+
+class MusicBox : Viola()
+
+class SFX : Instrument( 3.5f, -3f, MusicalIron() )

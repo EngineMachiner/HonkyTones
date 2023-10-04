@@ -1,0 +1,12 @@
+{
+
+  "type": "minecraft:crafting_shapeless",
+
+  "ingredients": [
+    { "item": "honkytones:keyboard" },
+    { "item": "honkytones:keyboard" }
+  ],
+
+  "result": { "item": "honkytones:harpsichord", "count": 1 }
+
+}

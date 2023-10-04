@@ -1,17 +1,19 @@
 {
+
   "type": "minecraft:crafting_shaped",
+
   "pattern": [
-    "NNN",
-    "NXN",
-    "WXW"
+    " H ",
+    "HKH",
+    "PKP"
   ],
+
   "key": {
-    "N": { "item": "minecraft:hopper" },
-    "X": { "item": "honkytones:keyboard" },
-    "W": { "item": "minecraft:piston" }
+    "H": { "item": "minecraft:hopper" },
+    "K": { "item": "honkytones:keyboard" },
+    "P": { "item": "minecraft:piston" }
   },
-  "result": {
-    "item": "honkytones:organ",
-    "count": 1
-  }
+
+  "result": { "item": "honkytones:organ", "count": 1 }
+
 }
