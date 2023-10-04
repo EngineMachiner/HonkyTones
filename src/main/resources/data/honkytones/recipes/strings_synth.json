@@ -1,0 +1,13 @@
+{
+
+  "type": "minecraft:crafting_shapeless",
+
+  "ingredients": [
+    { "item": "honkytones:keyboard" },
+    { "item": "minecraft:orange_dye" },
+    { "item": "minecraft:gold_ingot" }
+  ],
+
+  "result": { "item": "honkytones:strings_synth", "count": 1 }
+
+}

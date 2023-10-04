@@ -1,0 +1,12 @@
+{
+
+  "type": "minecraft:crafting_shapeless",
+
+  "ingredients": [
+    { "item": "honkytones:trumpet" },
+    { "item": "minecraft:bowl" }
+  ],
+
+  "result": { "item": "honkytones:muted_trumpet", "count": 1 }
+
+}

@@ -1,18 +1,19 @@
 {
+
   "type": "minecraft:crafting_shaped",
+
   "pattern": [
-    "ZGN",
-    "INI",
-    "NGZ"
+    " GD",
+    "IDI",
+    "DG "
   ],
+
   "key": {
-    "Z": { "item": "minecraft:black_dye" },
-    "N": { "item": "minecraft:stick" },
+    "D": { "item": "minecraft:dark_oak_planks" },
     "I": { "item": "minecraft:iron_ingot" },
     "G": { "item": "minecraft:gold_ingot" }
   },
-  "result": {
-    "item": "honkytones:oboe",
-    "count": 1
-  }
+
+  "result": { "item": "honkytones:oboe", "count": 1 }
+
 }
