@@ -3,6 +3,7 @@ import MarkErrorInputStream
 import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.CanBeMuted.Companion.isMuted
 import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayer
+import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlockEntity
 import com.squareup.okhttp.OkHttpClient
 import com.squareup.okhttp.Request
 import net.fabricmc.api.EnvType
@@ -103,9 +104,13 @@ class ExternalSound( private val musicPlayer: MusicPlayer ) : FadingSound("audio
 
     private var nbtVolume = 1f;     private var audioStream: AudioStream? = null
 
+    private var blockEntity: MusicPlayerBlockEntity? = null
+
     private fun init() {
 
-        entity = musicPlayer.blockEntity!!.entity
+        blockEntity = musicPlayer.blockEntity
+
+        entity = blockEntity!!.entity
 
         try { audioStream = getAudioStream() } catch (e: Exception) {
 
@@ -145,7 +150,7 @@ class ExternalSound( private val musicPlayer: MusicPlayer ) : FadingSound("audio
 
     }
 
-    override fun fadeOut() { if ( !musicPlayer.blockEntity!!.repeatOnPlay ) super.fadeOut() else stop() }
+    override fun fadeOut() { if ( !blockEntity!!.repeatOnPlay ) super.fadeOut() else stop() }
 
     override fun tick() {
 
