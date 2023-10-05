@@ -53,6 +53,8 @@ private class DirectAudioStream( private val sound: ExternalSound ) : AudioStrea
 
     private val zeroBuffer = BufferUtils.createByteBuffer(0)
 
+    init { if ( !response.isSuccessful ) close() }
+
     override fun close() { newInputStream.close();    body.close();     sound.stop() }
 
     override fun getFormat(): AudioFormat { return newFormat }
