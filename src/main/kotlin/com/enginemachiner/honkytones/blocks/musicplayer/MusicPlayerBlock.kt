@@ -676,13 +676,11 @@ class MusicPlayer( val id: Int ) {
 
     private fun playMidi(): Boolean {
 
-        if ( !isMidi() || !hasSequencer() ) return false
-
-        val sequencer = sequencer!!;        val file = ModFile(path)
+        if ( !isMidi() || !hasSequencer() ) return false;       val sequencer = sequencer!!
 
         try {
 
-            val input = if ( file.exists() ) file.inputStream() else URL(path).openStream()
+            val input = if (isDirectAudio) URL(path).openStream() else ModFile(path).inputStream()
 
             sequencer.sequence = MidiSystem.getSequence(input);     sound = null
 
@@ -696,9 +694,7 @@ class MusicPlayer( val id: Int ) {
 
         }
 
-        sequencer.start();      sequencer.tickPosition = pauseTick
-
-        return true
+        sequencer.start();      sequencer.tickPosition = pauseTick;     return true
 
     }
 
@@ -711,7 +707,7 @@ class MusicPlayer( val id: Int ) {
 
         if (onQuery) { warnUser(warning); return false }
 
-        loadSound();        val sound = sound!!
+        loadSound();        val sound = sound ?: return false
 
         if ( !sound.isValid() ) return false
 
@@ -800,11 +796,11 @@ class MusicPlayer( val id: Int ) {
 
         val connection = URL(path).openConnection();        val type = connection.contentType
 
-        isDirectAudio = type != null && type.contains("audio")
+        isDirectAudio = type != null && type.contains("audio");     if ( isMidi() ) return
 
-        if (isDirectAudio) { statusMessage( "Direct Stream Format: " + connection.contentType + ":" ); return }
+        if (isDirectAudio) statusMessage( "Direct Stream Format: " + connection.contentType + ":" )
 
-        if ( isCached(path) ) return;       onQuery = true;     modPrint("$this: Starting request...")
+        if ( isDirectAudio || isCached(path) ) return;       onQuery = true;     modPrint("$this: Starting request...")
 
         val info = infoRequest(path) ?: return // Download sources using yt-dl + ffmpeg.
 
