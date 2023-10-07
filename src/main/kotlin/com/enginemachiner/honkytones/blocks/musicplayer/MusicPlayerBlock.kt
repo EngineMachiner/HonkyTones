@@ -1,7 +1,6 @@
 package com.enginemachiner.honkytones.blocks.musicplayer
 
 import com.enginemachiner.honkytones.*
-import com.enginemachiner.honkytones.BlockWithEntity
 import com.enginemachiner.honkytones.CanBeMuted.Companion.isMuted
 import com.enginemachiner.honkytones.Init.Companion.directories
 import com.enginemachiner.honkytones.Init.Companion.registerBlock
@@ -32,7 +31,10 @@ import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricEntityTypeBuilder
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory
-import net.minecraft.block.*
+import net.minecraft.block.Block
+import net.minecraft.block.BlockRenderType
+import net.minecraft.block.BlockState
+import net.minecraft.block.Material
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.BlockEntityTicker
 import net.minecraft.block.entity.BlockEntityType
@@ -42,7 +44,6 @@ import net.minecraft.client.render.entity.EntityRenderer
 import net.minecraft.client.render.entity.EntityRendererFactory
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
-import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.SpawnGroup
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
@@ -685,13 +686,11 @@ class MusicPlayer( val id: Int ) {
 
     private fun playMidi(): Boolean {
 
-        if ( !isMidi() || !hasSequencer() ) return false
-
-        val sequencer = sequencer!!;        val file = ModFile(path)
+        if ( !isMidi() || !hasSequencer() ) return false;       val sequencer = sequencer!!
 
         try {
 
-            val input = if ( file.exists() ) file.inputStream() else URL(path).openStream()
+            val input = if (isDirectAudio) URL(path).openStream() else ModFile(path).inputStream()
 
             sequencer.sequence = MidiSystem.getSequence(input);     sound = null
 
@@ -705,9 +704,7 @@ class MusicPlayer( val id: Int ) {
 
         }
 
-        sequencer.start();      sequencer.tickPosition = pauseTick
-
-        return true
+        sequencer.start();      sequencer.tickPosition = pauseTick;     return true
 
     }
 
@@ -720,7 +717,7 @@ class MusicPlayer( val id: Int ) {
 
         if (onQuery) { warnUser(warning); return false }
 
-        loadSound();        val sound = sound!!
+        loadSound();        val sound = sound ?: return false
 
         if ( !sound.isValid() ) return false
 
@@ -809,11 +806,11 @@ class MusicPlayer( val id: Int ) {
 
         val connection = URL(path).openConnection();        val type = connection.contentType
 
-        isDirectAudio = type != null && type.contains("audio")
+        isDirectAudio = type != null && type.contains("audio");     if ( isMidi() ) return
 
-        if (isDirectAudio) { statusMessage( "Direct Stream Format: " + connection.contentType + ":" ); return }
+        if (isDirectAudio) statusMessage( "Direct Stream Format: " + connection.contentType + ":" )
 
-        if ( isCached(path) ) return;       onQuery = true;     modPrint("$this: Starting request...")
+        if ( isDirectAudio || isCached(path) ) return;       onQuery = true;     modPrint("$this: Starting request...")
 
         val info = infoRequest(path) ?: return // Download sources using yt-dl + ffmpeg.
 
