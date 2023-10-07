@@ -244,7 +244,11 @@ class MusicPlayerScreen(
 
     private val pos = handler.pos;          private val world = handler.world
 
-    private val musicPlayer = world.getBlockEntity(pos) as MusicPlayerBlockEntity
+    private val blockEntity = world.getBlockEntity(pos) as MusicPlayerBlockEntity
+
+    private val musicPlayer = MusicPlayer.get( blockEntity.id )
+
+    private val floppy = blockEntity.getStack(16)
 
     private var listenButton: ButtonWidget? = null
     private var repeatButton: ButtonWidget? = null
@@ -273,12 +277,12 @@ class MusicPlayerScreen(
 
         val listenButtonTitle = Translation.block("music_player.listen")
 
-        val isListening = musicPlayer.isListening
+        val isListening = blockEntity.isListening
         listenButton = createButton( x, y, - w2 * 1.8f, height * 0.65f, w, h, (w2 * 0.75f).toInt(), 10f ) {
 
-            musicPlayer.isListening = !musicPlayer.isListening
+            blockEntity.isListening = !blockEntity.isListening;     val isListening = blockEntity.isListening
 
-            val isListening = musicPlayer.isListening;        musicPlayer.setUserListeningState(isListening)
+            blockEntity.setUserListeningState(isListening);     onMidi()
 
             it.message = Text.of("$listenButtonTitle: ${ switch[isListening] }")
 
@@ -290,12 +294,12 @@ class MusicPlayerScreen(
 
         val repeatButtonTitle = Translation.block("music_player.repeat")
 
-        val repeatPlay = musicPlayer.repeatOnPlay
+        val repeatPlay = blockEntity.repeatOnPlay
         repeatButton = createButton( width - x, y, - w2 * 2.2f, height * 0.65f, w, h, w2, 10f ) {
 
-            musicPlayer.repeatOnPlay = !musicPlayer.repeatOnPlay
+            blockEntity.repeatOnPlay = !blockEntity.repeatOnPlay
 
-            val repeatPlay = musicPlayer.repeatOnPlay;        musicPlayer.setRepeatMode(repeatPlay)
+            val repeatPlay = blockEntity.repeatOnPlay;        blockEntity.setRepeatMode(repeatPlay)
 
             it.message = Text.of("$repeatButtonTitle: ${ switch[repeatPlay] }")
 
@@ -359,7 +363,7 @@ class MusicPlayerScreen(
 
     override fun handledScreenTick() {
 
-        val forceState = handler.forceListen == "true" && !musicPlayer.isListening
+        val forceState = handler.forceListen == "true" && !blockEntity.isListening
 
         if (forceState) { listenButton!!.onPress(); handler.forceListen = "done" }
 
@@ -402,6 +406,19 @@ class MusicPlayerScreen(
     }
 
     override fun shouldPause(): Boolean { return false }
+
+    private fun onMidi() {
+
+        val isListeningMidi = blockEntity.isPlaying() && blockEntity.isListening
+                && !musicPlayer.isFormerPlayer()
+
+        if ( !isListeningMidi ) return
+
+        val path = NBT.get(floppy).getString("Path");   musicPlayer.path = path
+
+        if ( path.endsWith(".mid") ) musicPlayer.spawnParticles = true
+
+    }
 
     companion object {
 
