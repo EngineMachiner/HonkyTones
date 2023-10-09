@@ -99,8 +99,6 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
     /** Queries the source title when requested. */
     private fun queryTick(stack: ItemStack) {
 
-        if ( !File( ytdlPath() ).exists() ) return
-
         val holder = stack.holder as PlayerEntity
 
         val nbt = NBT.get(stack);       var noAction = true
@@ -110,6 +108,8 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
         if (noAction) return
 
         for ( name in actions ) if ( nbt.contains(name) ) nbt.remove(name)
+
+        if ( !appExists( ytdlPath() ) ) return
 
         coroutine.launch {
 

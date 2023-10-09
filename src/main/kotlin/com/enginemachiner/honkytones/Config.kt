@@ -6,6 +6,8 @@ import net.fabricmc.api.Environment
 import java.io.File
 import java.util.*
 
+// TODO: Move to json.
+
 @JvmField
 @Environment(EnvType.CLIENT)
 val clientConfig = mutableMapOf<String, Any>()
