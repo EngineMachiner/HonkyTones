@@ -93,10 +93,19 @@ fun infoRequest(path: String): VideoInfo? {
 }
 
 @Environment(EnvType.CLIENT)
-fun executeYTDL(request: YTDLRequest): String {
+fun ytdlPath(): String {
 
     var path = clientConfig["youtube-dl_path"] as String
     path = envPath( path, "PATH" )
+
+    return path
+
+}
+
+@Environment(EnvType.CLIENT)
+fun executeYTDL(request: YTDLRequest): String {
+
+    val path = ytdlPath()
 
     var command = listOf( "\"$path\"" )
     command = command + request.buildOptions().split(" ")
