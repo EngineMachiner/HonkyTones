@@ -17,6 +17,7 @@ import net.minecraft.text.Text
 import net.minecraft.util.Hand
 import net.minecraft.util.TypedActionResult
 import net.minecraft.world.World
+import java.io.File
 
 // TODO: I want different color floppies.
 class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMenu {
@@ -97,6 +98,8 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
     *  To replicate set a link, interrupt and spam open a menu. */
     /** Queries the source title when requested. */
     private fun queryTick(stack: ItemStack) {
+
+        if ( !File( ytdlPath() ).exists() ) return
 
         val holder = stack.holder as PlayerEntity
 
