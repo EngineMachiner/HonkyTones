@@ -1,41 +1,27 @@
 package com.enginemachiner.honkytones
 
 import com.enginemachiner.honkytones.Init.Companion.MOD_NAME
+import org.apache.commons.lang3.SystemUtils
 import java.io.File
-import java.nio.file.Paths
-
-private fun envSearch( key: String, formerPath: String, directories: List<String> ): String? {
-
-    for ( directory in directories ) {
-
-        val path = Paths.get( directory, formerPath )
-
-        val temp = "$path".replace( "\$$key\\", "" )
-            .replace( "\$$key/", "" )
-
-        if ( File(temp).canExecute() ) return temp
-
-    }
-
-    return null
-
-}
 
 /** Get the environment / system path if there is one. */
-fun envPath( path: String, envKey: String ): String {
+fun envPath(path: String): String {
 
-    if ( !path.startsWith( "\$" + envKey ) ) return path
+    if ( path[0] != '$' ) return path
 
-    val sysPath = System.getenv(envKey)
+    val envKey = Regex("\\$[A-Z]*").find(path)!!.value
 
-    // Windows and Linux separators.
-    for ( separator in listOf( ";", ":" ) ) {
+    val subPath = path.replace( "$envKey/", "" )
 
-        val directories = sysPath.split(separator)
+    val directories = System.getenv( envKey.substring(1) ) ?: return path
 
-        val envPath = envSearch( envKey, path, directories )
+    var separator = ':';    if ( SystemUtils.IS_OS_WINDOWS ) separator = ';'
 
-        if ( envPath != null ) return envPath
+    val list = directories.split(separator)
+
+    list.forEach {
+
+        val path = it + "\\$subPath";       if ( appExists(path) ) return path
 
     }
 

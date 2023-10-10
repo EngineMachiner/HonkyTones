@@ -24,12 +24,8 @@ object FFmpegImpl {
 
     init {
 
-        for ( value in mutableListOf( "ffmpeg", "ffmpeg.exe" ) ) {
-
-            path = envPath( path + value, "PATH" )
-                .replace( value, "" )
-
-        }
+        path = envPath( path + "ffmpeg" )
+            .replace( "ffmpeg", "" )
 
         if ( path == "/" ) path = ""
 
@@ -95,10 +91,18 @@ fun infoRequest(path: String): VideoInfo? {
 @Environment(EnvType.CLIENT)
 fun ytdlPath(): String {
 
-    var path = clientConfig["youtube-dl_path"] as String
-    path = envPath( path, "PATH" )
+    val path = clientConfig["youtube-dl_path"] as String
 
-    return path
+    return envPath(path)
+
+}
+
+@Environment(EnvType.CLIENT)
+fun appExists(path: String): Boolean {
+
+    for ( ext in listOf( "", ".exe" ) ) if ( File( path + ext ).exists() ) return true
+
+    return false
 
 }
 
