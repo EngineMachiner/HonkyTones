@@ -98,9 +98,7 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
     *  To replicate set a link, interrupt and spam open a menu. */
     /** Queries the source title when requested. */
     private fun queryTick(stack: ItemStack) {
-
-        if ( !File( ytdlPath() ).exists() ) return
-
+        
         val holder = stack.holder as PlayerEntity
 
         val nbt = NBT.get(stack);       var noAction = true
