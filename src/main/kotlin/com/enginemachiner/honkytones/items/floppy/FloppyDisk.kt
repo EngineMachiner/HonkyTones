@@ -111,6 +111,8 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
 
         for ( name in actions ) if ( nbt.contains(name) ) nbt.remove(name)
 
+        if ( !appExists( ytdlPath() ) ) return
+
         coroutine.launch {
 
             Thread.currentThread().name = "HonkyTones Floppy thread"
