@@ -152,6 +152,8 @@ open class Instrument(
 
         val action = TypedActionResult.pass(stack)
 
+        checkHolder(stack, user) // Fixes issue when you spam use the item and the tick doesn't get there.
+
         if ( !shouldUse( user, stack, hand ) ) return action
 
         rangedAttack( stack, user );    if ( !world.isClient ) return action

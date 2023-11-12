@@ -281,7 +281,7 @@ class MusicPlayerScreen(
 
             blockEntity.isListening = !blockEntity.isListening;     val isListening = blockEntity.isListening
 
-            blockEntity.setUserListeningState(isListening);     onMidi();
+            blockEntity.setUserListeningState(isListening);     onMidi()
 
             it.message = Text.of("$listenButtonTitle: ${ switch[isListening] }")
 
