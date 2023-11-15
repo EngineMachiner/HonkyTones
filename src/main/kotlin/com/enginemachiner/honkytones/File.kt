@@ -3,7 +3,6 @@ package com.enginemachiner.honkytones
 import com.enginemachiner.honkytones.Init.Companion.MOD_NAME
 import org.apache.commons.lang3.SystemUtils
 import java.io.File
-import java.nio.file.Paths
 
 /** Get the environment / system path if there is one. */
 fun envPath(path: String): String {
