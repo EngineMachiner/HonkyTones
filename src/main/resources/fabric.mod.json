@@ -57,7 +57,8 @@
 	"custom": {
 
 		"loom:injected_interfaces": {
-			"net/minecraft/class_1113": ["com/enginemachiner/honkytones/FabricSoundInstance"]
+			"net/minecraft/class_1113": ["com/enginemachiner/honkytones/FabricSoundInstance"],
+			"net/minecraft/class_5560": ["com/enginemachiner/honkytones/LidAnimatorBehaviour"]
 		}
 
 	}
