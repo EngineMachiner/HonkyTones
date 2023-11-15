@@ -39,7 +39,6 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.attribute.EntityAttribute
 import net.minecraft.entity.attribute.EntityAttributeModifier
 import net.minecraft.entity.attribute.EntityAttributes
-import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.mob.HostileEntity
 import net.minecraft.entity.mob.MobEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -150,7 +149,7 @@ open class Instrument(
 
         val stack = user.getStackInHand(hand);      val nbt = NBT.get(stack)
 
-        val action = TypedActionResult.pass(stack)
+        val action = TypedActionResult.pass(stack);     checkHolder(stack, user)
 
         if ( !shouldUse( user, stack, hand ) ) return action
 
