@@ -6,7 +6,6 @@ import com.enginemachiner.honkytones.modID
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.minecraft.client.sound.MovingSoundInstance
-import net.minecraft.client.sound.SoundInstance
 import net.minecraft.client.sound.SoundManager
 import net.minecraft.entity.Entity
 import net.minecraft.item.ItemStack

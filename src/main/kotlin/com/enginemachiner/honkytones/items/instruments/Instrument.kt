@@ -150,7 +150,7 @@ open class Instrument(
 
         val stack = user.getStackInHand(hand);      val nbt = NBT.get(stack)
 
-        val action = TypedActionResult.pass(stack)
+        val action = TypedActionResult.pass(stack);     checkHolder(stack, user)
 
         if ( !shouldUse( user, stack, hand ) ) return action
 
