@@ -1,15 +1,14 @@
 package com.enginemachiner.honkytones.items.storage
 
 import com.enginemachiner.honkytones.ModID
-import com.enginemachiner.honkytones.lookupSlot
 import com.enginemachiner.honkytones.isModItem
+import com.enginemachiner.honkytones.lookupSlot
 import com.mojang.blaze3d.systems.RenderSystem
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.screenhandler.v1.ScreenRegistry
 import net.fabricmc.fabric.api.screenhandler.v1.ScreenHandlerRegistry
 import net.minecraft.client.gui.screen.ingame.HandledScreen
-import net.minecraft.client.gui.screen.ingame.HandledScreens
 import net.minecraft.client.render.GameRenderer
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.player.PlayerEntity
@@ -23,7 +22,6 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
-import net.minecraft.util.registry.Registry
 
 class StorageScreenHandler(
     syncID: Int,    playerInventory: PlayerInventory,   private val inventory: Inventory

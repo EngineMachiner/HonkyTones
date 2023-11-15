@@ -4,7 +4,6 @@ import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.loader.impl.FabricLoaderImpl
 import net.minecraft.client.MinecraftClient
-import net.minecraft.text.Text
 import net.minecraft.text.TranslatableText
 import net.minecraft.util.Identifier
 import net.minecraft.util.Language
