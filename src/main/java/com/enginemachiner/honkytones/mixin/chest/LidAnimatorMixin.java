@@ -1,8 +1,6 @@
 package com.enginemachiner.honkytones.mixin.chest;
 
 import com.enginemachiner.honkytones.LidAnimatorBehaviour;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.block.entity.ChestLidAnimator;
 import org.spongepowered.asm.mixin.Mixin;
 
