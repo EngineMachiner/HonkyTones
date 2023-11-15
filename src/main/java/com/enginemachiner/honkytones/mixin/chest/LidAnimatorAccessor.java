@@ -16,4 +16,7 @@ public interface LidAnimatorAccessor {
     @Accessor("progress")
     void setProgress(float newProgress);
 
+    @Accessor("lastProgress")
+    void setLastProgress(float newProgress);
+
 }
