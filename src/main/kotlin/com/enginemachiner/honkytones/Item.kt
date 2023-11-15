@@ -83,9 +83,18 @@ interface StackMenu {
 
 private interface Trackable {
 
+
+    fun checkHolder( stack: ItemStack, holder: Entity ) {
+
+        if ( stack.holder == holder ) return
+
+        stack.holder = holder
+
+    }
+
     fun tick( stack: ItemStack, world: World, entity: Entity, slot: Int ) {
 
-        stack.holder = entity
+        checkHolder(stack, entity)
 
         if ( world.isClient ) return;     trackTick( stack, slot )
 
