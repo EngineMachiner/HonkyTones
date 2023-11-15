@@ -60,7 +60,7 @@ class MusicalStorage : Item( defaultSettings() ), StackMenu {
 
     override fun use( world: World, user: PlayerEntity, hand: Hand ): TypedActionResult<ItemStack> {
 
-        val stack = user.getStackInHand(hand)
+        val stack = user.getStackInHand(hand);      checkHolder(stack, user)
 
         val canOpen = canOpenMenu( user, stack )
 
@@ -122,15 +122,11 @@ class MusicalStorage : Item( defaultSettings() ), StackMenu {
 
             // Chest mixin animation.
 
-            val chest = models.hand;            chest as ChestBlockEntityAccessor
-            val lid = chest.lidAnimator;        lid as LidAnimatorAccessor
+            val chest = models.hand;    chest as ChestBlockEntityAccessor
 
-            if ( lid.progress < 1f && lid.open ) lid.progress -= 0.095f
-            else if ( lid.progress > 0f && !lid.open ) lid.progress += 0.095f
+            val lid = chest.lidAnimator as LidAnimatorBehaviour
 
-            lid.progress = lid.progress.coerceIn( ( 0f..1f ) )
-
-            lid.step()
+            lid.renderStep()
 
             //
 
@@ -274,9 +270,7 @@ class MusicalStorage : Item( defaultSettings() ), StackMenu {
     @Verify("Vanilla chest OPEN animation.")
     fun open( stack: ItemStack, shouldNetwork: Boolean ) {
 
-
         createModels(stack)
-
 
         val user = stack.holder!! as PlayerEntity;  val world = user.world
 
