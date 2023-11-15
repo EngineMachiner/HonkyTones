@@ -2,7 +2,6 @@ package com.enginemachiner.honkytones.items.storage
 
 import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.mixin.chest.ChestBlockEntityAccessor
-import com.enginemachiner.honkytones.mixin.chest.LidAnimatorAccessor
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking

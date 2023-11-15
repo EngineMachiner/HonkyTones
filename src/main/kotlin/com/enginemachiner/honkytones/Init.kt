@@ -8,7 +8,6 @@ import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerScreen
 import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerScreenHandler
 import com.enginemachiner.honkytones.items.console.DigitalConsole
 import com.enginemachiner.honkytones.items.console.DigitalConsoleScreen
-import com.enginemachiner.honkytones.items.console.DigitalConsoleScreenHandler
 import com.enginemachiner.honkytones.items.console.PickStackScreenHandler
 import com.enginemachiner.honkytones.items.floppy.FloppyDisk
 import com.enginemachiner.honkytones.items.instruments.Instrument
@@ -16,7 +15,6 @@ import com.enginemachiner.honkytones.items.instruments.Instrument.Companion.hitS
 import com.enginemachiner.honkytones.items.instruments.RangedEnchantment
 import com.enginemachiner.honkytones.items.storage.MusicalStorage
 import com.enginemachiner.honkytones.items.storage.StorageScreen
-import com.enginemachiner.honkytones.items.storage.StorageScreenHandler
 import com.enginemachiner.honkytones.sound.Sound
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.EnvType
