@@ -48,6 +48,14 @@
 		"fabric-language-kotlin": ">=1.9.10"
 	},
 
-	"suggests": { "another-mod": "*" }
+	"suggests": { "another-mod": "*" },
+
+	"custom": {
+
+		"loom:injected_interfaces": {
+			"net/minecraft/class_5560": ["com/enginemachiner/honkytones/LidAnimatorBehaviour"]
+		}
+
+	}
 	
 }
