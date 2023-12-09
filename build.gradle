@@ -35,15 +35,20 @@ dependencies {
 	// These are included in the Fabric API production distribution and allow you to update your mod to the latest modules at a later more convenient time.
 
 	// modImplementation "net.fabricmc.fabric-api:fabric-api-deprecated:${project.fabric_version}"
-
+	
 	include( implementation "com.fasterxml.jackson.core:jackson-annotations:2.14.1" )
 	include( implementation "com.fasterxml.jackson.core:jackson-core:2.14.1" )
 	include( implementation "com.fasterxml.jackson.core:jackson-databind:2.14.1" )
 	include( implementation "com.github.sapher:youtubedl-java:1.1" )
 	include( implementation "net.bramp.ffmpeg:ffmpeg:0.7.0" )
 	include( implementation "commons-validator:commons-validator:1.7" )
-	include( implementation "com.squareup.okhttp:okhttp:2.7.5" )
+
 	include( implementation "com.googlecode.soundlibs:mp3spi:1.9.5.4" )
+	include( implementation "com.googlecode.soundlibs:tritonus-share:0.3.7.4" )
+	include( implementation "javazoom:jlayer:1.0.1" )
+
+	include( implementation "com.squareup.okhttp:okhttp:2.7.5" )
+	include( implementation "com.squareup.okio:okio:1.6.0" )
 
 }
 
