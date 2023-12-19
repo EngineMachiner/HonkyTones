@@ -123,7 +123,7 @@
   "honkytones.error.midi_sequencer": "Couldn't get the OS default midi sequencer!",
   "honkytones.error.midi_file_missing": "was not found or is not a midi file!",
   "honkytones.error.long_stream": "Stream is longer than X minutes!",
-  "honkytones.error.exec_ytdl": "Unexpected yt-dlp execution error",
+  "honkytones.error.exec_ytdl": "Unexpected yt-dl execution error",
   "honkytones.error.file_access": "There was an issue opening the file!",
   "honkytones.error.file_written": "An unexpected error happened trying to write the MIDI!",
   "honkytones.error.check_console": "Check console for more details.",

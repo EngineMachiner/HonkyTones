@@ -47,3 +47,10 @@ open class ModFile( private val name: String ) : File(name) {
     }
 
 }
+
+fun urlFileName(url: String): String {
+
+    return url.replace( Regex("[\\\\/:*?\"<>|]"), "_" )
+        .replace( " ", "_" )
+
+}

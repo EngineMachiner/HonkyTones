@@ -15,9 +15,7 @@ import com.enginemachiner.honkytones.items.floppy.FloppyDisk
 import com.enginemachiner.honkytones.items.instruments.Instrument
 import com.enginemachiner.honkytones.sound.ExternalSound
 import com.sapher.youtubedl.YoutubeDLException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import net.bramp.ffmpeg.builder.FFmpegBuilder
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
@@ -86,6 +84,8 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 private val coroutine = CoroutineScope( Dispatchers.IO )
+
+private fun setThreadName() { Thread.currentThread().name = "HonkyTones Resources thread"; }
 
 private fun lookupPlayer( world: World, floppy: ItemStack ): PlayerEntity? {
 
@@ -590,7 +590,9 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
 
         if ( musicPlayer !is MusicPlayerBlockEntity ) return
 
-        val entity = musicPlayer.entity;    if ( entity != null && !entity.isRemoved ) return
+        // It seems this next check is bad when there's mods handling entity loading :(.
+
+        val entity = musicPlayer.entity;    //if ( entity != null && !entity.isRemoved ) return
 
         musicPlayer.spawnEntity(this);    musicPlayer.clientInit()
 
@@ -733,9 +735,9 @@ class MusicPlayer( val id: Int ) {
 
     }
 
-    fun play() {
+    fun play() { coroutine.launch {
 
-        if ( path.isEmpty() ) return
+        setThreadName();    if ( path.isEmpty() ) return@launch
 
         var playMidi = false;       if ( isFormerPlayer() ) playMidi = playMidi()
 
@@ -743,11 +745,11 @@ class MusicPlayer( val id: Int ) {
 
         if ( isMidi() && !isFormerPlayer() ) statusMessage("Listening...")
 
-        if ( !isPlaying ) return;   statusMessage("Playing...")
+        if ( !isPlaying ) return@launch; statusMessage("Playing...")
 
         startParticles()
 
-    }
+    } }
 
     private fun startParticles() {
 
@@ -761,13 +763,15 @@ class MusicPlayer( val id: Int ) {
 
     fun pause() { pause( blockEntity!!.repeatOnPlay ) }
 
-    fun pause(stop: Boolean) {
+    fun pause(stop: Boolean) { coroutine.launch {
 
-        spawnParticles = false;     if ( !isPlaying ) return;   setPlaying(false)
+        setThreadName();        spawnParticles = false
+
+        if ( !isPlaying ) return@launch;       setPlaying(false)
 
         if ( hasSound() ) sound!!.fadeOut() else {
 
-            if ( !hasSequencer() ) return;          val sequencer = sequencer!!
+            if ( !hasSequencer() ) return@launch;          val sequencer = sequencer!!
 
             pauseTick = sequencer.tickPosition;     if (stop) pauseTick = 0
 
@@ -785,24 +789,30 @@ class MusicPlayer( val id: Int ) {
 
         statusMessage("Stopping...")
 
-    }
+    } }
 
     fun pauseOnMidiHost() { if ( !isFormerPlayer() || !isMidi() ) return; pause() }
 
-    /** Loads youtube-dl requests. */
+    /** Loads resources / youtube-dl requests. */
     fun read() {
 
-        Thread.currentThread().name = "HonkyTones Loading thread";      isDirectAudio = false
+        setThreadName();        isDirectAudio = false
 
         val validURL = isValidUrl(path);       if ( !validURL ) return
 
         val connection = URL(path).openConnection();        val type = connection.contentType
 
+        // TODO: Handle application/octet-stream.
+
         isDirectAudio = type != null && type.contains("audio");     if ( isMidi() ) return
 
-        if (isDirectAudio) statusMessage( "Direct Stream Format: " + connection.contentType + ":" )
+        if (isDirectAudio) statusMessage("Direct Stream Format: $type:")
 
-        if ( isDirectAudio || isCached(path) ) return;       onQuery = true;     modPrint("$this: Starting request...")
+        val isWav = type.endsWith(".wav")
+
+        if ( isDirectAudio && !isWav || isCached(path) ) return
+
+        onQuery = true;     modPrint("$this: Starting request...")
 
         val info = infoRequest(path) ?: return // Download sources using yt-dl + ffmpeg.
 
@@ -820,10 +830,12 @@ class MusicPlayer( val id: Int ) {
         val streamsPath = directories["streams"]!!.path;        var filePath = "$streamsPath\\"
 
         var name = info.id + "-" + info.title + ".ogg"
-        name = name.replace( Regex("[\\\\/:*?\"<>|]"), "_" )
-            .replace( " ", "_" )
 
-        filePath += name;       val outputFile = ModFile(filePath);     outputFile.createNewFile()
+        if ( isWav ) name = path.replace(".wav", ".ogg")
+
+        name = urlFileName(name);       filePath += name
+
+        val outputFile = ModFile(filePath);     outputFile.createNewFile()
 
         try {
 
@@ -835,7 +847,7 @@ class MusicPlayer( val id: Int ) {
 
             val keepVideos = clientConfig["keep_videos"] as Boolean
 
-            if (keepVideos) coroutine.launch { requestVideo(outputPath) }
+            if (keepVideos) coroutine.launch { setThreadName(); requestVideo(outputPath) }
 
             warnUser( Translation.get("message.downloading") ); warnUser( info.title )
 
@@ -843,7 +855,9 @@ class MusicPlayer( val id: Int ) {
 
             val quality = clientConfig["audio_quality"] as Int
 
-            val convertPath = outputPath.replace( "%(ext)s", "m4a" )
+            var convertPath = outputPath.replace( "%(ext)s", "m4a" )
+
+            if ( isWav ) { convertPath = path }
 
             val builder = FFmpegImpl.builder ?: throw YoutubeDLException("Missing ffmpeg!")
 
@@ -854,7 +868,7 @@ class MusicPlayer( val id: Int ) {
 
             val executor = FFmpegImpl.executor ?: throw YoutubeDLException("Missing ffmpeg!")
 
-            executor.createJob(builder).run();      ModFile(convertPath).delete()
+            executor.createJob(builder).run();      if ( !isWav ) ModFile(convertPath).delete()
 
             this.path = filePath;                   warnUser( Translation.get("message.done") )
 
@@ -884,6 +898,8 @@ class MusicPlayer( val id: Int ) {
 
     /** Verifies if the file was already downloaded. */
     private fun isCached(path: String): Boolean {
+
+        val path = urlFileName(path).replace(".wav", ".ogg")
 
         val directory = directories["streams"]!!
 
