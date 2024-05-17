@@ -59,7 +59,7 @@ class Init : ModInitializer, ClientModInitializer {
 
         init {
 
-            ModID.init("HonkyTones");    ConfigFile.checkConfigDirectory()
+            ModID.init("HonkyTones");       ConfigFile.checkConfigDirectory()
 
         }
 

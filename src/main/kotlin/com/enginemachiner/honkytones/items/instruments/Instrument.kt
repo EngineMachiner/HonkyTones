@@ -246,7 +246,7 @@ open class Instrument(
 
             if ( netStack.isEmpty ) return netStack
 
-            var stack = stacks.find { NBT.id(it) == NBT.id(netStack) }
+            var stack = stacks.find { NBT.equals(it, netStack) }
 
             if ( stack == null ) { stacks.add(netStack); stack = netStack }
 

@@ -131,7 +131,7 @@ class FloppyDisk : Item( modItemSettings().maxDamage( damageSeed() ) ), StackScr
             val list = inventoryList( holder.inventory )
 
 
-            val stack2 = list.find { NBT.has(it) && NBT.id(it) == NBT.id(stack) }
+            val stack2 = list.find { NBT.has(it) && NBT.equals(it, stack) }
 
             if ( stack2 == null ) return@launch
 
