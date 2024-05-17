@@ -1,373 +1,309 @@
 package com.enginemachiner.honkytones.blocks.musicplayer
 
-import com.enginemachiner.honkytones.*
+import com.enginemachiner.harmony.*
 import com.enginemachiner.honkytones.CanBeMuted.Companion.isMuted
-import com.enginemachiner.honkytones.NBT.networkNBT
 import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlockEntity.Companion.INVENTORY_SIZE
 import com.enginemachiner.honkytones.items.floppy.FloppyDisk
 import com.enginemachiner.honkytones.items.instruments.Instrument
-import com.mojang.blaze3d.systems.RenderSystem
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType
-import net.minecraft.client.gui.Drawable
-import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.screen.ingame.HandledScreens
-import net.minecraft.client.gui.widget.ButtonWidget
-import net.minecraft.client.gui.widget.SliderWidget
-import net.minecraft.client.render.GameRenderer
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventory
 import net.minecraft.inventory.SimpleInventory
 import net.minecraft.item.ItemStack
+import net.minecraft.nbt.NbtCompound
 import net.minecraft.network.PacketByteBuf
+import net.minecraft.screen.ScreenHandlerContext
 import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.text.Text
-import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.registry.Registry
-import net.minecraft.world.World
 import kotlin.math.roundToInt
 
 class MusicPlayerScreenHandler(
-    syncID: Int, playerInventory: PlayerInventory, private val inventory: Inventory
-) : StrictSlotScreen( type, syncID ) {
 
-    private val player = playerInventory.player;            val world: World = player.world
+    syncID: Int,    private val playerInventory: PlayerInventory,
 
-    @Environment(EnvType.CLIENT) var forceListen = "false";     var pos: BlockPos? = null
+    private val inventory: Inventory,       private val context: ScreenHandlerContext
 
-    constructor( syncID: Int, playerInventory: PlayerInventory, buf: PacketByteBuf ) : this( syncID, playerInventory, SimpleInventory(INVENTORY_SIZE) ) {
+) : HarmonyScreenHandler( type, syncID ) {
 
-        pos = buf.readBlockPos()
 
-    }
+    var pos: BlockPos? = null
+
+
+    private val player = playerInventory.player
+
+
+    constructor( syncID: Int, playerInventory: PlayerInventory, buf: PacketByteBuf ) : this( syncID, playerInventory, SimpleInventory(INVENTORY_SIZE), ScreenHandlerContext.EMPTY ) { pos = buf.readBlockPos() }
+
 
     init {
 
         checkSize( inventory, inventory.size() );       inventory.onOpen(player)
 
-        val w = 18;     val x = 8;     val y = 46
 
-        // Music Player inventory.
+        addSlot( Slot( inventory, 0, 80, 9 ) ) // Floppy.
 
-        // Floppy slot.
-        var slot = Slot( inventory, 16, 12 * w, w * 2 + 4 )
 
-        // Instruments slots.
-        for ( j in 0 .. 15 ) {
+        // Instrument slots.
 
-            val slot = Slot( inventory, j, ( j - 3 ) * w, w )
+        val slots1 = slots( 1, 8, 17f, 37f, inventory, 1 )
 
-            addSlot(slot)
+        val slots2 = slots( 1, 8, 17f, 59f, inventory, slots1.size + 1 )
 
-        }
+        ( slots1 + slots2 ).forEach { addSlot(it) }
 
-        addSlot(slot)
 
-        // Player inventory.
-        for ( i in 0 .. 2 ) { for ( j in 0 .. 8 ) {
-
-            val index = j + i * 9 + 9;      val x = w * j + x
-            val y = w * ( i + 6 ) - y + 13
-
-            slot = Slot( playerInventory, index, x, y )
-
-            addSlot(slot)
-
-        } }
-
-        for ( j in 0 .. 8 ) {
-
-            val x = w * j + x;      val y = w * 10 - y - 1
-
-            slot = Slot( playerInventory, j, x, y )
-
-            addSlot(slot)
-
-        }
+        playerSlots( 8f, 94f, playerInventory ).forEach { addSlot(it) }
 
     }
 
-    private fun transferInstrument(slotIndex: Int): Boolean {
+    private fun insertInstrument( slotIndex: Int ): Boolean {
 
-        val slot = slots[slotIndex];        val stack = slot.stack
+        val stack = stacks[slotIndex]
 
-        val item = stack.item;              val size = inventory.size()
+        val limit = inventory.size()
 
-        if ( item !is Instrument ) return false
+        if ( stack.item !is Instrument ) return false
 
-        if ( slotIndex > size ) insertItem( stack, 0, size, false )
-        else insertItem( stack, size, slots.size, true )
-
-        return true
+        return insertItem( slotIndex, 1, limit )
 
     }
 
-    private fun transferFloppy(slotIndex: Int): Boolean {
+    private fun insertFloppy( slotIndex: Int ): Boolean {
 
-        val slot = slots[slotIndex];        val stack = slot.stack
+        val stack = stacks[slotIndex]
 
-        val item = stack.item;              val floppySlot = slots[16]
+        if ( stack.item !is FloppyDisk ) return false
 
-        if ( item !is FloppyDisk ) return false
-
-        val swap = floppySlot.hasStack() && slot.hasStack() && slotIndex != 16
-
-        if (swap) {
-
-            val temp = floppySlot.stack
-
-            floppySlot.stack = stack;       slot.stack = temp
-
-            updateClients(16);       return false
-
-        } else {
-
-            if ( slotIndex != 16 ) insertItem( stack, 16, slotIndex, false )
-            else insertItem( stack, 16, slots.size, true )
-
-        }
-
-        return true
+        return insertItem( slotIndex, 0, 1 )
 
     }
 
-    override fun close(player: PlayerEntity) { inventory.markDirty();      super.close(player) }
+    private fun insertAny( slotIndex: Int ): Boolean {
+
+        val start = inventory.size()
+
+        val limit = start + playerInventory.size() * 0.5f
+
+        return insertItem( slotIndex, start, limit.toInt() )
+
+    }
 
     override fun transferSlot( player: PlayerEntity, slotIndex: Int ): ItemStack {
 
-        val slot = slots[slotIndex]
+        val slot = slots[slotIndex];        val stack = slot.stack;         val isEmpty = stack.isEmpty
 
-        val instrument = transferInstrument(slotIndex)
-        val floppy = transferFloppy(slotIndex)
-        val transfer = floppy || instrument
 
-        if ( !transfer ) return ItemStack.EMPTY
+        if (isEmpty) return ItemStack.EMPTY
 
-        updateClients(16);      return slot.stack.copy()
+
+        val onPlayer = insertInstrument(slotIndex) || insertFloppy(slotIndex)
+        val success = onPlayer || insertAny(slotIndex)
+
+        if ( !success ) return ItemStack.EMPTY
+
+        if ( onPlayer && !player.world.isClient ) ( inventory as MusicPlayerBlockEntity ).read()
+
+        slot.markDirty();       return stack.copy()
 
     }
 
     /** Place instruments and floppy disks only and move inventory freely. */
-    override fun onSlotClick(
-        slotIndex: Int, button: Int, actionType: SlotActionType, player: PlayerEntity
-    ) {
+    override fun onSlotClick( slotIndex: Int, button: Int, actionType: SlotActionType, player: PlayerEntity ) {
 
-        fun onSlotClick() { super.onSlotClick( slotIndex, button, actionType, player ) }
+        val size = inventory.size();        val onSlots = slotIndex < size
 
-        // 1. THROW action out of bounds.
-        // 2. slotIndex < 0 are used for networking internals.
-        if ( slotIndex == -999 ) { onSlotClick(); return } else if ( slotIndex < 0 ) return
+        val onInstrumentSlots = slotIndex > 0 && slotIndex < size - 1
 
-        val slot = slots[slotIndex];        val stack = slot.stack
+        val onFloppySlot = slotIndex == 0
 
-        // Only allow instruments and floppy disks.
-        val isInstrument = isAllowed( stack, cursorStack, Instrument::class, slotIndex != 16 )
-        val isFloppy = isAllowed( stack, cursorStack, FloppyDisk::class, slotIndex >= 16 )
-        val isAny = isInstrument || isFloppy
 
-        // Can move all other items in PlayerInventory
-        val pickUp = actionType == SlotActionType.PICKUP
-        if ( !isAny ) { if ( pickUp && slotIndex > 16 ) onSlotClick(); return }
+        fun click() { super.onSlotClick(slotIndex, button, actionType, player) }
 
-        onSlotClick();      if ( isFloppy ) onEmptyFloppy()
+        fun canPickUp(): Boolean {
 
-        if ( slotIndex <= 16 && pickUp ) updateClients(slotIndex)
+            return canPickUp(onInstrumentSlots) { it.item is Instrument }
+                    || canPickUp(onFloppySlot) { it.item is FloppyDisk }
+                    || !onSlots
+
+        }
+
+        fun onSwap(): Boolean {
+
+            if ( actionType != SlotActionType.SWAP ) return true
+
+            val canSwap = onInstrumentSlots && canSwap(button, slotIndex) { it.item is Instrument }
+                    || onFloppySlot && canSwap(button, slotIndex) { it.item is FloppyDisk }
+
+            return canSwap && onSlots || !onSlots
+
+        }
+
+
+        // slotIndex < 0 are used for networking internals.
+
+        if ( slotIndex < 0 ) { click(); return }
+
+
+        if ( !canPickUp() || !onSwap() ) return
+
+        click()
 
     }
 
-    override fun canUse(player: PlayerEntity): Boolean { return inventory.canPlayerUse(player) }
+    override fun canUse(player: PlayerEntity): Boolean {
+
+        return canUse( context, player, MusicPlayerBlock.registryBlock )
+
+    }
 
     companion object: ModID {
 
-        val type = ExtendedScreenHandlerType {
-            syncID: Int, inventory: PlayerInventory, buf: PacketByteBuf ->
+        val type = ExtendedScreenHandlerType { id, inventory, buf ->
 
-            MusicPlayerScreenHandler( syncID, inventory, buf )
+            MusicPlayerScreenHandler( id, inventory, buf )
+
         }
 
-        fun register() { Registry.register( Registry.SCREEN_HANDLER, classID(), type ) }
+        fun register() {
 
-    }
+            Registry.register( Registry.SCREEN_HANDLER, classID(), type )
 
-    private fun onEmptyFloppy() {
+            if ( !isClient() ) return
 
-        val stack = stacks[16]
+            HandledScreens.register( type, ::MusicPlayerScreen )
 
-        if ( !world.isClient || stack.isEmpty ) return
-
-        val nbt = NBT.get(stack);       val path = nbt.getString("Path")
-
-        val isEmpty = stack.item is FloppyDisk && path.isBlank()
-
-        if ( !isEmpty ) return;   warnUser( Translation.get("message.empty") )
-
-    }
-
-    private fun trackPos(slotIndex: Int) {
-
-        val stack = slots[slotIndex].stack;        if ( stack.isEmpty ) return
-
-        val nbt = NBT.get(stack);                   var pos = pos
-
-        if ( !world.isClient ) pos = ( inventory as MusicPlayerBlockEntity ).pos
-
-        nbt.putString( "BlockPos", pos!!.toShortString() )
-
-        nbt.putInt( "Slot", slotIndex )
-
-    }
-
-    private fun updateClients(slotIndex: Int) {
-
-        if ( world.isClient ) { if ( forceListen == "false" ) forceListen = "true"; return }
-
-        var floppy = stacks[16];    val musicPlayer = inventory as MusicPlayerBlockEntity
-
-        if ( !NBT.has(floppy) ) floppy = cursorStack
-
-        trackPos(slotIndex);    musicPlayer.read(floppy)
+        }
 
     }
 
 }
 
-@Environment(EnvType.CLIENT)
+// @Environment(EnvType.CLIENT)
 class MusicPlayerScreen(
-    handler: MusicPlayerScreenHandler, playerInventory: PlayerInventory, text: Text
-) : HandledScreen<MusicPlayerScreenHandler>( handler, playerInventory, text ) {
 
-    private val pos = handler.pos;          private val world = handler.world
+    handler: MusicPlayerScreenHandler,      playerInventory: PlayerInventory,       text: Text
+
+) : HarmonyHandledScreen<MusicPlayerScreenHandler>( handler, playerInventory, text ), ScreenRefresher {
+
+    private var widgetWidth = 0f
+
+    init { titleY -= 9;     playerInventoryTitleY += 9 }
+
+    private val texture = Texture( textureID ) {
+
+        it.setSize( 176f, 186f );       it.center(width, height)
+
+    }
+
+    private val pos = handler.pos;          private val world = client().world!!
 
     private val blockEntity = world.getBlockEntity(pos) as MusicPlayerBlockEntity
-
     private val musicPlayer = MusicPlayer.get( blockEntity.id )
 
-    private val floppy = blockEntity.getStack(16)
+    private var listenButton: Button? = null
+    private var repeatButton: Button? = null
+    private var volumeSlider: VolumeSlider? = null
 
-    private var listenButton: ButtonWidget? = null
-    private var repeatButton: ButtonWidget? = null
-    private var slider = Slider( 30, 15, 100, 20, handler )
-    private val genericTexture = Identifier("textures/gui/container/generic_54.png")
+    private val states = mutableMapOf( true to Translations.on,     false to Translations.off )
 
-    init { backgroundHeight -= 10;     titleX += 55;     playerInventoryTitleY -= 10 }
+    private fun isListening(): Boolean { return blockEntity.isListening }
 
-    // This is run each time the window resizes
+    private fun listenMessage(): String {
+
+        val title = Translations.listen;        val value = states[ isListening() ]
+
+        return "$title: $value"
+
+    }
+
+    private fun onRepeat(): Boolean { return blockEntity.onRepeat }
+
+    private fun repeatMessage(): String {
+
+        val title = Translations.repeat;        val value = states[ onRepeat() ]
+
+        return "$title: $value"
+
+    }
+
+    override fun shouldPause(): Boolean { return false }
+
     override fun init() {
 
-        addSelectableChild(slider)
+        super.init();       texture.init()
 
-        rateTitle = Translation.block("music_player.rate")
-        volumeTitle = Translation.item("gui.volume")
 
-        val x = ( width * 0.125f ).toInt()
-        val y = ( height * 0.12f ).toInt()
-        val w = ( width * 0.75f ).toInt()
-        val h = ( 240 * 0.08f ).toInt()
-        val w2 = ( w * 0.35f ).toInt()
+        widgetWidth = width * 0.2f;        val w = widgetWidth
 
-        val on = Translation.get("gui.on");     val off = Translation.get("gui.off")
 
-        val switch = mutableMapOf( true to on, false to off )
+        var x = width - texture.w - w - 35
 
-        val listenButtonTitle = Translation.block("music_player.listen")
+        x *= 0.5f;      val h = 20f
 
-        val isListening = blockEntity.isListening
-        listenButton = createButton( x, y, - w2 * 1.8f, height * 0.65f, w, h, (w2 * 0.75f).toInt(), 10f ) {
+        volumeSlider = VolumeSlider( x, h * 2f, w, h, musicPlayer )
 
-            blockEntity.isListening = !blockEntity.isListening;     val isListening = blockEntity.isListening
+        listenButton = Button( x, h * 3.5f, w, h, ::listenMessage ) {
 
-            blockEntity.setUserListeningState(isListening);     onMidi()
+            blockEntity.isListening = !isListening()
 
-            it.message = Text.of("$listenButtonTitle: ${ switch[isListening] }")
+            blockEntity.updateState( "set_user_state", isListening() )
+
+            it.updateMessage();     updateHandledScreens()
 
         }
 
-        listenButton!!.message = Text.of("$listenButtonTitle: ${ switch[isListening] }")
+        repeatButton = Button( x, h * 5f, w, h, ::repeatMessage ) {
 
-        addDrawableChild(listenButton)
+            blockEntity.onRepeat = !onRepeat()
 
-        val repeatButtonTitle = Translation.block("music_player.repeat")
+            blockEntity.updateState( "set_repeat", onRepeat() )
 
-        val repeatPlay = blockEntity.repeatOnPlay
-        repeatButton = createButton( width - x, y, - w2 * 2.2f, height * 0.65f, w, h, w2, 10f ) {
-
-            blockEntity.repeatOnPlay = !blockEntity.repeatOnPlay
-
-            val repeatPlay = blockEntity.repeatOnPlay;        blockEntity.setRepeatMode(repeatPlay)
-
-            it.message = Text.of("$repeatButtonTitle: ${ switch[repeatPlay] }")
+            updateHandledScreens();     it.updateMessage()
 
         }
 
-        repeatButton!!.message = Text.of("$repeatButtonTitle: ${ switch[repeatPlay] }")
+        val widgets = listOf( listenButton, repeatButton )
 
-        addDrawableChild(repeatButton);     super.init()
+        widgets.forEach { addDrawableChild(it) }
 
-    }
-
-    override fun mouseReleased( mouseX: Double, mouseY: Double, button: Int ): Boolean {
-
-        slider.mouseReleased( mouseX, mouseY, button )
-
-        return super.mouseReleased( mouseX, mouseY, button )
+        addSlider( volumeSlider!! )
 
     }
 
-    override fun mouseDragged( mouseX: Double, mouseY: Double, button: Int, deltaX: Double, deltaY: Double ): Boolean {
+    override fun refresh() {
 
-        slider.mouseDragged( mouseX, mouseY, button, deltaX, deltaY )
-
-        return super.mouseDragged( mouseX, mouseY, button, deltaX, deltaY )
+        listenButton!!.updateMessage()
 
     }
 
     override fun drawBackground( matrices: MatrixStack, delta: Float, mouseX: Int, mouseY: Int ) {
 
-        RenderSystem.setShader( GameRenderer::getPositionTexShader )
-        RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
-        RenderSystem.setShaderTexture( 0, genericTexture )
-
-        val w = backgroundWidth;                val height = height + 10
-        val centerX = ( width - w ) / 2;        val centerY = ( height - w ) / 2
-
-        val backgroundHeight = backgroundHeight + 10
-
-        // Top slots.
-        drawTexture( matrices, centerX - 62, centerY + 5, 0, 0, w, 35 )
-        drawTexture( matrices, centerX + 71, centerY + 5, 7, 0, w - 7, 35 )
-
-        // Blank space.
-        drawTexture( matrices, centerX - 62, centerY + 40, 0, 4, w, 13 )
-        drawTexture( matrices, centerX + 71, centerY + 40, 7, 4, w - 7, 13 )
-
-        drawTexture( matrices, centerX - 62, centerY + 52, 0, 4, w, 13 )
-        drawTexture( matrices, centerX + 71, centerY + 52, 7, 4, w - 7, 13 )
-        drawTexture( matrices, centerX, centerY + 64, 0, 4, w, 2 )
-
-        // Upper part texture.
-        drawTexture( matrices, centerX - 62, centerY + 64, 0, backgroundHeight + 53, w - 113, 3 )
-        drawTexture( matrices, centerX + 173, centerY + 64, 109, backgroundHeight + 53, w - 113, 3 )
-
-        // Floppy disk slot.
-        drawTexture( matrices, centerX + 215, centerY + 44, 7, 17, 18, 18 )
-
-        // Player inventory.
-        drawTexture( matrices, centerX, centerY + 66, 0, 126, w, 128 )
+        texture.draw(matrices)
 
     }
 
+    private fun shouldListen() {
+
+        val shouldListen = MusicPlayerBlockEntity.shouldListen
+
+        if ( !shouldListen || isListening() ) return
+
+        MusicPlayerBlockEntity.shouldListen = false
+
+        listenButton!!.onPress()
+
+    }
     override fun handledScreenTick() {
 
-        val forceState = handler.forceListen == "true" && !blockEntity.isListening
+        val volumeSlider = volumeSlider ?: return
 
-        if (forceState) { listenButton!!.onPress(); handler.forceListen = "done" }
-
-        if ( world.getBlockEntity(pos) !is MusicPlayerBlockEntity ) close()
+        volumeSlider.tick();      shouldListen()
 
     }
 
@@ -377,159 +313,107 @@ class MusicPlayerScreen(
 
         drawMouseoverTooltip( matrices, mouseX, mouseY )
 
-        children().forEach { it as Drawable;     it.render( matrices, mouseX, mouseY, delta ) }
+    }
+
+    override fun isClickOutsideBounds( mouseX: Double, mouseY: Double, left: Int, top: Int, button: Int ): Boolean {
+
+        return texture.isClickOutsideBounds(mouseX, mouseY)
 
     }
 
-    override fun isClickOutsideBounds(
-        mouseX: Double, mouseY: Double, left: Int, top: Int, button: Int
-    ): Boolean {
+    override fun mouseDragged(mouseX: Double, mouseY: Double, button: Int, deltaX: Double, deltaY: Double): Boolean {
 
-        val centerX = ( width - backgroundWidth ) / 2
-        val centerY = ( height - backgroundHeight ) / 2
-
-        val topX1 = centerX - backgroundWidth * 0.35f
-        val topX2 = centerX + backgroundWidth * 1.35f
-
-        val topY2 = centerY + backgroundHeight * 0.38f
-
-        val onY = mouseY < centerY || mouseY >= topY2
-
-        val box1 = super.isClickOutsideBounds( mouseX, mouseY, left, top, button )
-
-        val box2 = onY || mouseX < topX1;     val box3 = onY || mouseX > topX2
-
-        return box1 && ( box2 || box3 )
+        return isFocusedDragged(mouseX, mouseY, button, deltaX, deltaY)
+                || super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY)
 
     }
 
-    override fun shouldPause(): Boolean { return false }
+    override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
 
-    private fun onMidi() {
-
-        val isListeningMidi = blockEntity.isPlaying() && blockEntity.isListening
-                && !musicPlayer.isFormerPlayer()
-
-        if ( !isListeningMidi ) return
-
-        val path = NBT.get(floppy).getString("Path");   musicPlayer.path = path
-
-        if ( path.endsWith(".mid") ) musicPlayer.spawnParticles = true
+        return wasElementDragged(mouseX, mouseY, button)
+                || super.mouseReleased(mouseX, mouseY, button)
 
     }
 
     companion object {
 
-        var rateTitle = "";     var volumeTitle = ""
+        private val textureID = textureID("block/music_player/slots.png")
 
-        fun register() { HandledScreens.register( MusicPlayerScreenHandler.type, ::MusicPlayerScreen ) }
+        private object Translations {
 
-        private class Slider(
-            x: Int, y: Int, w: Int, h: Int,
-            handler: MusicPlayerScreenHandler,
-        ) : SliderWidget( x, y, w, h, Text.of("MusicPlayerSlider"), 1.0 ) {
+            val on = Translation.get("gui.on")
+            val off = Translation.get("gui.off")
 
-            private val pos = handler.pos;      private val world = handler.world
+            val volume = Translation.item("gui.volume")
+            val listen = Translation.block("music_player.listen")
 
-            private val blockEntity = world.getBlockEntity(pos) as MusicPlayerBlockEntity
+            val repeat = Translation.block("music_player.repeat")
 
-            private val musicPlayer = MusicPlayer.get( blockEntity.id )
+        }
 
-            private var floppy = blockEntity.getStack(16)
+        private class VolumeSlider(
 
-            private var init = false
-            private var title = "";     private var valueText = 1
-            private var key = "";       private var scale = 2f
+            x: Float, y: Float,     w: Float, h: Float,
 
-            init { visible = false;     musicPlayer.items[16] = floppy }
+            private val musicPlayer: MusicPlayer,
 
-            override fun mouseDragged( mouseX: Double, mouseY: Double, button: Int, deltaX: Double, deltaY: Double ): Boolean {
+        ) : Slider( x, y, w, h ) {
 
-                if ( !isFocused ) return false
+            init { init() }
 
-                return super.mouseDragged( mouseX, mouseY, button, deltaX, deltaY )
+            private fun init() {
 
-            }
+                visible = false;        if ( !visible() ) return
 
-            override fun mouseReleased( mouseX: Double, mouseY: Double, button: Int ): Boolean {
-
-                if ( !isFocused ) return false;         isFocused = false
-
-                return super.mouseReleased( mouseX, mouseY, button )
+                value = volume();       updateMessage()
 
             }
 
-            override fun onClick( mouseX: Double, mouseY: Double ) {
+            private fun visible(): Boolean {
 
-                if ( !visible ) return;         isFocused = true
+                val entity = musicPlayer.blockEntity!!.entity!!
 
-                super.onClick( mouseX, mouseY )
+                return musicPlayer.hasInput() && !isMuted(entity)
 
             }
 
-            override fun updateMessage() { message = Text.of("$title: $valueText%") }
+            private fun volume(): Double { return settings().getDouble("Volume") }
+
+            private fun nbt(): NbtCompound { return NBT.get( floppy() ) }
+
+            private fun settings(): NbtCompound {
+
+                return FloppyDisk.settings( floppy(), player() )
+
+            }
+
+            private fun floppy(): ItemStack { return musicPlayer.item(0) }
+
+            fun tick() { visible = visible();        check() }
+
+            private fun check() {
+
+                if ( !visible || value == volume() ) return
+
+                value = volume();       updateMessage()
+
+            }
 
             override fun applyValue() {
 
-                val nbt = NBT.get(floppy);       val value1 = value * scale
+                settings().putDouble( "Volume", value )
 
-                if ( nbt.getFloat(key).toDouble() == value1 && init ) return
-
-                val value2 = value1.toFloat();      init = true
-
-                nbt.putFloat( key, value2 );     networkNBT(nbt)
-
-                setValueText()
+                NBT.sendNBT( nbt() )
 
             }
 
-            override fun render( matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float ) {
+            override fun format( value: Double ): String {
 
-                super.render( matrices, mouseX, mouseY, delta )
+                val title = Translations.volume
 
-                floppy = blockEntity.getStack(16)
+                val i = ( value * 100 ).roundToInt()
 
-                visible = !floppy.isEmpty;     if ( !visible ) return
-
-                visible = musicPlayer.inputExists() && !isMuted( blockEntity.entity!! )
-
-                if ( !musicPlayer.isFormerPlayer() && key == "Rate" ) visible = false
-
-                check(floppy)
-
-            }
-
-            private fun setValueText() { valueText = ( value * scale * 100 ).roundToInt() }
-
-            private fun check(stack: ItemStack) {
-
-                val nbt = NBT.get(stack);     val path = nbt.getString("Path")
-
-                val isMidi = path.endsWith(".mid")
-
-                if ( isMidi && key != "Rate" ) {
-                    key = "Rate";      title = rateTitle
-                    scale = 2f;        update()
-                }
-
-                if ( !isMidi && key != "Volume" ) {
-                    key = "Volume";      title = volumeTitle
-                    scale = 1f;        update()
-                }
-
-            }
-
-            private fun update() {
-
-                value = getValue() / scale
-
-                applyValue();    updateMessage()
-
-            }
-
-            private fun getValue(): Double {
-
-                return NBT.get(floppy).getFloat(key).toDouble()
+                return "$title: $i%"
 
             }
 

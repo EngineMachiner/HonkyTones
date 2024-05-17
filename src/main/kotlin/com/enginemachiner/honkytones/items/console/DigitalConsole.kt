@@ -1,10 +1,9 @@
 package com.enginemachiner.honkytones.items.console
 
-import com.enginemachiner.honkytones.*
-import com.enginemachiner.honkytones.NBT.trackHand
+import com.enginemachiner.harmony.*
+import com.enginemachiner.harmony.NBT.trackHand
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.screen.NamedScreenHandlerFactory
@@ -14,11 +13,11 @@ import net.minecraft.util.Hand
 import net.minecraft.util.TypedActionResult
 import net.minecraft.world.World
 
-class DigitalConsole : Item( defaultSettings().maxDamage(6) ), StackMenu {
+class DigitalConsole : Item(settings), StackScreen {
 
     override fun use( world: World, user: PlayerEntity, hand: Hand ): TypedActionResult<ItemStack> {
 
-        val stack = user.getStackInHand(hand);        val canOpen = canOpenMenu( user, stack )
+        val stack = user.getStackInHand(hand);        val canOpen = canOpenScreen( user, stack )
 
         val action = TypedActionResult.pass(stack);     if ( world.isClient || !canOpen ) return action
 
@@ -36,37 +35,40 @@ class DigitalConsole : Item( defaultSettings().maxDamage(6) ), StackMenu {
 
     override fun trackTick( stack: ItemStack, slot: Int ) { trackHand(stack) }
 
-    override fun inventoryTick(
-        stack: ItemStack, world: World, entity: Entity, slot: Int, selected: Boolean
-    ) {
+    override fun inventoryTick( stack: ItemStack, world: World, entity: Entity, slot: Int, selected: Boolean ) {
 
-        super.inventoryTick( stack, world, entity, slot, selected )
+        super.inventoryTick(stack, world, entity, slot, selected)
 
-        val nbt = NBT.get(stack)
-
-        if ( world.isClient || !nbt.contains("damage") ) return
-
-        entity as PlayerEntity;         nbt.remove("damage")
-
-        stack.damage( 1, entity ) { breakEquipment( entity, stack ) }
+        checkDamage(stack, world, entity)
 
     }
 
     fun createMenu(stack: ItemStack): NamedScreenHandlerFactory {
 
-        val title = Translation.item("digital_console")
+        val factory = DigitalConsoleScreenHandler.factory(stack)
+        val text = Text.of("Digital Console Screen")
 
-        return SimpleNamedScreenHandlerFactory(
+        return SimpleNamedScreenHandlerFactory( factory, text )
 
-            {
-                syncID: Int, playerInventory: PlayerInventory, _: PlayerEntity ->
+    }
 
-                DigitalConsoleScreenHandler( stack, syncID, playerInventory )
-            },
+    private fun checkDamage( stack: ItemStack, world: World, entity: Entity ) {
 
-            Text.of("§f$title")
+        val nbt = NBT.get(stack);       val damage = world.isClient || !nbt.contains("damageStack")
 
-        )
+
+        if (damage) return;             entity as PlayerEntity
+
+
+        stack.damage( 1, entity ) { breakEquipment( entity, stack ) }
+
+        nbt.remove("damageStack")
+
+    }
+
+    private companion object {
+
+        val settings: Settings = modItemSettings().maxDamage(6)
 
     }
 

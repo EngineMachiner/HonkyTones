@@ -1,82 +1,89 @@
 package com.enginemachiner.honkytones.items.console
 
-import com.enginemachiner.honkytones.*
+import com.enginemachiner.harmony.*
 import com.enginemachiner.honkytones.Init.Companion.directories
-import com.enginemachiner.honkytones.NBT.networkNBT
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
-import net.minecraft.client.gui.Drawable
+import com.enginemachiner.honkytones.MidiChannelField
 import net.minecraft.client.gui.screen.Screen
-import net.minecraft.client.gui.widget.ButtonWidget
-import net.minecraft.client.gui.widget.TextFieldWidget
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.text.Text
-import javax.sound.midi.*
 
-@Environment(EnvType.CLIENT)
-class RecordingScreen( private val screen: DigitalConsoleScreen ) : Screen( Text.of("RecordingScreen") ) {
+// @Environment(EnvType.CLIENT)
+class RecordingScreen( private val lastScreen: DigitalConsoleScreen ) : Screen( Text.of("Recording Screen") ) {
 
-    private val stack = screen.screenHandler.stack
+    private var pathTitle: PathText? = null
+    private val channelTitle = RenderText { it.setPos(channelField);      it.addPos( -68f, 3f ) }
 
-    private var fileNameField: TextFieldWidget? = null
+    private var pathField: TextField? = null
     private var channelField: MidiChannelField? = null
-    private var yesButton: ButtonWidget? = null
-    private var noButton: ButtonWidget? = null
+    private var recordButton: Button? = null
+    private var cancelButton: Button? = null
+
+    private var widgetWidth = 0f
 
     override fun shouldPause(): Boolean { return false }
 
+    private fun addChildren() {
+
+        val widgets = setOf( pathField, channelField, recordButton, cancelButton )
+
+        widgets.forEach { addDrawableChild(it) }
+
+    }
+
+    private fun path(): String {
+
+        var path = pathField!!.text
+
+        if ( !path.endsWith(".mid") ) path += ".mid"
+
+        return path
+
+    }
+
+    private fun channel(): Int { return channelField!!.text.toInt() - 1 }
+
+    private fun record() {
+
+        val screen = lastScreen
+
+        close();       channelField!!.checkField()
+
+        screen.path = path();       screen.channel = channel()
+
+        screen.box!!.check();       screen.record()
+
+    }
+
     override fun init() {
 
-        loadTranslations()
+        widgetWidth = width * 0.125f;        val w = widgetWidth
 
-        val x = ( width * 0.125f ).toInt()
-        val y = ( height * 0.08f * 1.5f ).toInt()
 
-        val w = ( width * 0.75f ).toInt()
-        val h = ( 240 * 0.08f ).toInt()
+        var x = width * 0.5f
 
-        val w2 = ( w * 0.35f ).toInt()
+        pathField = TextField( x, height * 0.25f, width * 0.75f, 20f, "Path Field", textRenderer ) { it.setMaxLength(160) }
 
-        fileNameField = TextFieldWidget( textRenderer, x, y, w, h, Text.of("File Field") )
+        pathTitle = PathText(pathField!!) { it.init( Translations.fileName, textRenderer ) }
 
-        fileNameField!!.setMaxLength(160);      addSelectableChild(fileNameField)
+        val pathField = pathField!!
 
-        val w4 = w * 0.075f
-        channelField = MidiChannelField( textRenderer,
-            ( x + w4 - w4 * 0.5f + w2 * 1.875 ).toInt(), y + 4 * h, w4.toInt(), h,
-        )
 
-        addSelectableChild(channelField)
+        channelField = MidiChannelField( width * 0.325f, pathField.y + 35f, 20f, 15f, "Midi Channel Field", textRenderer )
 
-        yesButton = createButton( x, y, 0f, 0f, w, h, w2, 0f ) {
+        channelTitle.init( Translations.channel, textRenderer )
 
-            client!!.setScreen(screen)
 
-            screen.isRecording = true;          screen.recordCheckbox!!.onPress()
+        x += pathField.width * 0.5f - w * 1.5f
 
-            var fileName = fileNameField!!.text
+        recordButton = Button( x, pathField.y + 35f, w, 20f, Translations.record ) { record() }
 
-            if ( !fileName.endsWith(".mid") ) fileName += ".mid"
 
-            screen.recordingFileName = fileName;        sequencer!!.start()
+        x += w + 1f
 
-            screen.channel = channelField!!.text.toInt() - 1
+        cancelButton = Button( x, pathField.y + 35f, w, 20f, Translations.cancel ) { close() }
 
-            val nbt = NBT.get(stack);       nbt.putBoolean( "damage", true )
 
-            networkNBT(nbt)
-
-        }
-
-        yesButton!!.message = Text.of(startTitle)
-
-        addSelectableChild(yesButton)
-
-        noButton = createButton( x, y, - w * 0.38f, 0f, w, h, w2, 0f ) { close() }
-
-        noButton!!.message = Text.of(cancelTitle)
-
-        addSelectableChild(noButton)
+        addChildren()
 
     }
 
@@ -86,55 +93,47 @@ class RecordingScreen( private val screen: DigitalConsoleScreen ) : Screen( Text
 
         renderBackground(matrices);         super.render( matrices, mouseX, mouseY, delta )
 
-        children().forEach { it as Drawable;     it.render( matrices, mouseX, mouseY, delta ) }
+        val renderTexts = setOf( channelTitle, pathTitle )
 
-        var overwrite = "";       var filePath = fileNameField!!.text
-
-        if ( !filePath.endsWith(".mid") ) filePath += ".mid"
-
-        val path = directories["midis"]!!.path + "/$filePath"
-
-        if ( ModFile(path).isFile ) overwrite = "($overwriteTitle)"
-
-        textRenderer.draw( matrices, "$fileNameTitle: $overwrite", fileNameField!!.x.toFloat(), fileNameField!!.y.toFloat() - 12, 0xFFFFFF )
-
-        textRenderer.draw( matrices, "$channelTitle:", channelField!!.x.toFloat(), channelField!!.y.toFloat() - 12, 0xFFFFFF )
+        renderTexts.forEach { it!!.render(matrices) }
 
     }
 
-    override fun close() { client!!.setScreen(screen);  screen.willRecord = false }
+    override fun close() { client!!.setScreen(lastScreen) }
 
-    private fun loadTranslations() {
+    private companion object {
 
-        if (translationsLoaded) return;     translationsLoaded = true
+        object Translations {
 
-        fileNameTitle = Translation.item("gui.file.name")
-        cancelTitle = Translation.item("gui.cancel")
-        startTitle = Translation.item("gui.file.start")
-        channelTitle = Translation.item("gui.file.channel")
-        overwriteTitle = Translation.item("gui.file.overwrite")
+            val fileName = Translation.item("gui.file.name")
+            val cancel = Translation.item("gui.cancel")
+            val record = Translation.item("gui.file.record")
+            val channel = Translation.item("gui.file.channel")
+            val overwrite = Translation.item("gui.file.overwrite")
 
-    }
+        }
 
-    companion object {
+        class PathText(
 
-        private var fileNameTitle = "";     private var cancelTitle = ""
-        private var startTitle = "";        private var channelTitle = ""
-        private var overwriteTitle = "";    private var translationsLoaded = false
+            private val pathField: TextField,       init: (RenderText) -> Unit
 
-        var sequencer: Sequencer? = null
+        ) : RenderText() {
 
-        private var sequence = Sequence( Sequence.PPQ, 10 )
+            init { init(this);      setPos(pathField);      y -= height() * 1.25f + 1 }
 
-        init { init() }
+            override fun render( matrices: MatrixStack, color: Int ) {
 
-        private fun init() {
+                val name = pathField.text
+                val directory = directories["midis"]!!.path
+                val path = "$directory/$name"
 
-            if ( !Midi.hasSystemSequencer() ) return
+                val isFile = ModFile(path).isFile
 
-            sequencer = MidiSystem.getSequencer();      val sequencer = sequencer!!
+                if (isFile) text += " (${ Translations.overwrite })"
 
-            if ( !sequencer.isOpen ) sequencer.open();      sequencer.sequence = sequence
+                super.render(matrices, color)
+
+            }
 
         }
 

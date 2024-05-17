@@ -17,18 +17,10 @@
 	"environment": "*",
 	"entrypoints": {
 
-		"main": [
-			"com.enginemachiner.honkytones.Init",
-			"com.enginemachiner.honkytones.Particles"
-		],
+		"fabric-datagen": ["com.enginemachiner.honkytones.DataGen"],
 
-		"client": [
-			"com.enginemachiner.honkytones.Init",
-			"com.enginemachiner.honkytones.Particles",
-			"com.enginemachiner.honkytones.Projectiles"
-		],
-
-		"server": [ "com.enginemachiner.honkytones.Commands" ]
+		"main": ["com.enginemachiner.honkytones.Init"],
+		"client": ["com.enginemachiner.honkytones.Init"]
 
 	},
 

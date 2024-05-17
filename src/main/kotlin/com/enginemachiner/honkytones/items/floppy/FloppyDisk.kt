@@ -1,14 +1,13 @@
 package com.enginemachiner.honkytones.items.floppy
 
-import com.enginemachiner.honkytones.*
-import com.enginemachiner.honkytones.NBT.keepDisplay
-import com.enginemachiner.honkytones.NBT.networkNBT
-import com.enginemachiner.honkytones.NBT.trackPlayer
+import com.enginemachiner.harmony.*
+import com.enginemachiner.harmony.NBT.saveDisplay
+import com.enginemachiner.harmony.NBT.sendNBT
+import com.enginemachiner.harmony.NBT.trackPlayer
+import com.enginemachiner.honkytones.YTDLP
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
@@ -19,35 +18,39 @@ import net.minecraft.util.TypedActionResult
 import net.minecraft.world.World
 
 // TODO: I want different color floppies.
-class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMenu {
+class FloppyDisk : Item( modItemSettings().maxDamage( damageSeed() ) ), StackScreen {
 
     override fun getSetupNBT(stack: ItemStack): NbtCompound {
 
         val nbt = NbtCompound()
 
-        nbt.putString( "Path", "" );      nbt.putInt( "ID", stack.hashCode() )
+        nbt.put( "Settings", NbtCompound() ) // Clients settings.
 
-        // Midi file data.
-        nbt.putFloat( "Rate", 1f );       nbt.putInt( "timesWritten", 0 )
+        nbt.putString( "Path", "" );        nbt.putInt( "ID", stack.hashCode() )
 
-        // Audio stream data.
-        nbt.putFloat( "Volume", 1f );     return nbt
+        nbt.putInt( "timesWritten", 0 )
+
+        return nbt
 
     }
 
-    override fun trackTick( stack: ItemStack, slot: Int ) { trackPlayer(stack);     trackDamage(stack) }
+    override fun trackTick( stack: ItemStack, slot: Int ) {
+
+        trackPlayer( stack, "Host" );     trackDamage(stack)
+
+    }
 
     override fun inventoryTick( stack: ItemStack, world: World, entity: Entity, slot: Int, selected: Boolean ) {
 
         super.inventoryTick( stack, world, entity, slot, selected )
 
-        if ( !world.isClient ) return;            queryTick(stack)
+        if ( !world.isClient ) return;            titleQuery(stack)
 
     }
 
     override fun use( world: World, user: PlayerEntity, hand: Hand ): TypedActionResult<ItemStack> {
 
-        val stack = user.getStackInHand(hand);            val canOpen = canOpenMenu( user, stack )
+        val stack = user.getStackInHand(hand);              val canOpen = canOpenScreen( user, stack )
 
         val action = super.use( world, user, hand );        if ( !world.isClient || !canOpen ) return action
 
@@ -57,25 +60,31 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
 
     companion object : ModID {
 
-        private val actions = listOf( "interrupted", "onQuery" )
+        private val actions = listOf( "Interrupted", "onFetch" )
 
         private val coroutine = CoroutineScope( Dispatchers.IO )
 
         private fun damageSeed(): Int { return ( 2..3 ).random() }
 
-        fun interrupt(stack: ItemStack) {
+        fun settings( stack: ItemStack, player: PlayerEntity ): NbtCompound {
 
-            val nbt = NBT.get(stack);       if ( !nbt.contains("onQuery") ) return
+            val uuid = player.uuidAsString
 
-            nbt.putBoolean( "interrupted", true )
+            val settings = NBT.get(stack).get("Settings") as NbtCompound
+
+            if ( settings.contains(uuid) ) return settings.get(uuid) as NbtCompound
+
+            val new = NbtCompound();    settings.put( uuid, new )
+
+            new.putDouble( "Volume", 1.0 );     return new
 
         }
 
-        fun missingMessage(name: String): String {
+        fun interrupt(stack: ItemStack) {
 
-            val missingMessage = Translation.get("error.midi_file_missing")
+            val nbt = NBT.get(stack);       if ( !nbt.contains("onFetch") ) return
 
-            return "$name $missingMessage"
+            nbt.putBoolean( "Interrupted", true )
 
         }
 
@@ -93,14 +102,17 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
 
     }
 
-    /* TODO: This interrupt query thing keeps requesting twice.
-    *  To replicate set a link, interrupt and spam open a menu. */
+    /* Why does this function exec twice? */
     /** Queries the source title when requested. */
-    private fun queryTick(stack: ItemStack) {
+    private fun titleQuery(stack: ItemStack) {
+
+        if ( !YTDLP.exists() ) return
+
 
         val holder = stack.holder as PlayerEntity
 
         val nbt = NBT.get(stack);       var noAction = true
+
 
         for ( name in actions ) noAction = noAction && !nbt.contains(name)
 
@@ -108,25 +120,32 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
 
         for ( name in actions ) if ( nbt.contains(name) ) nbt.remove(name)
 
-        if ( !appExists( ytdlPath() ) ) return
-
         coroutine.launch {
 
             Thread.currentThread().name = "HonkyTones Floppy thread"
 
             val path = nbt.getString("Path")
-            val info = infoRequest(path) ?: return@launch
 
-            val setTitle = stack.isEmpty || !holder.inventory.contains(stack)
-                    || nbt.contains("hasRequestDisplay")
+            val info = YTDLP(path).info ?: return@launch
 
-            if (setTitle) return@launch
+            val list = inventoryList( holder.inventory )
+
+
+            val stack2 = list.find { NBT.has(it) && NBT.id(it) == NBT.id(stack) }
+
+            if ( stack2 == null ) return@launch
+
+
+            val nbt2 = NBT.get(stack2);     val path2 = nbt2.getString("Path")
+
+            if ( path != path2 ) return@launch
+
 
             stack.setCustomName( Text.of( info.title ) )
 
-            keepDisplay( stack, nbt );  closeScreen()
+            saveDisplay( stack, nbt );      closeScreen()
 
-            nbt.putBoolean( "hasRequestDisplay", true );    networkNBT(nbt)
+            nbt.putBoolean( "displaySet", true );    sendNBT(nbt)
 
         }
 
@@ -134,13 +153,12 @@ class FloppyDisk : Item( defaultSettings().maxDamage( damageSeed() ) ), StackMen
 
     private fun closeScreen() {
 
-        val screen = currentScreen()
+        val screen = currentScreen() ?: return
 
-        if ( screen == null || screen.shouldPause() ) return
+        if ( screen.shouldPause() ) return
 
-        val id = modID("close_screen")
 
-        ClientPlayNetworking.send( id, PacketByteBufs.empty() )
+        val id = modID("close_screen");     Sender(id).toServer()
 
     }
 

@@ -2,9 +2,12 @@ package com.enginemachiner.honkytones.mixin.player;
 
 import com.enginemachiner.honkytones.items.floppy.FloppyDisk;
 import com.enginemachiner.honkytones.items.instruments.Instrument;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,7 +18,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin( PlayerEntity.class )
-public class PlayerEntityMixin {
+public abstract class PlayerEntityMixin extends LivingEntity {
+
+    protected PlayerEntityMixin( EntityType<? extends LivingEntity> entityType, World world ) {
+        super( entityType, world );
+    }
 
     @Unique
     private static final String method = "dropItem(Lnet/minecraft/item/ItemStack;ZZ)Lnet/minecraft/entity/ItemEntity;";
@@ -37,16 +44,13 @@ public class PlayerEntityMixin {
     @Inject( at = @At("HEAD"), method = "onDeath" )
     private void honkyTonesStopInstrumentsOnDeath( DamageSource damageSource, CallbackInfo info ) {
 
-        PlayerEntity player = (PlayerEntity) (Object) this;
-        ItemStack stack = player.getMainHandStack();
-        World world = player.world;
+        ItemStack stack = getMainHandStack();   Item item = stack.getItem();
 
-        if ( !world.isClient ) return;
+        boolean isInstrument = item instanceof Instrument;
 
-        if ( stack.getItem() instanceof Instrument instrument ) {
-            instrument.onStoppedUsing( stack, world, player, 0 );
-        }
+        if ( !isInstrument ) return;
 
+        item.onStoppedUsing( stack, world, this, 0 );
 
     }
 

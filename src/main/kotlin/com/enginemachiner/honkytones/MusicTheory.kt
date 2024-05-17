@@ -1,13 +1,14 @@
 package com.enginemachiner.honkytones
 
-import com.enginemachiner.honkytones.items.instruments.*
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
+import com.enginemachiner.honkytones.items.instruments.DrumSet
+import com.enginemachiner.honkytones.items.instruments.Instrument
+import com.enginemachiner.honkytones.items.instruments.Keyboard
+import com.enginemachiner.honkytones.items.instruments.SFX
 import kotlin.reflect.KClass
 
 object MusicTheory {
 
-    val instrumentFiles = mutableMapOf< KClass<out Instrument>, Set<String> >()
+    val instrumentFiles = mutableMapOf< KClass< out Instrument >, Set<String> >()
 
     private val notes = mutableSetOf("C","D","E","F","G","A","B")
 
@@ -27,7 +28,7 @@ object MusicTheory {
     fun shift( a: Int, b: Int ): Int { if (a < b) return a + 12;   return a }
 
     /** Get the note position in two octaves. */
-    @Environment(EnvType.CLIENT)
+    // @Environment(EnvType.CLIENT)
     fun index(s: String): Int {
 
         for ( note in twoOctaves ) {
@@ -72,15 +73,15 @@ object MusicTheory {
 
         val set1 = builder( octave, ( 3..5 ).toSet() ) // Keyboard set.
 
-        val set2 = builder( mutableSetOf( "C4-E4_", "E4-G4", "A4_-B4" ), ( 4..5 ).toSet() ) as MutableSet<String>
+        val set2 = builder( mutableSetOf( "C4-E4_", "E4-G4", "A4_-B4" ), ( 4..5 ).toSet() )
         set2.add("C6")
 
         // Based for percussion.
-        val set3 = builder( octave, setOf(2) ) as MutableSet<String>
+        val set3 = builder( octave, setOf(2) )
         for ( n in mutableSetOf( "C3", "D3_", "D3", "E3_" ) ) set3.add(n)
 
         // SFX.
-        val set4 = builder( octave, ( 3..6 ).toSet() ) as MutableSet<String>
+        val set4 = builder( octave, ( 3..6 ).toSet() )
         for ( n in mutableSetOf( "C3", "D3_", "D3", "A4" ) ) set4.remove(n)
         set4.add("C7")
 
@@ -97,7 +98,7 @@ object MusicTheory {
     }
 
     /** Parse and build according to template and range. **/
-    private fun builder( template: Set<String>, range: Set<Int> ): Set<String>{
+    private fun builder( template: Set<String>, range: Set<Int> ): MutableSet<String>{
 
         val output = mutableSetOf<String>()
 

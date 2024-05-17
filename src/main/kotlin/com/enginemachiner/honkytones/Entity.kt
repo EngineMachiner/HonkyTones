@@ -1,29 +1,14 @@
 package com.enginemachiner.honkytones
 
+import com.enginemachiner.harmony.Particles
+import com.enginemachiner.harmony.world
 import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlockEntity
 import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerEntity
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
-import net.minecraft.block.BlockWithEntity
-import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.particle.Particle
-import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.math.Vec3d
 import kotlin.reflect.KClass
-
-/** Searches a client world entity by its id. Mostly used on networking. */
-@Environment(EnvType.CLIENT)
-fun entity(id: Int): Entity? { return world()!!.getEntityById(id) }
-
-@Environment(EnvType.CLIENT)
-fun player(): ClientPlayerEntity? { return client().player }
-
-@Environment(EnvType.CLIENT)
-fun world(): ClientWorld? { return client().world }
-
-fun addVelocity( entity: Entity, delta: Vec3d ) { entity.addVelocity( delta.x, delta.y, delta.z ) }
 
 /** Entities that can be muted. */
 interface CanBeMuted {
@@ -70,10 +55,10 @@ interface CanBeMuted {
 
     }
 
-    @Environment(EnvType.CLIENT)
+    // @Environment(EnvType.CLIENT)
     private fun spawnMuteParticle(entity: Entity): Particle {
 
-        val particle = Particles.spawnOne( Particles.MUTE, Vec3d.ZERO ) as MuteParticle
+        val particle = Particles.spawnOne( ModParticles.MUTE, Vec3d.ZERO ) as MuteParticle
 
         particle.entity = entity;       return particle
 
@@ -83,26 +68,23 @@ interface CanBeMuted {
 
         val blacklist = mutableMapOf<Entity, Particle>()
 
-        fun isMuted(entity: Entity): Boolean {
+        fun isMuted( entity: Entity ): Boolean {
 
             if ( entity.isRemoved ) return false
 
-            if ( entity is MusicPlayerEntity ) {
 
-                val musicPlayer = world()!!.getBlockEntity( entity.blockPos )
+            if ( entity !is MusicPlayerEntity ) blacklist.contains(entity)
 
-                if ( musicPlayer !is MusicPlayerBlockEntity ) return true
 
-                return !musicPlayer.isListening
+            val world = world()!!;       val pos = entity.blockPos
 
-            }
+            val musicPlayer = MusicPlayerBlockEntity.get( world, pos ) ?: return true
 
-            return blacklist.contains(entity)
+
+            return !musicPlayer.isListening
 
         }
 
     }
 
 }
-
-abstract class BlockWithEntity(settings: Settings) : BlockWithEntity(settings), ModID

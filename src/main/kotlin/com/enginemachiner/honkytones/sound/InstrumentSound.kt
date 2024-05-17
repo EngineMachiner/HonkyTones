@@ -1,36 +1,156 @@
 package com.enginemachiner.honkytones.sound
 
-import com.enginemachiner.honkytones.*
+import com.enginemachiner.harmony.*
 import com.enginemachiner.honkytones.CanBeMuted.Companion.isMuted
-import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerEntity
 import com.enginemachiner.honkytones.items.instruments.Instrument
 import com.enginemachiner.honkytones.items.instruments.NoFading
 import com.enginemachiner.honkytones.items.instruments.PlayCompletely
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.fabricmc.fabric.api.networking.v1.PacketSender
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.network.ClientPlayNetworkHandler
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
-import net.minecraft.network.PacketByteBuf
-import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.util.math.Vec3d
 import kotlin.math.pow
 
-@Environment(EnvType.CLIENT)
-open class InstrumentSound(path: String) : StackSound(path) {
+object InstrumentSoundNetworking : ModID {
+
+    override fun className(): String {
+
+        return super.className().replace( "_networking", "" )
+
+    }
+
+    private fun inRange( addDistance: Double, current: PlayerEntity, sender: PlayerEntity ): Boolean {
+
+        return current.blockPos.isWithinDistance( sender.pos, Sound.MIN_DISTANCE + addDistance )
+                && isNotSender(current, sender)
+
+    }
+
+    private fun canPlay( current: PlayerEntity, sender: PlayerEntity? ): Boolean {
+        return inRange( 0.0, current, sender!! )
+    }
+
+    private fun canFadeOut( current: PlayerEntity, sender: PlayerEntity? ): Boolean {
+        return inRange( 1.0, current, sender!! )
+    }
+
+    private fun findSound( list: List<InstrumentSound?>, path: String, semitones: Int ): InstrumentSound {
+
+        return list.filterNotNull().find { it.path == path && it.semitones() == semitones }!!
+
+    }
+
+    private fun sound( netStack: ItemStack, path: String, semitones: Int ): InstrumentSound {
+
+        val instrument = netStack.item as Instrument
+
+
+        val sounds = instrument.stackSounds(netStack)
+
+        val notes = sounds.notes
+
+
+        return findSound( notes, path, semitones )
+
+    }
+
+    fun networking() {
+
+        val play = Receiver( netID("play") ) { sent, send ->
+
+            send.write( sent.readString() ).write( sent.readItemStack() )
+                .write( sent.readFloat() ).write( sent.readInt() )
+                .write( sent.readInt() )
+
+        }
+
+        play.registerBroadcast( ::canPlay )
+
+
+        val stop = Receiver( netID("stop") ) { sent, send ->
+
+            send.write( sent.readString() ).write( sent.readItemStack() )
+                .write( sent.readInt() )
+
+        }
+
+        stop.registerBroadcast( ::canFadeOut )
+
+
+        if ( !isClient() ) return
+
+        /*
+
+            Using the item stack sent to directly play the sounds is wrong because each time
+            there is a new stack that would try to get and create stack sounds.
+
+            It wastes resources.
+
+            To avoid that I'll store them and search them by an NBT ID, so they can be reused.
+
+        */
+
+
+        play.register { buf ->
+
+            val path = buf.readString();        val stackSent = buf.readItemStack()
+            val maxVolume = buf.readFloat();    val semitones = buf.readInt()
+            val id = buf.readInt()
+
+            client().send {
+
+                val holder = entity(id) ?: return@send
+
+                if ( isMuted(holder) ) return@send
+
+
+                val stack = Instrument.find(stackSent)
+
+                val sound = sound( stack, path, semitones )
+
+
+                stack.holder = holder;              sound.shouldNetwork = false
+
+                sound.maxVolume = maxVolume;        sound.play(stack)
+
+            }
+
+        }
+
+
+        stop.register { buf ->
+
+            val path = buf.readString();        val sentStack = buf.readItemStack()
+            val semitones = buf.readInt()
+
+            client().send {
+
+                val stack = Instrument.find(sentStack)
+
+                val sound = sound( stack, path, semitones )
+
+
+                if ( !sound.isPlaying() ) return@send;      sound.fadeOut()
+
+            }
+
+        }
+
+    }
+
+}
+
+// @Environment(EnvType.CLIENT)
+open class InstrumentSound(path: String) : StackSound(path), ModID {
 
     constructor( path: String, semitones: Int ) : this(path) { this.semitones = semitones }
 
-    private var semitones = 0
+    private var semitones = 0;      var isManual = false
 
-    public override fun setData(stack: ItemStack) {
+    override fun setData(stack: ItemStack) {
 
         super.setData(stack);       val nbt = NBT.get(stack)
 
-        maxVolume = nbt.getFloat("Volume")
+        if ( !isManual ) maxVolume = nbt.getFloat("Volume")
 
         if ( semitones != 0 ) pitch = 2f.pow( semitones / 12f )
 
@@ -44,34 +164,28 @@ open class InstrumentSound(path: String) : StackSound(path) {
 
     }
 
-    override fun playOnClients() {
+    override fun sendPlay() {
 
-        var netID = InstrumentSoundNetworking.netID("play")
+        val netID = netID("play");     val id = entity!!.id
 
-        if ( entity is MusicPlayerEntity ) netID = InstrumentSoundNetworking.netID("play_on_player")
+        val sender = Sender(netID) {
 
-        val buf = PacketByteBufs.create()
+            it.write(path).write(stack).write( maxVolume ).write( semitones )
+                .write(id)
 
-        buf.writeString(path);          buf.writeItemStack(stack)
-        buf.writeFloat(maxVolume);      buf.writeInt(semitones)
-        buf.writeInt( entity!!.id )
+        }
 
-        ClientPlayNetworking.send( netID, buf )
+        sender.toServer()
 
     }
 
-    override fun fadeOutOnClients() {
+    override fun sendFadeOut() {
 
-        var netID = InstrumentSoundNetworking.netID("stop")
+        val id = netID("stop")
 
-        if ( entity is MusicPlayerEntity ) netID = InstrumentSoundNetworking.netID("stop_on_player")
+        val sender = Sender(id) { it.write(path).write(stack).write(semitones) }
 
-        val buf = PacketByteBufs.create()
-
-        buf.writeString(path);          buf.writeItemStack(stack)
-        buf.writeInt(semitones)
-
-        ClientPlayNetworking.send( netID, buf )
+        sender.toServer()
 
     }
 
@@ -81,154 +195,16 @@ open class InstrumentSound(path: String) : StackSound(path) {
 
 }
 
-@Environment(EnvType.CLIENT)
-class NoteProjectileSound( path: String, pos: Vec3d, semitones: Int ) : InstrumentSound(path) {
+// @Environment(EnvType.CLIENT)
+class NoteProjectileSound( sound: InstrumentSound, pos: Vec3d ) : InstrumentSound( sound.path ) {
 
-    init { this.pos = pos;     if ( semitones != 0 ) pitch = 2f.pow( semitones / 12f ) }
+    init {
 
-    override fun playOnClients() {};    override fun fadeOutOnClients() {}
+        val semitones = sound.semitones();      this.pos = pos
 
-}
+        if ( semitones != 0 ) pitch = 2f.pow( semitones / 12f )
 
-object InstrumentSoundNetworking : ModID {
-
-    private fun playerFilter( current: ServerPlayerEntity, sender: ServerPlayerEntity ): Boolean { return current != sender }
-
-    private fun commonFilter( addDistance: Double, current: ServerPlayerEntity, sender: ServerPlayerEntity ): Boolean {
-        return current.blockPos.isWithinDistance( sender.pos, Sound.MIN_DISTANCE + addDistance ) && current != sender
-    }
-
-    private fun playFilter( current: ServerPlayerEntity, sender: ServerPlayerEntity ): Boolean {
-        return commonFilter( 0.0, current, sender )
-    }
-
-    private fun fadeOutFilter( current: ServerPlayerEntity, sender: ServerPlayerEntity ): Boolean {
-        return commonFilter( 1.0, current, sender )
-    }
-
-    private fun findSound( list: MutableList<InstrumentSound?>, path: String, semitones: Int ): InstrumentSound {
-
-        return list.filterNotNull().find { it.path == path && it.semitones() == semitones }!!
-
-    }
-
-    private fun findStack(netStack: ItemStack): ItemStack {
-
-        val stacks = Instrument.stacks
-
-        var stack = stacks.find { NBT.id(it) == NBT.id(netStack) }
-
-        if ( stack == null ) { stacks.add(netStack); stack = netStack }
-
-        return stack
-
-    }
-
-    fun networking() {
-
-         fun writePlayBuf( sentBuf: PacketByteBuf, nextBuf: PacketByteBuf ) {
-
-            nextBuf.writeString( sentBuf.readString() );       nextBuf.writeItemStack( sentBuf.readItemStack() )
-            nextBuf.writeFloat( sentBuf.readFloat() );         nextBuf.writeInt( sentBuf.readInt() )
-            nextBuf.writeInt( sentBuf.readInt() )
-
-        }
-
-        fun writeStopBuf( sentBuf: PacketByteBuf, nextBuf: PacketByteBuf ) {
-
-            nextBuf.writeString( sentBuf.readString() );       nextBuf.writeItemStack( sentBuf.readItemStack() )
-            nextBuf.writeInt( sentBuf.readInt() )
-
-        }
-
-        registerSpecialServerReceiver( netID("play"), ::writePlayBuf, ::playFilter )
-        registerSpecialServerReceiver( netID("stop"), ::writeStopBuf, ::fadeOutFilter )
-
-        registerSpecialServerReceiver( netID("play_on_player"), ::writePlayBuf, ::playerFilter )
-        registerSpecialServerReceiver( netID("stop_on_player"), ::writeStopBuf, ::playerFilter )
-
-        if ( !isClient() ) return
-
-        for ( netName in listOf( "play", "play_on_player" ) ) {
-
-            val id = netID(netName)
-
-            ClientPlayNetworking.registerGlobalReceiver(id) {
-
-                    client: MinecraftClient, _: ClientPlayNetworkHandler,
-                    buf: PacketByteBuf, _: PacketSender ->
-
-                val path = buf.readString();        val netStack = buf.readItemStack()
-                val maxVolume = buf.readFloat();    val semitones = buf.readInt()
-                val id = buf.readInt()
-
-                /*
-
-                 Using the netStack to play the sounds is wrong because each time
-                 there is a new stack instance / object that would try to get
-                 and create stack sounds, wasting resources. To avoid this I'll store
-                 them and search them by an NBT ID, so they can be reused.
-
-                 */
-
-                client.send {
-
-                    val holder = entity(id)
-
-                    if ( holder == null || isMuted(holder) ) return@send
-
-                    val stack = findStack(netStack)
-
-                    val instrument = stack.item as Instrument
-
-                    val notes = instrument.stackSounds(stack).notes
-                    val device = instrument.stackSounds(stack).deviceNotes
-
-                    var sound = findSound( notes, path, semitones )
-
-                    if ( sound.isPlaying() ) sound = findSound( device, path, semitones )
-
-                    stack.holder = holder;      sound.shouldNetwork = false
-
-                    sound.maxVolume = maxVolume;        sound.play(stack)
-
-                }
-
-            }
-
-        }
-
-        for ( netName in listOf( "stop", "stop_on_player" ) ) {
-
-            val id = netID(netName)
-            ClientPlayNetworking.registerGlobalReceiver(id) {
-
-                client: MinecraftClient, _: ClientPlayNetworkHandler,
-                buf: PacketByteBuf, _: PacketSender ->
-
-                val path = buf.readString();        val netStack = buf.readItemStack()
-                val semitones = buf.readInt()
-
-                client.send {
-
-                    val stack = findStack(netStack)
-
-                    val instrument = stack.item as Instrument
-
-                    val notes = instrument.stackSounds(stack).notes
-                    val device = instrument.stackSounds(stack).deviceNotes
-
-                    var sound = findSound( notes, path, semitones )
-
-                    if ( sound.isStopping() ) sound = findSound( device, path, semitones )
-
-                    if ( !sound.isPlaying() ) return@send;      sound.fadeOut()
-
-                }
-
-            }
-
-        }
+        shouldNetwork = false
 
     }
 

@@ -1,10 +1,8 @@
 package com.enginemachiner.honkytones.sound
 
-import com.enginemachiner.honkytones.canNetwork
-import com.enginemachiner.honkytones.client
-import com.enginemachiner.honkytones.modID
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
+import com.enginemachiner.harmony.canNetwork
+import com.enginemachiner.harmony.client
+import com.enginemachiner.harmony.modID
 import net.minecraft.client.sound.MovingSoundInstance
 import net.minecraft.client.sound.SoundInstance
 import net.minecraft.client.sound.SoundManager
@@ -15,18 +13,21 @@ import net.minecraft.sound.SoundEvent
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.registry.Registry
 
-@Environment(EnvType.CLIENT)
-open class FadingSound( val path: String ) : MovingSoundInstance(
+// @Environment(EnvType.CLIENT)
+open class FadingSound( open val path: String ) : MovingSoundInstance(
     SoundEvent( modID(path) ), SoundCategory.PLAYERS, SoundInstance.createRandom()
 ) {
 
-    // No clue why.
-    // Sounds get cutoff or something when the sound overlaps playing.
-    // I'm trying a workaround using timesStopped to fix that.
+    /*
+        No clue why.
+        Sounds get cutoff or something when the sound overlaps playing.
+        I'm trying a workaround using timesStopped to fix that.
+     */
 
     var entity: Entity? = null;         var maxVolume = 1f
+    var shouldNetwork = true;           private var canReplay = true
+
     private var fadeIn = false;         private var fadeOut = false
-    var shouldNetwork = true;           var canReplay = true
     private var timesStopped = 0;       private var volumeRate = maxVolume
 
     private var isPlaying = false;      protected var pos: Vec3d = Vec3d.ZERO
@@ -67,19 +68,19 @@ open class FadingSound( val path: String ) : MovingSoundInstance(
 
     }
 
-    open fun playOnClients() {};    open fun fadeOutOnClients() {}
+    open fun sendPlay() {};    open fun sendFadeOut() {}
 
     fun play() {
 
         if ( volume == 0f ) return;     if ( !fadeIn ) volume = maxVolume
 
-        if ( isPlaying() ) { stop();    timesStopped++ }
+        if ( isPlaying() ) { stop() }
 
         isPlaying = true;       getManager().play(this)
 
         if ( !canNetwork() || !shouldNetwork ) return
 
-        playOnClients()
+        sendPlay()
 
     }
 
@@ -101,7 +102,7 @@ open class FadingSound( val path: String ) : MovingSoundInstance(
 
         if ( !canNetwork() || !shouldNetwork ) return
 
-        fadeOutOnClients()
+        sendFadeOut()
         
     }
 
@@ -109,8 +110,6 @@ open class FadingSound( val path: String ) : MovingSoundInstance(
 
     fun isPlaying(): Boolean { return isPlaying }
     fun isStopping(): Boolean { return fadeOut }
-
-    fun addTimesStopped() { timesStopped++ }
 
     companion object {
 
@@ -120,7 +119,7 @@ open class FadingSound( val path: String ) : MovingSoundInstance(
 
 }
 
-@Environment(EnvType.CLIENT)
+// @Environment(EnvType.CLIENT)
 abstract class StackSound(path: String) : FadingSound(path) {
 
     var stack: ItemStack? = null

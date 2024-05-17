@@ -1,11 +1,13 @@
 package com.enginemachiner.honkytones.items.instruments
 
-import com.enginemachiner.honkytones.*
+import com.enginemachiner.harmony.NBT
+import com.enginemachiner.harmony.itemGroup
+import com.enginemachiner.harmony.modPrint
+import com.enginemachiner.harmony.player
+import com.enginemachiner.honkytones.GenericReceiver
 import com.enginemachiner.honkytones.items.storage.MusicalStorage
 import com.enginemachiner.honkytones.items.storage.MusicalStorageInventory
 import com.enginemachiner.honkytones.sound.InstrumentSound
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
@@ -14,7 +16,7 @@ import net.minecraft.util.collection.DefaultedList
 
 private val particles = Instrument.Companion.ActionParticles
 
-@Environment(EnvType.CLIENT)
+// @Environment(EnvType.CLIENT)
 class InstrumentReceiver( private val deviceID: String ) : GenericReceiver() {
 
     //** Adds the stacks that should be linked to the receiver. */
@@ -24,7 +26,7 @@ class InstrumentReceiver( private val deviceID: String ) : GenericReceiver() {
 
             val item = it.item
 
-            if ( item.group != itemGroup || list.contains(it) ) return@forEach
+            if ( item.group != itemGroup() || list.contains(it) || !it.hasNbt() ) return@forEach
 
             val nbt = NBT.get(it);          val hasTag = nbt.getString("MIDI Device") == deviceID
 
@@ -53,7 +55,9 @@ class InstrumentReceiver( private val deviceID: String ) : GenericReceiver() {
 
     override fun setData() {
 
-        val player = player()!!;         entity = player;       instruments = read(player)
+        val player = player()
+
+        entity = player;       instruments = read(player)
 
     }
 
@@ -75,7 +79,7 @@ class InstrumentReceiver( private val deviceID: String ) : GenericReceiver() {
 
             if ( ( 0..4 ).random() != 0 ) return
 
-            particles.clientSpawn( player, "device" )
+            particles.spawn( player, "device" )
 
         }
 

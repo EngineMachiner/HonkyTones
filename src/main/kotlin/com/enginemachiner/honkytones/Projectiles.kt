@@ -1,18 +1,10 @@
 package com.enginemachiner.honkytones
 
+import com.enginemachiner.harmony.*
 import com.enginemachiner.honkytones.items.instruments.Instrument
 import com.enginemachiner.honkytones.sound.NoteProjectileSound
-import net.fabricmc.api.ClientModInitializer
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.fabricmc.fabric.api.networking.v1.PacketSender
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricEntityTypeBuilder
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.client.render.*
 import net.minecraft.client.render.entity.EntityRenderer
 import net.minecraft.client.render.entity.EntityRendererFactory
@@ -20,8 +12,6 @@ import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.*
 import net.minecraft.entity.projectile.PersistentProjectileEntity
 import net.minecraft.item.ItemStack
-import net.minecraft.network.PacketByteBuf
-import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvent
 import net.minecraft.util.Identifier
@@ -34,17 +24,15 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
-class Projectiles : ClientModInitializer {
+object Projectiles {
 
-    override fun onInitializeClient() { NoteProjectileEntity.clientRegister() }
-
-    companion object { fun networking() { NoteProjectileEntity.networking() } }
+    fun register() { NoteProjectileEntity.register() }
 
 }
 
 class NoteProjectileEntity : PersistentProjectileEntity {
 
-    constructor( entityType: EntityType<out PersistentProjectileEntity>, world: World ) : super( entityType, world )
+    constructor( entityType: EntityType< out PersistentProjectileEntity >, world: World ) : super( entityType, world )
 
     constructor( world: World, entity: LivingEntity ) : super( Companion.type, entity, world )
 
@@ -60,7 +48,7 @@ class NoteProjectileEntity : PersistentProjectileEntity {
 
     }
 
-    @Environment(EnvType.CLIENT)
+    // @Environment(EnvType.CLIENT)
     val textureKey = ( 1..2 ).random()
 
     private var stack: ItemStack? = null;       private val color = randomColor()
@@ -101,7 +89,7 @@ class NoteProjectileEntity : PersistentProjectileEntity {
 
         val instrument = stack.item as Instrument
 
-        Instrument.Companion.ActionParticles.hit( entity, Particles.NOTE_IMPACT3, 2 )
+        Instrument.Companion.ActionParticles.hit( entity, ModParticles.NOTE_IMPACT3, 2 )
 
         chanceHit( instrument, entity );        damage = instrument.damage.toDouble()
 
@@ -131,20 +119,20 @@ class NoteProjectileEntity : PersistentProjectileEntity {
 
         if ( holder.offHandStack != stack ) return
 
-        var yaw = holder.yaw.toDouble();     yaw = degreeToRadians(yaw)
+        var yaw = holder.yaw.toDouble();     yaw = rad(yaw)
 
         val offset = Vec3d( cos(yaw), 0.0, sin(yaw) ).multiply(1.5)
         setPosition( pos.add(offset) )
 
     }
 
-    private fun playHitSound(hitEntity: Entity) {
+    private fun playHitSound( hitEntity: Entity ) {
 
-        val id = netID("hit_sound");        val players = world.players
+        val netID = netID("hit_sound");     val id = hitEntity.id
 
-        val buf = PacketByteBufs.create();      buf.writeItemStack(stack);      buf.writeInt( hitEntity.id )
+        val sender = Sender(netID) { it.write(stack).write(id) }
 
-        for ( player in players ) ServerPlayNetworking.send( player as ServerPlayerEntity, id, buf )
+        sender.toClients(world)
 
     }
 
@@ -178,31 +166,34 @@ class NoteProjectileEntity : PersistentProjectileEntity {
 
         private lateinit var type: EntityType<NoteProjectileEntity>
 
-        fun networking() {
+        private fun networking() {
+
 
             if ( !isClient() ) return
 
-            val id = netID("hit_sound")
-            ClientPlayNetworking.registerGlobalReceiver(id) {
 
-                client: MinecraftClient, _: ClientPlayNetworkHandler,
-                buf: PacketByteBuf, _: PacketSender ->
+            val id = netID("hit_sound")
+
+            Receiver(id).register { buf ->
 
                 val stack = buf.readItemStack();        val id = buf.readInt()
 
-                client.send {
+                client().send {
 
-                    val entity = entity(id) ?: return@send
-                    val instrument = stack.item as Instrument
+                    val entity = entity(id) ?: return@send;         val instrument = stack.item as Instrument
 
-                    val sound1 = instrument.stackSounds(stack).randomNote()
-                    val sound2 = NoteProjectileSound( sound1.path, entity.pos, sound1.semitones() )
 
-                    sound2.play(stack);      Timer( Random.nextInt(10) ) { sound2.fadeOut() }
+                    val instrumentSound = instrument.stackSounds(stack).randomNote()
+
+                    val sound = NoteProjectileSound( instrumentSound, entity.pos )
+
+
+                    sound.play(stack);      Timer( Random.nextInt(10) ) { sound.fadeOut() }
 
                 }
 
             }
+
 
         }
 
@@ -214,12 +205,20 @@ class NoteProjectileEntity : PersistentProjectileEntity {
 
             Registry.register( Registry.ENTITY_TYPE, classID(), type )
 
+            clientRegister();       networking()
+
         }
 
-        @Environment(EnvType.CLIENT)
-        fun clientRegister() { EntityRendererRegistry.register(type) { Renderer(it) } }
+        // @Environment(EnvType.CLIENT)
+        private fun clientRegister() {
 
-        @Environment(EnvType.CLIENT)
+            if ( !isClient() ) return
+
+            EntityRendererRegistry.register(type) { Renderer(it) }
+
+        }
+
+        // @Environment(EnvType.CLIENT)
         class Renderer( context: EntityRendererFactory.Context ) : EntityRenderer<NoteProjectileEntity>(context) {
 
             override fun getTexture( entity: NoteProjectileEntity ): Identifier {
@@ -270,16 +269,19 @@ class NoteProjectileEntity : PersistentProjectileEntity {
                 const val SCALE = 1.25f
 
                 private fun vertex(
-                    modelMatrix: Matrix4f, normalMatrix: Matrix3f, vertexConsumer: VertexConsumer,
-                    x: Float, y: Float, z: Float, u: Float, v: Float,
-                    normalX: Int, normalY: Int, normalZ: Int, light: Int,
-                    color: Vec3f
+
+                    model: Matrix4f, normal: Matrix3f, vertexConsumer: VertexConsumer,
+
+                    x: Float, y: Float, z: Float,       u: Float, v: Float,
+
+                    normalX: Int, normalY: Int, normalZ: Int,       light: Int, color: Vec3f
+
                 ) {
 
-                    vertexConsumer.vertex( modelMatrix, x, y, z )
+                    vertexConsumer.vertex( model, x, y, z )
                         .color( color.x.toInt(), color.y.toInt(), color.z.toInt(), 255 )
                         .texture( u, v ).overlay( OverlayTexture.DEFAULT_UV ).light(light)
-                        .normal( normalMatrix, normalX.toFloat(), normalY.toFloat(), normalZ.toFloat() )
+                        .normal( normal, normalX.toFloat(), normalY.toFloat(), normalZ.toFloat() )
                         .next()
 
                 }

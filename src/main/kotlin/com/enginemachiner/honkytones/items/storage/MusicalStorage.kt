@@ -1,30 +1,20 @@
 package com.enginemachiner.honkytones.items.storage
 
-import com.enginemachiner.honkytones.*
+import com.enginemachiner.harmony.*
+import com.enginemachiner.honkytones.LidAnimatorBehaviour
 import com.enginemachiner.honkytones.mixin.chest.ChestBlockEntityAccessor
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.fabricmc.fabric.api.networking.v1.PacketSender
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.block.Blocks
 import net.minecraft.block.entity.ChestBlockEntity
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.client.render.VertexConsumerProvider
 import net.minecraft.client.render.model.json.ModelTransformation
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NbtCompound
-import net.minecraft.network.PacketByteBuf
 import net.minecraft.screen.NamedScreenHandlerFactory
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory
-import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.text.Text
 import net.minecraft.util.Hand
 import net.minecraft.util.TypedActionResult
@@ -32,12 +22,14 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Quaternion
 import net.minecraft.world.World
 
+private typealias Action = ( stack: ItemStack, item: MusicalStorage ) -> Unit
+
 class MusicalStorageInventory(stack: ItemStack) : StackInventory( stack, INVENTORY_SIZE ) {
-    companion object { const val INVENTORY_SIZE = 96 } /* 16 * 6 */
+    companion object { const val INVENTORY_SIZE = 16 }
 }
 
 /** All the mod items can be stored here and instruments can be played while stored. */
-class MusicalStorage : Item( defaultSettings() ), StackMenu {
+class MusicalStorage : Item( modItemSettings() ), StackScreen {
 
     override fun getSetupNBT(stack: ItemStack): NbtCompound {
 
@@ -59,9 +51,9 @@ class MusicalStorage : Item( defaultSettings() ), StackMenu {
 
     override fun use( world: World, user: PlayerEntity, hand: Hand ): TypedActionResult<ItemStack> {
 
-        val stack = user.getStackInHand(hand);      checkHolder(stack, user)
+        val stack = user.getStackInHand(hand);      trackHolder(stack, user)
 
-        val canOpen = canOpenMenu( user, stack )
+        val canOpen = canOpenScreen( user, stack )
 
         val action = TypedActionResult.consume(stack)
 
@@ -89,7 +81,7 @@ class MusicalStorage : Item( defaultSettings() ), StackMenu {
 
         }
 
-        @Environment(EnvType.CLIENT)
+        // @Environment(EnvType.CLIENT)
         private fun onPersonView(
             mode: ModelTransformation.Mode, matrix: MatrixStack,
             vertex: VertexConsumerProvider, light: Int, overlay: Int,
@@ -125,15 +117,13 @@ class MusicalStorage : Item( defaultSettings() ), StackMenu {
 
             val lid = chest.lidAnimator as LidAnimatorBehaviour
 
-            lid.renderStep()
-
-            //
+            lid.`honkyTones$renderStep`()
 
             dispatcher.renderEntity(chest, matrix, vertex, light, overlay)
 
         }
 
-        @Environment(EnvType.CLIENT)
+        // @Environment(EnvType.CLIENT)
         private fun onWorldView(
             mode: ModelTransformation.Mode, matrix: MatrixStack,
             vertex: VertexConsumerProvider, light: Int, overlay: Int,
@@ -167,13 +157,12 @@ class MusicalStorage : Item( defaultSettings() ), StackMenu {
 
         }
 
-        @Environment(EnvType.CLIENT)
+        // @Environment(EnvType.CLIENT)
         fun registerRender() {
 
             val dynamicRenderer = BuiltinItemRendererRegistry.DynamicItemRenderer {
 
-                stack: ItemStack, mode: ModelTransformation.Mode, matrix: MatrixStack,
-                vertex: VertexConsumerProvider, light: Int, overlay: Int ->
+                stack, mode, matrix, vertex, light, overlay ->
 
                 val storage = stack.item as MusicalStorage
 
@@ -194,34 +183,23 @@ class MusicalStorage : Item( defaultSettings() ), StackMenu {
 
         }
 
-        fun networking() {
+        private fun registerAnimation( netID: String,   action: Action ) {
 
-            if ( !isClient() ) return
+            val id = netID(netID);          val receiver = Receiver(id)
 
-            fun clientsAnimations( netID: String, action: (stack: ItemStack) -> Unit ) {
+            receiver.register { buf ->      val id = buf.readInt()
 
-                val id = netID(netID)
+                client().send {
 
-                ClientPlayNetworking.registerGlobalReceiver(id) {
+                    val player = entity(id) ?: return@send;         player as PlayerEntity
 
-                    client: MinecraftClient, _: ClientPlayNetworkHandler,
-                    buf: PacketByteBuf, _: PacketSender ->
+                    player.handItems.forEach {
 
-                    val id = buf.readInt()
+                        val item = it.item
 
-                    client.send {
+                        if ( item !is MusicalStorage ) return@forEach
 
-                        val player = entity(id) ?: return@send
-
-                        player as PlayerEntity
-
-                        player.handItems.forEach {
-
-                            if ( it.item !is MusicalStorage ) return@forEach
-
-                            it.holder = player;     action(it)
-
-                        }
+                        it.holder = player;         action( it, item )
 
                     }
 
@@ -229,27 +207,36 @@ class MusicalStorage : Item( defaultSettings() ), StackMenu {
 
             }
 
-            clientsAnimations("open") {
+        }
 
-                stack: ItemStack ->
+        fun networking() {
 
-                val storage = stack.item as MusicalStorage
+            if ( !isClient() ) return
 
-                storage.open( stack, false )
-
-            }
-
-            clientsAnimations("close") {
-
-                stack: ItemStack ->
-
-                val storage = stack.item as MusicalStorage
-
-                storage.close( stack, false )
-
-            }
+            registerAnimation("open") { stack, storage -> storage.open(stack) }
+            registerAnimation("close") { stack, storage -> storage.close(stack) }
 
         }
+
+    }
+
+    private fun id(stack: ItemStack): Int {
+
+        val nbt = NBT.get(stack);       return nbt.getInt("ID")
+
+    }
+
+    private fun sendAnimation( id: String, player: PlayerEntity, shouldNetwork: Boolean ) {
+
+        val world = player.world
+
+        if ( world.isClient || !shouldNetwork ) return
+
+        val netID = netID(id);      val id = player.id
+
+        val sender = Sender( netID, player ) { it.write(id) }
+
+        sender.toClients(world)
 
     }
 
@@ -264,89 +251,61 @@ class MusicalStorage : Item( defaultSettings() ), StackMenu {
 
     }
 
-    fun open(stack: ItemStack) { open( stack, true ) }
-
-    @Verify("Vanilla chest OPEN animation.")
-    fun open( stack: ItemStack, shouldNetwork: Boolean ) {
+    @BasedOn("Chest opening animation.")
+    fun open( stack: ItemStack, shouldNetwork: Boolean = false ) {
 
         createModels(stack)
 
-        val user = stack.holder!! as PlayerEntity;  val world = user.world
 
-        val nbt = NBT.get(stack);                   val stackID = nbt.getInt("ID")
+        val player = stack.holder!! as PlayerEntity
 
-        val handChest = chests[stackID]!!.hand;     val state = handChest.cachedState
+        val id = id(stack);         val handChest = chests[id]!!.hand
+
 
         val accessor = handChest as ChestBlockEntityAccessor
 
+        val world = player.world;       val state = handChest.cachedState
 
-        accessor.stateManager.openContainer( user, world, user.blockPos, state )
+
+        accessor.stateManager.openContainer( player, world, player.blockPos, state )
 
         handChest.onSyncedBlockEvent( 1, 1 )
 
 
-        if ( world.isClient || !shouldNetwork ) return
-
-        val id = netID("open")
-
-        val buf = PacketByteBufs.create();          buf.writeInt( user.id )
-
-        val players = world.players.filter { it != user }
-
-        players.forEach { ServerPlayNetworking.send( it as ServerPlayerEntity, id, buf ) }
+        sendAnimation( "open", player, shouldNetwork )
 
 
     }
 
-    fun close(stack: ItemStack) { close( stack, true ) }
+    @BasedOn("Chest closing animation.")
+    fun close( stack: ItemStack, shouldNetwork: Boolean = false ) {
 
-    @Verify("Vanilla chest CLOSE animation.")
-    fun close( stack: ItemStack, shouldNetwork: Boolean ) {
+        val player = stack.holder!! as PlayerEntity
 
-        val user = stack.holder!! as PlayerEntity
+        val id = id(stack);         val handChest = chests[id]!!.hand
 
-        val world = user.world
-
-        val nbt = NBT.get(stack);                    val stackID = nbt.getInt("ID")
-
-        val handChest = chests[stackID]!!.hand;      val state = handChest.cachedState
 
         val accessor = handChest as ChestBlockEntityAccessor
 
+        val world = player.world;       val state = handChest.cachedState
 
-        accessor.stateManager.closeContainer( user, world, user.blockPos, state )
+
+        accessor.stateManager.closeContainer( player, world, player.blockPos, state )
 
         handChest.onSyncedBlockEvent( 1, 0 )
 
 
-        if ( world.isClient || !shouldNetwork ) return
-
-        val id = netID("close")
-
-        val buf = PacketByteBufs.create();          buf.writeInt( user.id )
-
-        val players = world.players.filter { it != user }
-
-        players.forEach { ServerPlayNetworking.send( it as ServerPlayerEntity, id, buf ) }
-
+        sendAnimation( "close", player, shouldNetwork )
 
     }
 
     private fun createMenu(stack: ItemStack): NamedScreenHandlerFactory {
 
-        val title = Translation.item("musical_storage")
+        val name = StorageScreenHandler.Companion.Translations.name
+        val factory = StorageScreenHandler.factory(stack)
+        val text = Text.of(name)
 
-        return SimpleNamedScreenHandlerFactory(
-
-            {
-                syncID: Int, playerInv: PlayerInventory, _: PlayerEntity ->
-
-                StorageScreenHandler( stack, syncID, playerInv )
-            },
-
-            Text.of("§1$title")
-
-        )
+        return SimpleNamedScreenHandlerFactory(factory, text)
 
     }
 

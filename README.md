@@ -7,8 +7,6 @@
 
 It's a Minecraft Fabric Mod that adds magical instruments, music players, reads MIDI inputs and more. Mostly networked between the players.
 
-This project is on hiatus (sometimes).
-
 <br>
 
 https://github.com/EngineMachiner/HonkyTones/assets/15896027/548ab405-5b85-4556-9273-3e3f0565f2b6

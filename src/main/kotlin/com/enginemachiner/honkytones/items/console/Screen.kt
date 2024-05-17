@@ -1,25 +1,15 @@
 package com.enginemachiner.honkytones.items.console
 
-import com.enginemachiner.honkytones.*
-import com.enginemachiner.honkytones.Init.Companion.MOD_NAME
+import com.enginemachiner.harmony.*
+import com.enginemachiner.harmony.NBT.sendNBT
 import com.enginemachiner.honkytones.Init.Companion.directories
+import com.enginemachiner.honkytones.MIDI
+import com.enginemachiner.honkytones.MusicTheory
 import com.enginemachiner.honkytones.items.instruments.Instrument
-import com.mojang.blaze3d.systems.RenderSystem
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.fabricmc.fabric.api.networking.v1.PacketSender
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.gui.Drawable
 import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.screen.ingame.HandledScreens
-import net.minecraft.client.gui.widget.CheckboxWidget
-import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.client.option.KeyBinding
-import net.minecraft.client.render.GameRenderer
 import net.minecraft.client.util.InputUtil
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.player.PlayerEntity
@@ -27,44 +17,44 @@ import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventory
 import net.minecraft.inventory.SimpleInventory
 import net.minecraft.item.ItemStack
-import net.minecraft.network.PacketByteBuf
-import net.minecraft.screen.ScreenHandler
+import net.minecraft.screen.ScreenHandlerFactory
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory
 import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
-import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
 import net.minecraft.util.registry.Registry
 import org.lwjgl.glfw.GLFW
 import java.awt.Color
-import javax.sound.midi.MidiEvent
-import javax.sound.midi.MidiSystem
-import javax.sound.midi.Sequence
-import javax.sound.midi.ShortMessage
+import javax.sound.midi.*
 
 private val particles = Instrument.Companion.ActionParticles
 
 class DigitalConsoleScreenHandler(
-    syncID: Int, private val playerInventory: PlayerInventory, val inventory: Inventory
-) : ScreenHandler( type, syncID ) {
+
+    syncID: Int, private val playerInventory: PlayerInventory, private val inventory: Inventory
+
+) : HarmonyScreenHandler( type, syncID ) {
+
 
     constructor( syncID: Int, playerInventory: PlayerInventory ) : this( syncID, playerInventory, SimpleInventory(1) )
 
-    constructor( stack: ItemStack, syncID: Int, playerInventory: PlayerInventory ) : this( syncID, playerInventory, StackInventory( stack, 1 ) )
+    constructor( stack: ItemStack, syncID: Int, playerInventory: PlayerInventory ) : this( syncID, playerInventory, StackInventory(stack, 1) )
+
 
     private val player = playerInventory.player;        private val world = player.world
 
-    val stack = player.handItems.find { it.item is DigitalConsole }!!
+    val stack = handItem( player, DigitalConsole::class )
+
 
     init {
 
         checkSize( inventory, inventory.size() );   inventory.onOpen(player)
 
-        val slot = Slot( inventory, 0, 220, 160 );  addSlot(slot)
+        val slot = Slot( inventory, 0, 220, 160 )
 
-        checkSlot()
+        addSlot(slot);      checkSlot()
 
     }
 
@@ -72,13 +62,15 @@ class DigitalConsoleScreenHandler(
 
         val current = inventory.getStack(0)
 
-        if ( playerInventory.contains(current) || current.isEmpty || world.isClient ) return
+        val contains = playerInventory.contains(current)
+
+        if ( contains || current.isEmpty || world.isClient ) return
 
         inventory.setStack( 0, ItemStack.EMPTY );       inventory.markDirty()
 
     }
 
-    override fun close(player: PlayerEntity) {
+    override fun close( player: PlayerEntity ) {
 
         super.close(player);    val stack = inventory.getStack(0)
 
@@ -90,25 +82,16 @@ class DigitalConsoleScreenHandler(
 
     }
 
-    override fun canUse(player: PlayerEntity): Boolean { return true }
+    override fun canUse( player: PlayerEntity ): Boolean { return true }
 
     override fun transferSlot( player: PlayerEntity, index: Int ): ItemStack { return ItemStack.EMPTY }
 
     override fun onSlotClick( slotIndex: Int, button: Int, actionType: SlotActionType, player: PlayerEntity ) {
 
-        val title = Translation.item("digital_console.select")
+        val factory = PickStackScreenHandler.factory
+        val text = Text.of("Pick Stack Screen")
 
-        val screenFactory = SimpleNamedScreenHandlerFactory(
-
-            {
-                syncID: Int, playerInventory: PlayerInventory, _: PlayerEntity ->
-
-                PickStackScreenHandler( syncID, playerInventory )
-            },
-
-            Text.of("§1$title")
-
-        )
+        val screenFactory = SimpleNamedScreenHandlerFactory( factory, text )
 
         player.openHandledScreen(screenFactory)
 
@@ -116,219 +99,288 @@ class DigitalConsoleScreenHandler(
 
     companion object : ModID {
 
-        val type = ScreenHandlerType(::DigitalConsoleScreenHandler)
+        fun factory( stack: ItemStack ): ScreenHandlerFactory {
 
-        fun register() { Registry.register( Registry.SCREEN_HANDLER, classID(), type ) }
+            return ScreenHandlerFactory { id, inventory, _ ->
+
+                DigitalConsoleScreenHandler( stack, id, inventory )
+
+            }
+
+        }
+
+        val type = ScreenHandlerType( ::DigitalConsoleScreenHandler )
+
+        fun register() {
+
+            Registry.register( Registry.SCREEN_HANDLER, classID(), type )
+
+            if ( !isClient() ) return
+
+            HandledScreens.register( type, ::DigitalConsoleScreen )
+
+        }
 
     }
 
 }
 
-@Environment(EnvType.CLIENT)
+// @Environment(EnvType.CLIENT)
 class DigitalConsoleScreen(
     handler: DigitalConsoleScreenHandler, playerInventory: PlayerInventory, title: Text
 ) : HandledScreen<DigitalConsoleScreenHandler>( handler, playerInventory, title ) {
 
+    private val console = handler.stack;        private val nbt = NBT.get(console)
 
-    private val path = "item/console/"
-    private val genericTexture = Identifier("textures/gui/container/generic_54.png")
-    private val consoleBackTexture = textureID( path + "back.png" )
-    private val firstKeyTexture = textureID( path + "0.png" )
-    private val middleKeyTexture = textureID( path + "1.png" )
-    private val lastKeyTexture = textureID( path + "2.png" )
-    private val lastKeyFlipTexture = textureID( path + "3.png" )
-    private val firstKeyFlipTexture = textureID( path + "4.png" )
-    private val flatKeyTexture = textureID( path + "flat.png" )
+    private val instrument = StackInventory(console, 1).getStack(0)
+
+    private val item = instrument.item
 
 
-    var recordingFileName = "";      var channel = 0
-
-    var recordCheckbox: CheckboxWidget? = null
-
-    var willRecord = false;         var isRecording = false
+    var path = "";      var channel = 0
 
 
-    private val consoleStack = handler.stack
+    private val slots = handler.slots
 
-    private val consoleNBT = NBT.get(consoleStack)
+    private val slotTexture = Texture( Textures.slot ) {
 
-    private val stack = StackInventory( consoleStack, 1 ).getStack(0)
+        it.setSize(32f);        it.setPos( x, y, slots[0] )
 
-    private val item = stack.item
+    }
+
+    private val consoleBackTexture = Texture( Textures.consoleBack ) {
+
+        it.setSize(256f);       it.center(width, height)
+
+    }
+
+    private lateinit var textures: MutableList<Texture>
 
 
-    init { playerInventoryTitleY -= 1000;      titleY += 12 }
+    private val octaveText = RenderText {
+
+        it.setPos( x.toFloat(), y + 17f )
+
+    }
+
+    private val time = Time {
+
+        it.center( width, height );       it.offsetY( - 44f )
+
+        it.offsetX(3f)
+
+    }
+
+    private val texts = setOf( octaveText, time )
+
+
+    var box: RecordingCheckbox? = null
+
+    private fun octave(): Int { return nbt.getInt("Octave") }
+
+    fun record() {
+
+        val box = box ?: return;      if ( !box.isChecked ) return
+
+
+        val sequencer = sequencer!!
+
+        sequencer.sequence = Sequence( Sequence.PPQ, 10 )
+
+        sequencer.sequence.createTrack()
+
+
+        val nbt = NBT.get(console);       nbt.putBoolean( "damageStack", true )
+
+        sendNBT(nbt)
+
+    }
 
     override fun init() {
 
-        stack.holder = player();        super.init()
+        instrument.holder = player();        super.init()
 
-        val recordTitle = Translation.item("digital_console.record")
 
-        recordCheckbox = CheckboxWidget( 25, height - 100, 20, 20, Text.of(recordTitle), false )
+        textures = mutableListOf( slotTexture, consoleBackTexture )
+
+        addKeys();      textures.forEach { it.init() }
+
+
+        val text = Translations.record
+
+        texts.forEach { it.init(textRenderer) }
+
+
+        box = RecordingCheckbox( width * 0.07f, height * 0.25f, 20f, 20f, text, false, this )
+
+    }
+
+    private fun addKeys() {
+
+        var i = 0
+
+        for ( ( keyBinding, id ) in map ) {
+
+            val size = 68f;     var x = ( i - 6 ) * size * 0.2f - 1
+
+            if ( i >= 5 ) x += 15
+
+            val texture = Key( id, keyBinding ) {
+
+                it.setSize(size);       it.center(width, height)
+
+                it.onFlat();        it.addPos( x, 24f )
+
+            }
+
+            textures.add(texture);      i++
+
+        }
 
     }
 
     override fun close() {
 
-        if ( recordCheckbox!!.isChecked ) stopRecording();  super.close()
-
-    }
-
-    override fun mouseClicked( mouseX: Double, mouseY: Double, button: Int ): Boolean {
-
-        recordCheckbox!!.mouseClicked(mouseX, mouseY, button)
-
-        return super.mouseClicked(mouseX, mouseY, button)
+        if ( box!!.isChecked ) stop();         super.close()
 
     }
 
     override fun shouldPause(): Boolean { return false }
 
+    private fun sequencerTick() {
+
+        if ( !isRecording() ) return;       val sequencer = sequencer!!
+
+        sequencer.tickPosition++
+
+    }
+
+    override fun handledScreenTick() { sequencerTick() }
+
+    override fun drawForeground(matrices: MatrixStack?, mouseX: Int, mouseY: Int) {}
+
     override fun drawBackground( matrices: MatrixStack, delta: Float, mouseX: Int, mouseY: Int ) {
 
-        RenderSystem.setShader( GameRenderer::getPositionTexShader )
-        RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
-        RenderSystem.setShaderTexture( 0, genericTexture )
+        textures.forEach { it.draw(matrices) }
 
-        var centerX = ( width - 18 ) / 2;         var centerY = ( height - 18 ) / 2
+    }
 
-        drawTexture( matrices, centerX + 140, centerY + 85, 7, 17, 18, 18 )
+    private fun isRecording(): Boolean { return box!!.isChecked && sequencer != null }
 
-        drawTexture( matrices, centerX + 140, centerY + 79, 4, 0, 18, 6 )
-        drawTexture( matrices, centerX + 140, centerY + 103, 4, 216, 18, 6 )
+    private fun index( keyBinding: KeyBinding ): Int {
 
-        drawTexture( matrices, centerX + 134, centerY + 79, 0, 0, 6, 24 )
-        drawTexture( matrices, centerX + 158, centerY + 79, 170, 0, 6, 24 )
+        var i = map.keys.indexOf(keyBinding)
 
-        drawTexture( matrices, centerX + 134, centerY + 103, 0, 216, 6, 18 )
-        drawTexture( matrices, centerX + 158, centerY + 103, 170, 216, 6, 18 )
+        i = ( 60 + i ) + 12 * ( octave() - 4 )    // Index 60 is C4.
 
-        centerX = ( width - 256 ) / 2;        centerY = ( height - 256 ) / 2
 
-        RenderSystem.setShaderTexture( 0, consoleBackTexture )
-        drawTexture( matrices, centerX, centerY, 0, 0, 256, 256 )
+        item as Instrument;     return item.soundIndex( instrument, i )
 
-        centerX = ( width - 64 ) / 2;                   centerY = ( height - 64 ) / 2
+    }
 
-        // C
-        renderKey( firstKeyTexture, keyBindings[0], matrices, centerX - 83, centerY + 23, 64, 64 )
+    private fun play(i: Int) {
 
-        val flatsCenterX = ( width - 32 ) / 2;          val flatsCenterY = ( height - 32 ) / 2
+        item as Instrument;     val sounds = item.stackSounds(instrument).notes
 
-        // D_, D, E_, E, F
-        renderKey( flatKeyTexture, keyBindings[1], matrices, flatsCenterX - 68, flatsCenterY + 7, 32, 32 )
-        renderKey( middleKeyTexture, keyBindings[2], matrices, centerX - 55, centerY + 23, 64, 64 )
-        renderKey( flatKeyTexture, keyBindings[3], matrices, flatsCenterX - 41, flatsCenterY + 7, 32, 32 )
-        renderKey( lastKeyTexture, keyBindings[4], matrices, centerX - 27, centerY + 23, 64, 64 )
-        renderKey( lastKeyFlipTexture, keyBindings[5], matrices, centerX + 1, centerY + 23, 64, 64 )
+        val sound = sounds[i] ?: return
 
-        // G_, A_, B_
-        for ( i in 0..2 ) renderKey( flatKeyTexture, keyBindings[ 6 + i * 2 ], matrices, flatsCenterX + 15 + 28 * i, flatsCenterY + 7, 32, 32 )
 
-        // G, A, B
-        renderKey( middleKeyTexture, keyBindings[7], matrices, centerX + 29, centerY + 23, 64, 64 )
-        renderKey( middleKeyTexture, keyBindings[9], matrices, centerX + 57, centerY + 23, 64, 64 )
-        renderKey( firstKeyFlipTexture, keyBindings[11], matrices, centerX + 85, centerY + 23, 64, 64 )
+        sound.play(instrument)
+
+        particles.spawn( player(), "simple" )
+
+    }
+
+    private fun write( i: Int, messageType: Int, volume: Float ) {
+
+        if ( !isRecording() ) return
+
+
+        val sequencer = sequencer!!;        val message = ShortMessage()
+
+        val sequence = sequencer.sequence;    val tick = sequencer.tickPosition
+
+        val track = sequence.tracks[0]
+
+
+        message.setMessage( messageType, channel, i, volume.toInt() )
+
+        track.add( MidiEvent(message, tick) )
 
     }
 
     override fun keyPressed( keyCode: Int, scanCode: Int, modifiers: Int ): Boolean {
 
-        keyBindings.forEach {
 
-            val matches = it.matchesKey( keyCode, scanCode )
+        fun onKey(it: KeyBinding) {
+
+            val matches = it.matchesKey(keyCode, scanCode)
 
             val canPlay = matches && item is Instrument
 
-            if ( it.isPressed ) return@forEach;     if (matches) it.isPressed = true
 
-            if ( !canPlay ) return@forEach;         val i = getIndex(it)
+            if ( it.isPressed ) return;     if (matches) it.isPressed = true
 
-            val volume = 127 * NBT.get(stack).getFloat("Volume")
 
-            play(i);        record( i, ShortMessage.NOTE_ON, volume )
+            if ( !canPlay ) return;         val i = index(it)
 
-        }
+            val volume = NBT.get(instrument).getFloat("Volume") * 127
 
-        val octave = consoleNBT.getInt("Octave")
-
-        if ( octaveUpKeyBinding!!.matchesKey( keyCode, scanCode ) ) {
-
-            val octave = octave + 1
-
-            if ( octave < 8 ) consoleNBT.putInt( "Octave", octave )
+            play(i);        write( i, ShortMessage.NOTE_ON, volume )
 
         }
 
-        if ( octaveDownKeyBinding!!.matchesKey( keyCode, scanCode ) ) {
+        map.keys.forEach { onKey(it) }
 
-            val octave = octave - 1
 
-            if ( octave > - 2 ) consoleNBT.putInt( "Octave", octave )
+
+        fun onOctaveChange( keyBinding: KeyBinding, nextOctave: Int, inRange: Boolean ) {
+
+            val matches = keyBinding.matchesKey( keyCode, scanCode );       if (!matches) return
+
+            if (inRange) nbt.putInt( "Octave", nextOctave )
 
         }
 
-        return super.keyPressed(keyCode, scanCode, modifiers)
+        var next = octave() + 1
+        onOctaveChange( octaveUpKeyBinding!!, next, next < 8 )
+
+        next = octave() - 1
+        onOctaveChange( octaveDownKeyBinding!!, next, next > -2 )
+
+
+
+        return super.keyPressed( keyCode, scanCode, modifiers )
 
     }
-
-    private fun getIndex(keyBinding: KeyBinding): Int {
-
-        val octave = consoleNBT.getInt("Octave");      item as Instrument
-
-        // 60 = C4.
-        var i = keyBindings.indexOf(keyBinding);            i = ( 60 + i ) + 12 * ( octave - 4 )
-
-        return item.soundIndex( stack, i )
-
-    }
-
-    private fun play(index: Int) {
-
-        item as Instrument;     val sounds = item.stackSounds(stack).notes
-
-        val sound = sounds[index] ?: return
-
-        if ( sound.isPlaying() ) sound.addTimesStopped();       sound.play(stack)
-
-        particles.clientSpawn( player()!!, "simple" )
-
-    }
-
-    private fun record( index: Int, messageType: Int, volume: Float ) {
-
-        if ( !canRecord() ) return;         val message = ShortMessage()
-
-        message.setMessage( messageType, channel, index, volume.toInt() )
-
-        val sequence = sequencer!!.sequence;    val tick = sequencer.tickPosition
-
-        sequence.tracks[0].add( MidiEvent( message, tick ) )
-
-    }
-
-    private fun canRecord(): Boolean { return isRecording && sequencer != null }
 
     override fun keyReleased( keyCode: Int, scanCode: Int, modifiers: Int ): Boolean {
 
-        keyBindings.forEach {
 
-            val matches = it.matchesKey( keyCode, scanCode )
+        fun onKey(it: KeyBinding) {
+
+            val matches = it.matchesKey(keyCode, scanCode)
 
             val canPlay = matches && item is Instrument
 
+
             if (matches) it.isPressed = false
 
-            if ( !canPlay ) return@forEach; item as Instrument
+            if ( !canPlay ) return
 
-            val i = getIndex(it);   val sounds = item.stackSounds(stack).notes
 
-            val sound = sounds[i] ?: return@forEach
+            val i = index(it);      item as Instrument
 
-            sound.fadeOut();        record( i, ShortMessage.NOTE_OFF, 0f )
+            val sounds = item.stackSounds(instrument).notes
+
+            val sound = sounds[i] ?: return;        sound.fadeOut()
+
+            write( i, ShortMessage.NOTE_OFF, 0f )
 
         }
+
+        map.keys.forEach { onKey(it) }
+
 
         return super.keyReleased( keyCode, scanCode, modifiers )
 
@@ -338,138 +390,222 @@ class DigitalConsoleScreen(
 
         renderBackground(matrices);         super.render( matrices, mouseX, mouseY, delta )
 
-        children().forEach { it as Drawable;     it.render( matrices, mouseX, mouseY, delta ) }
+        texts.forEach { it.render(matrices) }
 
-        var octaveTitle = Translation.item("gui.octave")
-        octaveTitle = "$octaveTitle: " + consoleNBT.getInt("Octave")
-        
-        textRenderer.draw( matrices, octaveTitle, width * 0.5f + 10, height * 0.5f - 65, Color.WHITE.rgb )
-
-        drawTime(matrices);       recordCheckbox!!.renderButton( matrices, mouseX, mouseY, delta )
+        octaveText.text = "${ Translations.octave }: ${ octave() }"
 
     }
 
-    override fun handledScreenTick() { recordingMenu();        recordTick() }
+    private fun stop() {
 
-    private fun recordingMenu() {
+        val sequencer = sequencer!!;        val sequence = sequencer.sequence
 
-        val recordCheckbox = recordCheckbox!!
+        val path = directories["midis"]!!.path + "/$path"
 
-        if ( !recordCheckbox.isChecked || willRecord ) return
+        val file = ModFile(path)
 
-        if ( sequencer == null ) { recordCheckbox.onPress(); return }
 
-        sequencer.sequence = Sequence( Sequence.PPQ, 10 )
+        var message = Translations.fileWritten
 
-        sequencer.sequence.createTrack()
+        message = message.replace( "X", this.path )
 
-        client!!.setScreen( RecordingScreen(this) )
 
-        willRecord = true
-
-    }
-
-    private fun recordTick() {
-
-        if ( !canRecord() ) return;     sequencer!!.tickPosition++
-
-        if ( !recordCheckbox!!.isChecked ) stopRecording()
-
-    }
-
-    private fun drawTime(matrices: MatrixStack) {
-
-        if ( !canRecord() ) return;         val tick = sequencer!!.tickPosition
-
-        val minutes = tick / ( 20 * 60 );    val seconds = ( tick / 20 ) % 60
-
-        val format = ("%d:%02d").format( minutes.toInt(), seconds.toInt() )
-
-        textRenderer.draw( matrices, format, width * 0.5f + 3, height * 0.5f - 49, Color.WHITE.rgb )
-
-    }
-
-    private fun stopRecording() {
-
-        val sequence = sequencer!!.sequence
-
-        isRecording = false;    willRecord = false;     sequencer.tickPosition = 0
+        sequencer.tickPosition = 0
 
         try {
 
-            val file = ModFile( directories["midis"]!!.path + "/$recordingFileName" )
-
-            MidiSystem.write( sequence, 0, file )
-
-            val message = Translation.get("message.file_written")
-                .replace( "X", this.recordingFileName )
-
-            warnUser(message)
+            MidiSystem.write(sequence, 0, file);    warnUser(message)
 
         } catch ( e: Exception ) {
 
-            warnUser( Translation.get("error.file_written") )
-            warnUser( Translation.get("message.check_console") )
-
-            e.printStackTrace()
+            warnConsole("error.file_written");      e.printStackTrace()
 
         }
 
-        sequence.deleteTrack( sequence.tracks[0] );     sequence.createTrack()
+        sequence.deleteTrack( sequence.tracks[0] )
 
     }
 
     override fun isClickOutsideBounds( mouseX: Double, mouseY: Double, left: Int, top: Int, button: Int ): Boolean { return false }
 
-    private fun renderKey(
-        textureID: Identifier, keyBinding: KeyBinding,
-        matrices: MatrixStack, x: Int, y: Int, w: Int, h: Int
-    ) {
-
-        RenderSystem.setShaderTexture( 0, textureID )
-
-        if ( keyBinding.isPressed ) RenderSystem.setShaderColor( 0.25f, 1f, 0.25f, 1f )
-
-        drawTexture( matrices, x, y, 0f, 0f, w, h, w, h )
-
-        RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
-
-    }
-
     companion object {
 
-        val sequencer = RecordingScreen.sequencer;          val keyBindings = mutableListOf<KeyBinding>()
+        var sequencer: Sequencer? = null
+
+        private var sequence = Sequence( Sequence.PPQ, 10 )
+
+
+        init { init() }
+
+        private fun init() {
+
+            if ( !MIDI.hasSystemSequencer() ) return
+
+            sequencer = MidiSystem.getSequencer();      val sequencer = sequencer!!
+
+            if ( !sequencer.isOpen ) sequencer.open();      sequencer.sequence = sequence
+
+        }
+
+
+        val map = mutableMapOf<KeyBinding, Identifier>()
 
         var octaveUpKeyBinding: KeyBinding? = null;         var octaveDownKeyBinding: KeyBinding? = null
 
-        @Environment(EnvType.CLIENT)
+        // @Environment(EnvType.CLIENT)
         fun registerKeyBindings() {
 
             val key1 = "key.$MOD_NAME";      val category = "category.$MOD_NAME.digital_console"
+
+            val k = mutableListOf<KeyBinding>();     val textures = Textures.Keys
 
             for ( name in MusicTheory.octave ) {
 
                 var key2 = name.lowercase().replace("_","_flat");   key2 = "$key1.play_$key2"
 
-                val keybind = KeyBinding( key2, InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, category )
+                val keyBind = KeyBinding( key2, InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, category )
 
-                keyBindings.add( KeyBindingHelper.registerKeyBinding(keybind) )
+                KeyBindingHelper.registerKeyBinding(keyBind);       k.add(keyBind)
 
             }
 
-            var keybind = KeyBinding( "$key1.octave_up", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, category )
-            octaveUpKeyBinding = KeyBindingHelper.registerKeyBinding(keybind)
+            map[ k[0] ] = textures.first             // C
+            map[ k[1] ] = textures.flat              // C#
+            map[ k[2] ] = textures.middle            // D
+            map[ k[3] ] = textures.flat              // D#
+            map[ k[4] ] = textures.last              // E
+            map[ k[5] ] = textures.lastFlipped       // F
+            map[ k[6] ] = textures.flat              // F#
+            map[ k[7] ] = textures.middle            // G
+            map[ k[8] ] = textures.flat              // G#
+            map[ k[9] ] = textures.middle            // A
+            map[ k[10] ] = textures.flat             // A#
+            map[ k[11] ] = textures.firstFlipped     // B
 
-            keybind = KeyBinding( "$key1.octave_down", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, category )
-            octaveDownKeyBinding = KeyBindingHelper.registerKeyBinding(keybind)
+            var keyBind = KeyBinding( "$key1.octave_up", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, category )
+            octaveUpKeyBinding = KeyBindingHelper.registerKeyBinding(keyBind)
+
+            keyBind = KeyBinding( "$key1.octave_down", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, category )
+            octaveDownKeyBinding = KeyBindingHelper.registerKeyBinding(keyBind)
 
         }
 
-        fun register() {
+        private object Textures {
 
-            HandledScreens.register( DigitalConsoleScreenHandler.type, ::DigitalConsoleScreen )
+            const val PATH = "item/console/"
+            val slot = textureID(PATH + "slot.png" )
+            val consoleBack = textureID( PATH + "back.png" )
 
-            PickStackScreen.register()
+            object Keys {
+
+                val first = textureID( PATH + "0.png" )
+                val middle = textureID( PATH + "1.png" )
+                val last = textureID( PATH + "2.png" )
+                val lastFlipped = textureID( PATH + "3.png" )
+                val firstFlipped = textureID( PATH + "4.png" )
+                val flat = textureID( PATH + "flat.png" )
+
+            }
+
+        }
+
+        private object Translations {
+
+            val record = Translation.item("digital_console.record")
+            val octave = Translation.item("gui.octave")
+            val fileWritten = Translation.get("message.file_written")
+
+        }
+
+        private class Key(
+
+            id: Identifier,     private val keyBinding: KeyBinding,
+
+            private val init: (Key) -> Unit
+
+        ) : Texture(id) {
+
+            fun onFlat() {
+
+                val id = id.path;           val isFlat = id.contains("flat.png")
+
+                if ( !isFlat ) return;      setSize( w * 0.5f )
+
+                w -= 3;     x += 18f
+
+            }
+
+            override fun init() { init(this) }
+
+            override fun draw(matrices: MatrixStack) {
+
+                if ( keyBinding.isPressed ) color( Color.GREEN )
+
+                super.draw(matrices)
+
+            }
+
+        }
+
+        private class Time( init: (RenderText) -> Unit ) : RenderText(init) {
+
+            override fun render( matrices: MatrixStack, color: Int ) {
+
+                val sequencer = sequencer ?: return;        if ( sequencer.tickPosition <= 0 ) return
+
+
+                val tick = sequencer.tickPosition
+
+                val minutes = tick / ( 20 * 60 );    val seconds = ( tick / 20 ) % 60
+
+                text = ("%d:%02d").format( minutes.toInt(), seconds.toInt() )
+
+
+                super.render(matrices, color)
+
+            }
+
+        }
+
+        private const val MIDI_ERROR = "ERROR: Missing system MIDI sequencer!"
+
+        class RecordingCheckbox(
+
+            x: Float, y: Float,         w: Float, h: Float,
+
+            message: String,            checked: Boolean,
+
+            private val screen: DigitalConsoleScreen
+
+        ) : Checkbox( x, y, w, h, message, checked ) {
+
+            init {
+
+                visible = screen.slots[0].stack.isEmpty
+
+                screen.addDrawableChild(this)
+
+            }
+
+            private fun reset() {
+
+                val sequencer = sequencer!!
+
+                sequencer.sequence = Sequence( Sequence.PPQ, 10 )
+
+                sequencer.sequence.createTrack()
+
+                client().setScreen( RecordingScreen(screen) )
+
+            }
+
+            override fun onPress() {
+
+                if ( sequencer == null ) { modPrint( MIDI_ERROR ); return }
+
+                if ( isChecked ) screen.stop() else reset();      super.onPress()
+
+            }
 
         }
 
@@ -477,35 +613,21 @@ class DigitalConsoleScreen(
 
 }
 
-class PickStackScreenHandler( syncID: Int, playerInventory: PlayerInventory ) : ScreenHandler( type, syncID ) {
+class PickStackScreenHandler( syncID: Int, playerInventory: PlayerInventory ) : HarmonyScreenHandler( type, syncID ) {
 
     private val player = playerInventory.player
 
-    private var consoleStack = player.handItems.find { it.item is DigitalConsole }!!
+    private var consoleStack = handItem( player, DigitalConsole::class )
 
     private var console = consoleStack.item as DigitalConsole
 
-    init {
+    init {      playerSlots( 8f, 46f, playerInventory ).forEach { addSlot(it) }      }
 
-        val w = 18;     val x = 8;      val y = w * 6 - 21
+    private fun goBack() {
 
-        for ( i in 0 .. 2 ) { for ( j in 0 .. 8 ) {
+        val screen = console.createMenu(consoleStack)
 
-            val index = j + i * 9 + 9;      val x = w * j + x
-
-            val y = w * ( i + 6 ) - y + 13
-
-            addSlot( Slot( playerInventory, index, x, y ) )
-
-        } }
-
-        for ( j in 0 .. 8 ) {
-
-            val x = w * j + x;      val y = w * 10 - y - 1
-
-            addSlot( Slot( playerInventory, j, x, y ) )
-
-        }
+        player.openHandledScreen(screen)
 
     }
 
@@ -515,26 +637,36 @@ class PickStackScreenHandler( syncID: Int, playerInventory: PlayerInventory ) : 
 
     override fun onSlotClick( slotIndex: Int, button: Int, actionType: SlotActionType, player: PlayerEntity ) {
 
-        if ( slotIndex < 0 || player.world.isClient ) return
+        val isClient = player.world.isClient;       if ( slotIndex < 0 || isClient ) return
+
 
         val slotStack = slots[slotIndex].stack;     if ( slotStack.item !is Instrument ) return
 
-        val id = netID("client_sync");      val netSlot = player.inventory.getSlotWithStack(slotStack)
-        val buf = PacketByteBufs.create();      buf.writeInt(netSlot)
 
-        ServerPlayNetworking.send( player as ServerPlayerEntity, id, buf )
+        setStack( consoleStack, slotStack );        goBack()
 
-        setStack( consoleStack, slotStack )
-
-        val screen = console.createMenu(consoleStack);     player.openHandledScreen(screen)
 
     }
 
     companion object : ModID {
 
+        internal val factory = ScreenHandlerFactory { id, inventory, _ ->
+
+            PickStackScreenHandler( id, inventory )
+
+        }
+
         val type = ScreenHandlerType(::PickStackScreenHandler)
 
-        fun register() { Registry.register( Registry.SCREEN_HANDLER, classID(), type ) }
+        fun register() {
+
+            Registry.register( Registry.SCREEN_HANDLER, classID(), type )
+
+            if ( !isClient() ) return
+
+            HandledScreens.register( type, ::PickStackScreen )
+
+        }
 
         private fun setStack( console: ItemStack, slotStack: ItemStack ) {
 
@@ -544,60 +676,38 @@ class PickStackScreenHandler( syncID: Int, playerInventory: PlayerInventory ) : 
 
         }
 
-        fun networking() {
-
-            if ( !isClient() ) return
-
-            val id = netID("client_sync")
-            ClientPlayNetworking.registerGlobalReceiver(id) {
-
-                client: MinecraftClient, _: ClientPlayNetworkHandler, buf: PacketByteBuf,
-                _: PacketSender ->
-
-                val slot = buf.readInt()
-
-                client.send {
-
-                    val console = player()!!.handItems.find { it.item is DigitalConsole }!!
-
-                    val stack = player()!!.inventory.getStack(slot)
-
-                    setStack( console, stack )
-
-                }
-
-            }
-
-        }
-
     }
 
 }
 
-@Environment(EnvType.CLIENT)
+// @Environment(EnvType.CLIENT)
 class PickStackScreen(
     handler: PickStackScreenHandler, playerInventory: PlayerInventory, title: Text
 ) : HandledScreen<PickStackScreenHandler>( handler, playerInventory, title ) {
 
-    private val genericTexture = Identifier("textures/gui/container/generic_54.png")
+    private val texture = Texture(textureID) {
 
-    init { titleY += 17;    playerInventoryTitleY -= 1000;      backgroundHeight -= 20 }
+        it.setSize( 176f, 90f );       it.center(width, height)
+
+    }
+
+    private val pickText = RenderText {
+
+        it.setPos(texture);     it.text = Translations.select
+
+        it.y -= 10f
+
+    }
+
+    override fun init() { super.init();       texture.init();       pickText.init(textRenderer) }
 
     override fun shouldPause(): Boolean { return false }
 
+    override fun drawForeground(matrices: MatrixStack?, mouseX: Int, mouseY: Int) {}
+
     override fun drawBackground( matrices: MatrixStack, delta: Float, mouseX: Int, mouseY: Int ) {
 
-        RenderSystem.setShader( GameRenderer::getPositionTexShader )
-        RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
-        RenderSystem.setShaderTexture( 0, genericTexture )
-
-        val centerX = ( width - backgroundWidth ) / 2
-        val centerY = ( height - backgroundHeight ) / 2
-
-        val w = backgroundWidth;        val h = 6 * 18 + 17
-
-        drawTexture( matrices, centerX, centerY + 20, 0, 126, w, h )
-        drawTexture( matrices, centerX, centerY + 18, 0, 0, w, 3 )
+        texture.draw(matrices);     pickText.render(matrices)
 
     }
 
@@ -609,9 +719,15 @@ class PickStackScreen(
 
     }
 
-    companion object {
+    private companion object {
 
-        fun register() { HandledScreens.register( PickStackScreenHandler.type, ::PickStackScreen ) }
+        val textureID = textureID("item/console/slots.png")
+
+        object Translations {
+
+            val select = Translation.item("digital_console.select")
+
+        }
 
     }
 

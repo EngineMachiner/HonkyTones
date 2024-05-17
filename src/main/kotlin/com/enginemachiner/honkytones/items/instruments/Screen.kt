@@ -1,295 +1,49 @@
 package com.enginemachiner.honkytones.items.instruments
 
-import com.enginemachiner.honkytones.*
-import com.enginemachiner.honkytones.Init.Companion.MOD_NAME
-import com.enginemachiner.honkytones.NBT.networkNBT
-import com.enginemachiner.honkytones.NBT.keepDisplay
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
+import com.enginemachiner.harmony.*
+import com.enginemachiner.harmony.NBT.saveDisplay
+import com.enginemachiner.harmony.NBT.sendNBT
+import com.enginemachiner.honkytones.Config
+import com.enginemachiner.honkytones.MidiChannelField
+import net.minecraft.client.font.TextRenderer
 import net.minecraft.client.gui.Drawable
-import net.minecraft.client.gui.DrawableHelper
 import net.minecraft.client.gui.screen.Screen
-import net.minecraft.client.gui.widget.ButtonWidget
-import net.minecraft.client.gui.widget.SliderWidget
-import net.minecraft.client.gui.widget.TextFieldWidget
-import net.minecraft.client.util.Clipboard
 import net.minecraft.client.util.math.MatrixStack
+import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NbtCompound
 import net.minecraft.text.Text
-import java.awt.Color
 import javax.sound.midi.MidiSystem
+import kotlin.math.roundToInt
 
-@Environment(EnvType.CLIENT)
+// @Environment(EnvType.CLIENT)
 class InstrumentsScreen( private val stack: ItemStack ) : Screen( Text.of("Instrument Screen") ) {
 
-    private var sequenceField: TextFieldWidget? = null
-    private var channelField: MidiChannelField? = null
-
-    private var clearButton: ButtonWidget? = null
-
-    private var actionButton: ButtonWidget? = null
-    private var deviceButton: ButtonWidget? = null
-    private var centerNotesButton: ButtonWidget? = null
-    private var copyButton: ButtonWidget? = null
-
-    private var volumeSlider: SliderWidget? = null
-
-    //
-
-    private val devices = MidiSystem.getMidiDeviceInfo()
-    private val devicesNames = mutableSetOf("None")
+    private val deviceInfo = MidiSystem.getMidiDeviceInfo()
+    private val devices = mutableSetOf("None")
 
     private val actions = mutableSetOf( "Melee", "Push" )
 
-    //
+    private val nbt = NBT.get(stack)
 
-    private var nbt = NBT.get(stack)
-    private var sequence = nbt.getString("Sequence")
+    private val sequence = nbt.getString("lastSequence")
     private var action = nbt.getString("Action")
     private var deviceName = nbt.getString("MIDI Device")
-    private var channel = nbt.getInt("MIDI Channel")
-    private var volume = nbt.getFloat("Volume")
+    private val channel = nbt.getInt("MIDI Channel")
+    private val volume = nbt.getFloat("Volume")
     private var shouldCenter = nbt.getBoolean("Center Notes")
 
     private val instrument = stack.item as Instrument
-    private val instrumentName = instrument.name.string
-
-    override fun shouldPause(): Boolean { return false }
-
-    override fun init() {
-
-        // Read the devices names and set initial device name.
-
-        readDevices();      checkDeviceName()
-
-        // Trombone thrust.
-
-        if ( instrument is Trombone ) actions.add("Thrust")
-
-
-        // Ranged enchantment.
-
-        stack.enchantments.forEach {
-
-            it as NbtCompound
-
-            if ( it.getString("id") != "$MOD_NAME:ranged" ) return@forEach
-
-            actions.add("Ranged")
-
-        }
-
-        val x = ( width * 0.125f ).toInt();     val y = ( height * 0.16f * 1.5f ).toInt()
-
-        val w = ( width * 0.75f ).toInt();      val h = ( 240 * 0.08f ).toInt()
-
-        val w2 = ( w * 0.35f ).toInt()
-
-
-        // Sequence field.
-
-        sequenceField = TextFieldWidget( textRenderer, x, y, w, h, Text.of(sequence) )
-
-        sequenceField!!.setMaxLength(400);      sequenceField!!.text = sequence
-
-        addSelectableChild(sequenceField)
-
-
-        // Clear button.
-
-        val clearTitle = Translation.item("gui.clear")
-
-        clearButton = createButton( x, y, 0f, 0f, w, h, w2, 0f ) { sequenceField!!.text = "" }
-
-        clearButton!!.message = Text.of(clearTitle);    addSelectableChild(clearButton)
-
-
-        // Action button.
-
-        val actionTitle = Translation.item("gui.action")
-
-        val actionValues = mapOf(
-            "Melee" to Translation.item("gui.melee"),
-            "Push" to Translation.item("gui.push"),
-            "Thrust" to Translation.item("gui.thrust"),
-            "Ranged" to Translation.item("gui.ranged")
-        )
-
-        var translation = actionValues[action]
-
-        actionButton = createButton( x, y, - w2.toFloat(), 0f, w, h, w2, 0f ) {
-
-            action = cycle( action, actions )
-
-            translation = actionValues[action]
-
-            it.message = Text.of("$actionTitle: $translation")
-
-        }
-
-        actionButton!!.message = Text.of("$actionTitle: $translation")
-
-        addSelectableChild(actionButton)
-
-
-        // MIDI device button.
-
-        val chatLimit = ( w2 * 0.125f ).toInt()
-        val deviceTitle = Translation.item("gui.device")
-
-        deviceButton = createButton( x, y, - w2.toFloat(), h * 1.25f, w, h, w2, 0f ) {
-
-            resetTween()
-
-            deviceName = cycle( deviceName, devicesNames )
-
-            val s = shorten( "$deviceTitle: $deviceName", chatLimit )
-
-            it.message = Text.of(s)
-
-        }
-
-        val s = shorten( "$deviceTitle: $deviceName", chatLimit )
-
-        deviceButton!!.message = Text.of(s);    addSelectableChild(deviceButton)
-
-
-        // MIDI Channel field.
-
-        val w4 = w * 0.075f
-
-        channelField = MidiChannelField( textRenderer,
-            ( x + w4 - w4 * 0.5f + w2 * 1.875f ).toInt(),
-            ( y + 2.75f * h ).toInt(),
-            w4.toInt(), h
-        )
-
-        channelField!!.setMaxLength(2);     channelField!!.text = channel.toString()
-
-        addSelectableChild(channelField)
-
-
-        // Volume slider.
-
-        val volumeTitle = Translation.item("gui.volume")
-
-        volumeSlider = CustomSlider(
-            ( x + w * 0.5 + w2 * 0.05 - w2 * 0.5f ).toInt(),
-            ( y + h * 1.5 + h * 1.25f * 2f ).toInt(),
-            w2, ( h * 1.1f ).toInt(),
-            volumeTitle, volume
-        )
-
-        addSelectableChild(volumeSlider)
-
-
-        // Center notes button.
-
-        val on = Translation.get("gui.on")
-        val off = Translation.get("gui.off")
-        val centerTitle = Translation.item("gui.center")
-
-        val switch = mutableMapOf( true to on, false to off )
-
-        centerNotesButton = createButton( x, y, - w2 * 0.5f, h * 1.25f * 3f, w, h, w2, 0f ) {
-
-            shouldCenter = !shouldCenter;       val value = switch[shouldCenter]
-
-            it.message = Text.of("$centerTitle: $value")
-
-        }
-
-        val value = switch[shouldCenter]
-
-        centerNotesButton!!.message = Text.of("$centerTitle: $value")
-
-        addSelectableChild(centerNotesButton)
-
-        copyButton = createButton( x, y, w * 0.513f, - 56f, ( w * 0.25 ).toInt(), h, w2, 0f ) {
-            Clipboard().setClipboard( client!!.window.handle, sequenceField!!.text )
-        }
-
-        copyButton!!.message = Text.of(copyTitle);      addSelectableChild(copyButton)
-
-    }
-
-    override fun close() {
-
-        val volumeString = volumeSlider!!.message.string
-        val volume = volumeString.filter { it.isDigit() }.toFloat()
-
-        val channel = channelField!!.text
-
-        nbt.putString( "Sequence", sequenceField!!.text )
-        nbt.putString( "SequenceInput", sequenceField!!.text )
-        nbt.putString( "Action", action )
-        nbt.putString( "MIDI Device", deviceName )
-        nbt.putInt( "MIDI Channel", channel.toInt() )
-        nbt.putFloat( "Volume", volume * 0.01f )
-        nbt.putBoolean( "Center Notes", shouldCenter )
-
-        if ( clientConfig["write_device_info"] as Boolean ) {
-
-            val newName = "$instrumentName - $deviceName - $channel"
-
-            stack.setCustomName( Text.of(newName) )
-
-        }
-
-        if ( deviceName == "None" ) stack.removeCustomName()
-
-        keepDisplay( stack, nbt );      networkNBT(nbt);        super.close()
-
-    }
-
-    override fun tick() {
-
-        channelField!!.tick()
-
-        val sequenceField = sequenceField!!;        val text = sequenceField.text
-
-        if ( text.contains( Regex("[a-z]") ) ) sequenceField.text = text.uppercase()
-
-    }
-
-    override fun render( matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float ) {
-
-        renderBackground(matrices)
-
-        children().forEach {
-
-            if ( instrument is DrumSet && it == centerNotesButton ) return@forEach
-
-            it as Drawable;     it.render( matrices, mouseX, mouseY, delta )
-
-        }
-
-        val title = stack.name.string
-        textRenderer.draw( matrices, title, width - title.length * 5f - 20, 10f, 0xFFFFFF )
-
-        textRenderer.draw( matrices, "$sequenceTitle:", sequenceField!!.x.toFloat(), sequenceField!!.y.toFloat() - 12, 0xFFFFFF )
-
-        textRenderer.draw( matrices, "$channelTitle: ", channelField!!.x.toFloat() - 45, channelField!!.y.toFloat() + 5, 0xFFFFFF )
-
-        // Show device name on change using a "tween".
-        deviceNameDraw(matrices)
-
-    }
-
-    // The first value is the color.
-    // The second value is an incremental.
-    private val tweenStack = mutableListOf( 0, 0 )
+    private val name = instrument.name.string
 
     private fun readDevices() {
 
-        devices.forEach {
+        deviceInfo.forEach {
 
             val info = MidiSystem.getMidiDevice(it)
 
             if ( !info.isOpen || info.maxTransmitters == 0 ) return@forEach
 
-            devicesNames.add( it.name )
+            devices.add( it.name )
 
         }
 
@@ -299,34 +53,363 @@ class InstrumentsScreen( private val stack: ItemStack ) : Screen( Text.of("Instr
 
         if ( deviceName.isNotEmpty() ) return
 
-        deviceName = devicesNames.elementAt(0)
+        deviceName = devices.elementAt(0)
 
     }
 
-    private fun resetTween() { tweenStack.replaceAll { 0 } }
+    private fun onTrombone() {
 
-    private fun deviceNameDraw(matrices: MatrixStack) {
-
-        val t = tweenStack
-
-        if ( t[1] > 400 ) return
-
-        if ( t[0] < 255 && t[1] > 200 ) t[0]++
-
-        val string = deviceName;        t[1]++
-        val text = Text.of(string).asOrderedText()
-
-        val color = Color( 255 - t[0], 255 - t[0], 255 - t[0] )
-
-        DrawableHelper.drawCenteredTextWithShadow( matrices, textRenderer, text, ( width * 0.5f ).toInt(), height - 47, color.rgb )
+        if ( instrument is Trombone ) actions.add("Thrust")
 
     }
 
-    companion object {
+    private fun onRanged() {
 
-        private val sequenceTitle = Translation.item("gui.sequence")
-        private val channelTitle = Translation.item("gui.channel")
-        private val copyTitle = Translation.item("gui.copy")
+        val enchantments = EnchantmentHelper.get(stack).keys
+
+        val isRanged = enchantments.find { it is RangedEnchantment } != null
+
+        if (isRanged) actions.add("Ranged")
+
+    }
+
+    init {
+
+        readDevices();      checkDeviceName();      onTrombone();       onRanged()
+
+    }
+
+    private var widgetWidth = 0f
+
+
+    private val nameTitle = RenderText {
+
+        it.x = width.toFloat();    it.y = it.height()
+
+        it.offsetX( - it.width() - 10f )
+
+    }
+
+    private val sequenceTitle = RenderText {
+
+        it.setPos(sequenceField);      it.y -= 13f
+
+    }
+
+    private val channelTitle = RenderText {
+
+        it.setPos(channelField);      it.addPos( -45f, 3f )
+
+    }
+
+    private val deviceText = FadingText {
+
+        it.text = deviceName;       it.centerX(width);      it.y = height * 0.8f
+
+    }
+
+    private val renderTexts = setOf( nameTitle, sequenceTitle, channelTitle )
+
+
+    private var volumeSlider: VolumeSlider? = null
+
+    private var sequenceField: SequenceField? = null
+
+    private var channelField: MidiChannelField? = null
+
+
+    private var clearButton: ClearButton? = null
+
+    private var copyButton: CopyButton? = null
+
+
+    private var currentAction = Translations.actions[action]
+
+    private fun actionMessage(): String { return "${ Translations.action }: $currentAction" }
+
+    private var actionButton: Button? = null
+
+
+
+    private fun deviceMessage(): String { return "${ Translations.device }: $deviceName" }
+
+    private var deviceButton: Button? = null
+
+
+    private val states = mutableMapOf( true to Translations.on,     false to Translations.off )
+
+
+    private fun centerMessage(): String {
+
+        val title = Translations.center;        val value = states[shouldCenter]
+
+        return "$title: $value"
+
+    }
+
+    private var centerButton: Button? = null
+
+    private fun send( function: () -> Unit ) { function(); sendNBT(nbt) }
+
+    override fun shouldPause(): Boolean { return false }
+
+    private fun initTexts() {
+
+        val renderer = textRenderer
+
+        nameTitle.init( name, renderer )
+
+        sequenceTitle.init( "${ Translations.sequence }:", renderer )
+
+        channelTitle.init( "${ Translations.channel }: ", renderer )
+
+        deviceText.init(renderer)
+
+    }
+
+    private fun assign() {
+
+        var x = width * 0.5f;       var w = widgetWidth * 0.5f
+
+        var i = 0;      fun y(): Float { return 25f * i++ + 50f }
+
+
+        sequenceField = SequenceField( x, y(), width * 0.75f, 20f, "Sequence Field", textRenderer ) {
+
+            it.setMaxLength(400);      it.text = sequence
+
+        }
+
+        val sequenceField = sequenceField!!
+
+
+        var y = y();        x += sequenceField.width * 0.5f - w
+
+        clearButton = ClearButton( x, y, w, 20f, sequenceField, Translations.clear ) {
+
+            it.offsetX( - w * 0.525f )
+
+        }
+
+        copyButton = CopyButton( x, y, w, 20f, sequenceField, Translations.copy ) {
+
+            it.offsetX( w * 0.5f )
+
+        }
+
+
+        w = widgetWidth
+
+        x = width * 0.5f;   x -= ( sequenceField.width - w ) * 0.5f
+
+        volumeSlider = VolumeSlider( x, y(), w, 20f, volume ) {
+
+            val value = it.value()
+
+            send { nbt.putFloat("Volume", value) }
+
+        }
+
+        channelField = MidiChannelField( x + 15f, y(), 20f, 15f, "Midi Channel Field", textRenderer ) {
+
+            it.text = "$channel"
+
+        }
+
+
+        i--;    y = y()
+
+        x = width * 0.5f;   x += ( sequenceField.width - w ) * 0.5f;    x -= w * 0.25f
+
+        deviceButton = Button( x, y, w * 1.5f, 20f, ::deviceMessage ) {
+
+            deviceText.reset()
+
+
+            deviceName = cycle( devices, deviceName )
+
+            send { nbt.putString( "MIDI Device", deviceName ) }
+
+
+            it.updateMessage()
+
+        }
+
+        centerButton = Button( x, y(), w * 1.5f, 20f, ::centerMessage ) {
+
+            shouldCenter = !shouldCenter;       it.updateMessage()
+
+            send { nbt.putBoolean( "Center Notes", shouldCenter ) }
+
+        }
+
+
+        actionButton = Button( x, y(), w, 20f, ::actionMessage ) {
+
+            action = cycle( actions, action )
+
+            currentAction = Translations.actions[action]
+
+            it.updateMessage()
+
+        }
+
+
+    }
+
+    private fun addChildren() {
+
+        val widgets = setOf(
+
+            sequenceField, clearButton, copyButton,
+
+            volumeSlider, channelField, centerButton, deviceButton,
+
+            actionButton
+
+        )
+
+        widgets.forEach { addDrawableChild(it) }
+
+    }
+
+    override fun init() {
+
+        super.init();   widgetWidth = width * 0.25f
+
+        assign();       addChildren();      initTexts()
+
+    }
+
+    private fun nameStack() {
+
+
+        val nameStack = Config.client().writeDeviceName
+
+        if ( !nameStack ) return
+
+
+        val next = "$name - $deviceName - $channel"
+
+        stack.setCustomName( Text.of(next) )
+
+
+    }
+
+    override fun close() {
+
+        channelField!!.checkField()
+
+        val sequence = sequenceField!!.text
+
+        nbt.putString( "lastSequence", sequence )
+        nbt.putString( "Sequence", sequence )
+        nbt.putString( "Action", action )
+
+        nbt.putInt( "MIDI Channel", channel )
+
+        nameStack();    if ( deviceName == "None" ) stack.removeCustomName()
+
+        saveDisplay( stack, nbt );      sendNBT(nbt);        super.close()
+
+    }
+
+    override fun tick() { channelField!!.tick();        sequenceField!!.tick() }
+
+    private fun renderChildren( matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float ) {
+
+        children().forEach {
+
+            if ( instrument is DrumSet && it == centerButton ) return@forEach
+
+            it as Drawable;     it.render( matrices, mouseX, mouseY, delta )
+
+        }
+
+    }
+
+    private fun renderTexts(matrices: MatrixStack) {
+
+        renderTexts.forEach { it.render(matrices) }
+
+        deviceText.render(matrices)
+
+    }
+
+    override fun render( matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float ) {
+
+        renderBackground(matrices);     renderChildren( matrices, mouseX, mouseY, delta )
+
+        renderTexts(matrices)
+
+    }
+
+    private companion object {
+
+        object Translations {
+
+            val on = Translation.get("gui.on")
+            val off = Translation.get("gui.off")
+
+            val sequence = Translation.item("gui.sequence")
+            val channel = Translation.item("gui.channel")
+            val copy = Translation.item("gui.copy")
+
+            val volume = Translation.item("gui.volume")
+            val clear = Translation.item("gui.clear")
+            val action = Translation.item("gui.action")
+
+            val center = Translation.item("gui.center")
+            val device = Translation.item("gui.device")
+
+            val actions = mapOf(
+                "Melee" to Translation.item("gui.melee"),
+                "Push" to Translation.item("gui.push"),
+                "Thrust" to Translation.item("gui.thrust"),
+                "Ranged" to Translation.item("gui.ranged")
+            )
+
+        }
+
+        class SequenceField(
+
+            x: Float, y: Float,       w: Float, h: Float,
+
+            message: String, renderer: TextRenderer, init: (TextField) -> Unit
+
+        ) : TextField( x, y, w, h, message, renderer, init ) {
+
+            private fun onLowercase() {
+
+                val isLower = text.contains( Regex("[a-z]") )
+
+                if ( !isLower ) return;         text = text.uppercase()
+
+            }
+
+            override fun tick() { onLowercase();  super.tick() }
+
+        }
+
+        class VolumeSlider(
+
+            x: Float, y: Float, w: Float, h: Float,
+
+            value: Float,      action: (VolumeSlider) -> Unit
+
+        ) : Slider( x, y, w, h, value, { it as VolumeSlider;   action(it) } ) {
+
+            override fun format( value: Double ): String {
+
+                val title = Translations.volume
+
+                val i = ( value * 100 ).roundToInt()
+
+                return "$title: $i%"
+
+            }
+
+        }
 
     }
 

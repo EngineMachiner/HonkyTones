@@ -1,29 +1,24 @@
 package com.enginemachiner.honkytones.blocks.musicplayer
 
+import MediaInfo
+import com.enginemachiner.harmony.*
+import com.enginemachiner.harmony.Timer
 import com.enginemachiner.honkytones.*
 import com.enginemachiner.honkytones.CanBeMuted.Companion.isMuted
 import com.enginemachiner.honkytones.Init.Companion.directories
-import com.enginemachiner.honkytones.Init.Companion.registerBlock
-import com.enginemachiner.honkytones.Particles.Companion.WAVE1
-import com.enginemachiner.honkytones.Particles.Companion.WAVE2
-import com.enginemachiner.honkytones.Particles.Companion.WAVE3
-import com.enginemachiner.honkytones.Particles.Companion.WAVE4
+import com.enginemachiner.honkytones.ModParticles.WAVE1
+import com.enginemachiner.honkytones.ModParticles.WAVE2
+import com.enginemachiner.honkytones.ModParticles.WAVE3
+import com.enginemachiner.honkytones.ModParticles.WAVE4
 import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlock.Companion.FACING
 import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlock.Companion.PLAYING
-import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlockEntity.Companion.INVENTORY_SIZE
+import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlockEntity.Companion.get
 import com.enginemachiner.honkytones.items.floppy.FloppyDisk
 import com.enginemachiner.honkytones.items.instruments.Instrument
-import com.enginemachiner.honkytones.sound.ExternalSound
-import com.sapher.youtubedl.YoutubeDLException
+import com.enginemachiner.honkytones.mixin.WorldRendererAccessor
+import com.enginemachiner.honkytones.sound.CustomSound
 import kotlinx.coroutines.*
-import net.bramp.ffmpeg.builder.FFmpegBuilder
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.fabricmc.fabric.api.networking.v1.PacketSender
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricEntityTypeBuilder
@@ -35,8 +30,6 @@ import net.minecraft.block.Material
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.BlockEntityTicker
 import net.minecraft.block.entity.BlockEntityType
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.client.render.entity.EntityRenderer
 import net.minecraft.client.render.entity.EntityRendererFactory
 import net.minecraft.entity.Entity
@@ -56,10 +49,9 @@ import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket
 import net.minecraft.particle.ParticleEffect
 import net.minecraft.screen.ScreenHandler
-import net.minecraft.server.MinecraftServer
-import net.minecraft.server.ServerTask
-import net.minecraft.server.network.ServerPlayNetworkHandler
+import net.minecraft.screen.ScreenHandlerContext
 import net.minecraft.server.network.ServerPlayerEntity
+import net.minecraft.server.world.ServerWorld
 import net.minecraft.state.StateManager
 import net.minecraft.state.property.BooleanProperty
 import net.minecraft.state.property.DirectionProperty
@@ -76,28 +68,35 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
 import net.minecraft.world.explosion.Explosion
+import java.io.InputStream
 import java.net.URL
+import java.nio.file.Files
+import java.util.*
 import javax.sound.midi.MidiSystem
 import javax.sound.midi.Sequencer
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
+/*
+    TODO: Consider saving data when breaking to be set in an unique stack.
+     This might reduce the use of the musical storage.
+*/
+
 private val coroutine = CoroutineScope( Dispatchers.IO )
 
 private fun setThreadName() { Thread.currentThread().name = "HonkyTones Resources thread"; }
 
-private fun lookupPlayer( world: World, floppy: ItemStack ): PlayerEntity? {
+private fun host( world: World, floppy: ItemStack ): PlayerEntity? {
 
-    val players = world.players;   if ( !NBT.has(floppy) ) return null
+    if ( !NBT.has(floppy) ) return null;    val nbt = NBT.get(floppy)
 
-    val nbt = NBT.get(floppy);     return players.find { it.id == nbt.getInt("PlayerID") }
+    if ( !nbt.containsUuid("Host") ) return null
+
+    return world.getPlayerByUuid( nbt.getUuid("Host") )
 
 }
 
-// TODO: Make parrots dance.
-// TODO: Save client listening states (nbt?) so users are not forced to change it themselves.
-// TODO: Make a remote class to change the music player settings. (rate, volume, listen)
 class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
 
     @Deprecated( "Deprecated in Java", ReplaceWith( "BlockRenderType.MODEL", "net.minecraft.block.BlockRenderType" ) )
@@ -125,25 +124,32 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
         player: PlayerEntity, hand: Hand, hit: BlockHitResult
     ): ActionResult {
 
-        val action = ActionResult.CONSUME
+        val blockEntity = world.getBlockEntity(pos) as MusicPlayerBlockEntity
 
-        val musicPlayer = world.getBlockEntity(pos) as MusicPlayerBlockEntity
-
-        player.openHandledScreen(musicPlayer);      return action
+        player.openHandledScreen(blockEntity);      return ActionResult.CONSUME
 
     }
 
     override fun onBreak( world: World, pos: BlockPos, state: BlockState, player: PlayerEntity ) {
 
+        onBreak( world, pos, player );      super.onBreak( world, pos, state, player )
+
+    }
+
+    private fun onBreak( world: World, pos: BlockPos, player: PlayerEntity ) {
+
         val blockEntity = world.getBlockEntity(pos) as MusicPlayerBlockEntity
 
-        val isPlaying = blockEntity.isPlaying();      val entity = blockEntity.entity!!
+        val isPlaying = blockEntity.isPlaying()
+
+        val entity = blockEntity.entity ?: return
 
         val drop = !isPlaying || player.isCreative
 
-        if (drop) drop( world, pos, blockEntity ) else explode(entity)
 
-        entity.remove( Entity.RemovalReason.DISCARDED );    super.onBreak( world, pos, state, player )
+        if (drop) dropStacks( world, pos, blockEntity ) else explode(entity)
+
+        entity.discard()
 
     }
 
@@ -153,22 +159,22 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
         block: Block, fromPos: BlockPos, notify: Boolean
     ) {
 
-        val musicPlayer = world.getBlockEntity(pos) as MusicPlayerBlockEntity
+        // Check power from the block origin and beside the block.
 
-        var isPowered = world.getReceivedStrongRedstonePower(pos) > 9
+        val blockEntity = world.getBlockEntity(pos) as MusicPlayerBlockEntity
+
+        var isTriggered = world.getReceivedStrongRedstonePower(pos) > 9
                 || world.getReceivedRedstonePower(pos) > 9
 
-        val from = fromPos.add( 1, 0, 0 )
+        isTriggered = isTriggered && world.isReceivingRedstonePower(pos)
 
-        isPowered = isPowered && world.isReceivingRedstonePower(from)
+        if ( blockEntity.isTriggered == isTriggered ) return
 
-        if ( musicPlayer.isPowered == isPowered ) return
+        blockEntity.isTriggered = isTriggered;      if ( !isTriggered ) return
 
-        musicPlayer.isPowered = isPowered;      if ( !isPowered ) return
+        if ( !blockEntity.isPlaying() ) blockEntity.play() else {
 
-        if ( !musicPlayer.isPlaying() ) musicPlayer.play() else {
-
-            musicPlayer.pause();    if ( musicPlayer.repeatOnPlay ) musicPlayer.play()
+            blockEntity.pause();    if ( blockEntity.onRepeat ) blockEntity.play()
 
         }
 
@@ -178,13 +184,11 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
         world: World, state: BlockState, type: BlockEntityType<T>
     ): BlockEntityTicker<T> {
 
-        val id = MusicPlayerBlockEntity.classID()
+        val blockEntityType = MusicPlayerBlockEntity.type
 
-        val blockEntity = Registry.BLOCK_ENTITY_TYPE.get(id)
+        return checkType( type, blockEntityType ) {
 
-        return checkType( type, blockEntity ) {
-
-            world: World, blockPos: BlockPos, _: BlockState, _: Any ->
+            world, blockPos, _, _ ->
 
             MusicPlayerBlockEntity.tick( world, blockPos )
 
@@ -192,39 +196,46 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
 
     }
 
-    private fun drop( world: World, pos: BlockPos, musicPlayer: MusicPlayerBlockEntity ) {
-        for ( i in 0..16 ) dropStack( world, pos, musicPlayer.getStack(i) )
+    private fun dropStacks(world: World, pos: BlockPos, blockEntity: MusicPlayerBlockEntity ) {
+
+        for ( i in 0..16 ) dropStack( world, pos, blockEntity.getStack(i) )
+
     }
 
     private fun explode(entity: MusicPlayerEntity) {
 
-        val world = entity.world
+        explode( entity, 0.75f, Explosion.DestructionType.DESTROY )
 
-        world.createExplosion( entity, entity.x, entity.y, entity.z, 0.75f, Explosion.DestructionType.DESTROY )
-
-        world.createExplosion( entity, entity.x, entity.y, entity.z, 5f, true, Explosion.DestructionType.BREAK )
+        explode( entity, 5f, Explosion.DestructionType.BREAK, true )
 
     }
 
-    companion object {
+    companion object : ModID {
 
         val FACING: DirectionProperty = Properties.HORIZONTAL_FACING
+
         val PLAYING: BooleanProperty = BooleanProperty.of("playing")
+
+        lateinit var registryBlock: MusicPlayerBlock
 
         /** Register the block, the block entity and the entity. */
         fun register() {
 
-            val settings = FabricBlockSettings.of( Material.WOOD ).strength(1.0f)
+            val settings = FabricBlockSettings.of( Material.WOOD ).strength( 1.0f )
 
-            val block = MusicPlayerBlock(settings)
-            val registerBlock = registerBlock( block, defaultSettings() )
+            val block = MusicPlayerBlock(settings);     registryBlock = block
+            val registerBlock = Register.block( block, modItemSettings() )
 
             var id = MusicPlayerBlockEntity.classID()
             val builder1 = FabricBlockEntityTypeBuilder.create( ::MusicPlayerBlockEntity, registerBlock )
 
+            /*
+             * This might not be the right solution, but I did this
+             * because of the tick in the block entity that checks new position and gets unsupported blocks.
+             */
+
             val registry = Registry.BLOCK
             for ( i in 0 until registry.size() ) builder1.addBlock( registry[i] )
-            // Because of the tick that checks new positions and that could be weird on any block states.
 
             MusicPlayerBlockEntity.type = Registry.register( Registry.BLOCK_ENTITY_TYPE, id, builder1.build() )
 
@@ -243,15 +254,17 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
 
 }
 
-class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( type, pos, state ), ExtendedScreenHandlerFactory, CustomInventory {
+class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( type, pos, state ),
+    ExtendedScreenHandlerFactory, CustomInventory {
 
-    val usersListening = mutableSetOf<PlayerEntity>();  var entity: MusicPlayerEntity? = null
+    private val listeners = mutableMapOf<String, UUID>()
 
-    /** Avoids more than one redstone triggers at the same time. */
-    var isPowered = false;    var id = this.hashCode();     var repeatOnPlay = false
+    var entity: MusicPlayerEntity? = null;      var id = this.hashCode()
 
-    /** Linked to the user sync / listening state. It's used for the screen sync button. */
-    @Environment(EnvType.CLIENT) var isListening = false
+    var isTriggered = false;      var onRepeat = false
+
+    /** Linked to the user listening state. It's linked in the screen listening button. */
+    /* @Environment(EnvType.CLIENT) */ var isListening = false
 
     private val items = DefaultedList.ofSize( INVENTORY_SIZE, ItemStack.EMPTY )
 
@@ -261,34 +274,45 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
     override fun readNbt(nbt: NbtCompound) {
 
-        super.readNbt(nbt);     Inventories.readNbt( nbt, items )
+        super.readNbt(nbt);     Inventories.readNbt(nbt, items)
 
-        id = nbt.getInt("ID")
+        id = nbt.getInt("ID");      readListeners(nbt)
 
-        repeatOnPlay = nbt.getBoolean("repeatOnPlay")
+        onRepeat = nbt.getBoolean("Repeat")
 
 
-        val world = world ?: return;   if ( !world.isClient ) return
+        val world = world ?: return;    if ( !world.isClient ) return
 
-        val musicPlayer = MusicPlayer.get(id);      val blockEntity = musicPlayer.blockEntity
+        val musicPlayer = MusicPlayer.get(id)
 
-        if ( blockEntity != null ) { isListening = blockEntity.isListening;      entity = blockEntity.entity }
+        setLastRendered( musicPlayer.blockEntity )
 
-        musicPlayer.blockEntity = this;     musicPlayer.setMIDIReceiver()
+        musicPlayer.blockEntity = this
+
+        musicPlayer.setMIDIReceiver();      onSpawn()
+
+    }
+
+    /** Set the last block entity rendered. */
+    private fun setLastRendered( blockEntity: MusicPlayerBlockEntity? ) {
+
+        if ( blockEntity == null ) return
+
+        isListening = blockEntity.isListening;      entity = blockEntity.entity
 
     }
 
     override fun writeNbt(nbt: NbtCompound) {
 
+        trySpawning()
+
         if ( !nbt.contains("ID") ) nbt.putInt( "ID", id )
 
-        nbt.putBoolean( "repeatOnPlay", repeatOnPlay )
+        nbt.putBoolean( "Repeat", onRepeat );     writeListeners(nbt)
 
-        Inventories.writeNbt( nbt, items );    super.writeNbt(nbt);     init()
+        Inventories.writeNbt( nbt, items );     super.writeNbt(nbt)
 
     }
-
-    override fun markDirty() { super<BlockEntity>.markDirty() }
 
     override fun markRemoved() {
 
@@ -300,17 +324,15 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
     }
 
-    override fun toUpdatePacket(): Packet<ClientPlayPacketListener> {
-
-        init();    return BlockEntityUpdateS2CPacket.create(this)
-
-    }
+    override fun toUpdatePacket(): Packet<ClientPlayPacketListener> { return BlockEntityUpdateS2CPacket.create(this) }
 
     // Thinking with hoppers.
 
     override fun canExtract( slot: Int, stack: ItemStack, direction: Direction ): Boolean {
 
-        val item = stack.item;        if ( slot == 16 && item is FloppyDisk ) { pause();  scheduleRead() }
+        val item = stack.item;      val schedule = slot == 0 && item is FloppyDisk
+
+        if (schedule) { pause(); scheduleRead() }
 
         return true
 
@@ -318,23 +340,57 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
     override fun canInsert( slot: Int, stack: ItemStack, direction: Direction? ): Boolean {
 
-        val item = stack.item;        if ( slot < 16 && item !is Instrument ) return false
+        val item = stack.item
 
-        if ( slot == 16 && item is FloppyDisk ) scheduleRead() else return false
+        if ( slot > 0 && item !is Instrument ) return false
+
+        if ( slot == 0 && item is FloppyDisk ) scheduleRead() else return false
 
         return true
 
     }
 
-    override fun createMenu( syncID: Int, inventory: PlayerInventory, player: PlayerEntity ): ScreenHandler {
+    override fun removeStack(slot: Int): ItemStack {
 
-        return MusicPlayerScreenHandler( syncID, inventory, this as Inventory )
+        read();     return super.removeStack(slot)
+
+    }
+
+    override fun setStack( slot: Int, stack: ItemStack ) {
+
+        shouldListen = true;       super.setStack(slot, stack)
+
+        read();     onEmptyFloppy(stack)
+
+    }
+
+    private fun onEmptyFloppy(stack: ItemStack) {
+
+        val floppy = items.first();     val isNot = stack != floppy
+
+        if ( !world!!.isClient || floppy.isEmpty || isNot  ) return
+
+
+        val nbt = NBT.get(floppy);       val path = nbt.getString("Path")
+
+
+        if ( path.isNotBlank() ) return;        warnUser("message.empty")
+
+    }
+
+    override fun createMenu( syncID: Int, playerInventory: PlayerInventory, player: PlayerEntity ): ScreenHandler {
+
+        val inventory = this as Inventory;          val context = ScreenHandlerContext.create(world, pos)
+
+        return MusicPlayerScreenHandler( syncID, playerInventory, inventory, context )
 
     }
 
     override fun getDisplayName(): Text {
 
-        val title = Translation.block("music_player");      return Text.of("§1$title")
+        val title = Translation.block("music_player")
+
+        return Text.of("§1$title")
 
     }
 
@@ -342,128 +398,222 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
     companion object : ModID {
 
+        var shouldListen = false
+
         const val INVENTORY_SIZE = 16 + 1;      lateinit var type: BlockEntityType<MusicPlayerBlockEntity>
 
-        fun tick( world: World, pos: BlockPos ) {
+        fun get( world: World, pos: BlockPos ): MusicPlayerBlockEntity? {
 
             val blockEntity = world.getBlockEntity(pos)
 
-            if ( blockEntity !is MusicPlayerBlockEntity ) return
+            if ( blockEntity !is MusicPlayerBlockEntity ) return null
 
-            blockEntity.entityTick();      blockEntity.musicPlayerTick()
+            return blockEntity
+
+        }
+
+        fun tick( world: World, pos: BlockPos ) {
+
+            val blockEntity = get( world, pos ) ?: return
+
+            blockEntity.entityTick();   blockEntity.musicPlayerTick()
 
         }
 
         fun networking() {
 
-            var id = netID("set_user_listening")
-            ServerPlayNetworking.registerGlobalReceiver(id) {
 
-                server: MinecraftServer, player: ServerPlayerEntity,
-                _: ServerPlayNetworkHandler, buf: PacketByteBuf, _: PacketSender ->
+            var id = netID("set_user_state")
 
-                val world = server.overworld;   val pos = buf.readBlockPos();   val add = buf.readBoolean()
+            Receiver(id).register { server, sender, buf ->
 
-                server.send( ServerTask( server.ticks ) {
+                val world = server.overworld
 
-                    val musicPlayer = world.getBlockEntity(pos) as MusicPlayerBlockEntity
+                val pos = buf.readBlockPos();       val add = buf.readBoolean()
 
-                    val list = musicPlayer.usersListening;      if (add) list.add(player) else list.remove(player)
 
-                } )
+                serverSend(server) {
+
+                    val blockEntity = world.getBlockEntity(pos) as MusicPlayerBlockEntity
+
+                    val players = blockEntity.playersListening()
+
+
+                    // About to have no listeners
+                    // There could be listening button interaction.
+                    if ( players.size == 1 ) blockEntity.pause()
+
+
+                    val stored = blockEntity.listeners
+
+                    val name = sender.name.string;          val uuid = sender.uuid
+
+
+                    if (add) stored[name] = uuid else stored.remove(name)
+
+
+                    blockEntity.setPlayerSettings(sender)
+
+                }
+
+            }
+
+
+            id = netID("set_playing")
+
+            Receiver(id).register { server, _, buf ->
+
+                val world = server.overworld
+
+                val pos = buf.readBlockPos();       val isPlaying = buf.readBoolean()
+
+
+                serverSend(server) {
+
+                    val blockEntity = get( world, pos ) ?: return@serverSend
+
+                    blockEntity.setPlaying(isPlaying)
+
+                }
 
             }
 
-            id = netID("set_playing_state")
-            ServerPlayNetworking.registerGlobalReceiver(id) {
-
-                server: MinecraftServer, _: ServerPlayerEntity,
-                _: ServerPlayNetworkHandler, buf: PacketByteBuf, _: PacketSender ->
-
-                val world = server.overworld;   val pos = buf.readBlockPos();   val isPlaying = buf.readBoolean()
-
-                server.send( ServerTask( server.ticks ) {
-
-                    val musicPlayer = world.getBlockEntity(pos) ?: return@ServerTask
-
-                    musicPlayer as MusicPlayerBlockEntity
-
-                    musicPlayer.setPlaying(isPlaying)
-
-                } )
-
-            }
 
             id = netID("set_repeat")
-            ServerPlayNetworking.registerGlobalReceiver(id) {
 
-                server: MinecraftServer, _: ServerPlayerEntity,
-                _: ServerPlayNetworkHandler, buf: PacketByteBuf, _: PacketSender ->
+            Receiver(id).register { server, sender, buf ->
 
-                val world = server.overworld;   val pos = buf.readBlockPos();   val onRepeat = buf.readBoolean()
+                val world = server.overworld
 
-                server.send( ServerTask( server.ticks ) {
+                val pos = buf.readBlockPos();       val onRepeat = buf.readBoolean()
 
-                    val musicPlayer = world.getBlockEntity(pos) as MusicPlayerBlockEntity
 
-                    musicPlayer.repeatOnPlay = onRepeat;    musicPlayer.markDirty()
+                serverSend(server) {
 
-                } )
+                    val blockEntity = get(world, pos) ?: return@serverSend
+
+                    blockEntity.onRepeat = onRepeat
+
+
+                    val id = netID("set_repeat")
+
+                    val sender = Sender( id, sender ) { it.write(pos).write(onRepeat) }
+
+                    sender.toClients(world)
+
+                }
 
             }
 
-            MusicPlayer.networking()
+
+            MusicPlayer.networking();       if ( !isClient() ) return
+
+
+            id = netID("set_user_state")
+
+            Receiver(id).register { buf ->
+
+                val pos = buf.readBlockPos();       val onRepeat = buf.readBoolean()
+
+
+                client().send {
+
+                    val blockEntity = get( world()!!, pos ) ?: return@send
+
+                    blockEntity.onRepeat = onRepeat
+
+                }
+
+            }
+
 
         }
 
     }
 
-    @Environment(EnvType.CLIENT)
-    fun setUserListeningState(isListening: Boolean) {
+    private fun setPlayerSettings( player: PlayerEntity ) {
 
-        val id = netID("set_user_listening")
+        val floppy = getStack(0);       if ( floppy.isEmpty ) return
 
-        val buf = PacketByteBufs.create().writeBlockPos(pos);   buf.writeBoolean(isListening)
-
-        ClientPlayNetworking.send( id, buf )
+        FloppyDisk.settings( floppy, player )
 
     }
 
-    @Environment(EnvType.CLIENT)
-    fun setRepeatMode(repeatPlay: Boolean) {
+    /** Set the map, reading the stored listeners. */
+    private fun readListeners(nbt: NbtCompound) {
 
-        val id = netID("set_repeat")
+        if ( world != null && world!!.isClient ) return
 
-        val buf = PacketByteBufs.create().writeBlockPos(pos);   buf.writeBoolean(repeatPlay)
+        val listeners = nbt.get("Listeners") as NbtCompound
 
-        ClientPlayNetworking.send( id, buf )
-
-    }
-
-    @Environment(EnvType.CLIENT)
-    fun clientInit() {
-
-        val listenAll = clientConfig["listen_all"] as Boolean
-
-        if ( !listenAll ) return;     isListening = true;    setUserListeningState(true)
+        listeners.keys.forEach { this.listeners[it] = listeners.getUuid(it) }
 
     }
 
-    private fun init() {
+    private fun writeListeners(nbt: NbtCompound) {
 
-        val world = world!!;    if ( world.isClient || entity != null ) return
+        val data = NbtCompound()
 
-        val nextState = world.getBlockState(pos).with( PLAYING, false )
+        for ( ( name, uuid ) in listeners ) { data.putUuid( name, uuid ) }
 
-        world.setBlockState( pos, nextState )
+        nbt.put( "Listeners", data )
 
-        spawnEntity( MusicPlayerEntity(this) )
+    }
+
+    // @Environment(EnvType.CLIENT)
+    fun updateState( id: String, b: Boolean ) {
+
+        val netID = netID(id)
+
+        val sender = Sender(netID) { it.write(pos).write(b) }
+
+        sender.toServer()
+
+    }
+
+    // @Environment(EnvType.CLIENT)
+    private fun spawnRead() {
+
+        if ( !isListening ) return;     MusicPlayer.get(id).tryReading()
+
+    }
+
+    // @Environment(EnvType.CLIENT)
+    private fun onSpawn() {
+
+        val musicPlayer = MusicPlayer.get(id)
+
+        if ( musicPlayer.worldLoaded ) return;      musicPlayer.worldLoaded = true
+
+        onListenAll();      Timer(5) { spawnRead() } // Because needs a bit of time to network the host.
+
+    }
+
+    // @Environment(EnvType.CLIENT)
+    private fun onListenAll() {
+
+        val listenAll = Config.client().listenAll
+
+        if ( !listenAll || isListening ) return
+
+        isListening = true;     updateState( "set_user_state", true )
+
+    }
+
+    /** Tries to spawn the entity in the server. */
+    private fun trySpawning() {
+
+        val world = world!!
+
+        if ( world.isClient || entity != null ) return
+
+        MusicPlayerEntity(this)
 
     }
 
     fun isPlaying(): Boolean { return cachedState.get(PLAYING) }
 
-    fun setPlaying(isPlaying: Boolean) {
+    fun setPlaying( isPlaying: Boolean ) {
 
         val next = cachedState.with( PLAYING, isPlaying )
 
@@ -471,110 +621,125 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState ) : BlockEntity( 
 
     }
 
-    /** Get the list of users synced / listening to the block entity, including the owner of the floppy. */
-    fun usersListening(floppy: ItemStack): Set<PlayerEntity> {
+    private fun onMissingHost( next: Set<PlayerEntity> ) {
 
-        val users = usersListening.toMutableSet()
+        val floppy = items.first()
 
-        for ( user in users ) if ( user.isRemoved ) usersListening.remove(user)
+        val world = world as ServerWorld
 
-        val owner = lookupPlayer( world!!, floppy ) ?: return users
+        val hasHost = host( world, floppy ) != null
 
-        if ( !users.contains(owner) ) users.add(owner)
+        if ( hasHost || next.isEmpty() ) return
 
-        return users
+        NBT.get(floppy).putUuid( "Host", next.first().uuid )
 
-    }
-
-    fun spawnEntity( entity: MusicPlayerEntity ) {
-
-        world!!.spawnEntity(entity);    entity.init();   this.entity = entity
+        world.chunkManager.markForUpdate(pos)
 
     }
 
-    fun play() { sendAction {
+    /** Get the list of users synced / listening to the block entity, including the host. */
+    fun playersListening(): Set<PlayerEntity> {
 
-        val buf = PacketByteBufs.create().writeString("play")
+        val players = world!!.players
 
-        buf.writeInt( this.id );    buf
+        val next = mutableSetOf<PlayerEntity>()
 
-    } }
+        for ( uuid in listeners.values ) {
 
-    fun pause() { sendAction {
+            val player = players.find { it.uuid == uuid } ?: continue
 
-        val buf = PacketByteBufs.create().writeString("pause")
-
-        buf.writeInt( this.id );    buf
-
-    } }
-
-    private fun sendAction( buf: () -> PacketByteBuf ) {
-
-        val floppy = getStack(16);     if ( floppy.isEmpty ) return
-
-        val id = MusicPlayer.netID("action")
-
-        usersListening(floppy).forEach { ServerPlayNetworking.send( it as ServerPlayerEntity, id, buf() ) }
-
-    }
-
-    private fun scheduleRead() { Timer(5) { read() } }
-
-    private fun read() { read( getStack(16) ) }
-
-    fun read(floppy: ItemStack) {
-
-        val id = MusicPlayer.netID("read");     if ( !NBT.has(floppy) ) return
-
-        val buf = PacketByteBufs.create();          buf.writeInt( this.id )
-
-        for ( i in 0 .. 16 ) buf.writeItemStack( getStack(i) )
-
-        usersListening(floppy).forEach { ServerPlayNetworking.send( it as ServerPlayerEntity, id, buf ) }
-
-    }
-
-    /** Updates entity position and networks it. */
-    private fun entityTick() {
-
-        if ( world!!.isClient ) return;           val entity = entity ?: return
-
-        if ( entity.blockPos == pos ) return;     entity.setPos(pos)
-
-        val floppy = getStack(16);          val id = MusicPlayer.netID("position")
-
-        val buf = PacketByteBufs.create().writeBlockPos(pos); buf.writeInt( this.id )
-
-        for ( player in usersListening(floppy) ) ServerPlayNetworking.send( player as ServerPlayerEntity, id, buf )
-
-    }
-
-    private fun musicPlayerTick() {
-
-        val floppy = getStack(16)
-
-        if ( !world!!.isClient ) {
-
-            val isEmpty = usersListening(floppy).isEmpty() && isPlaying()
-
-            if (isEmpty) setPlaying(false);       return
+            next.add(player)
 
         }
 
-        MusicPlayer.get(id).tick()
+        onMissingHost(next);        return next
 
     }
+
+    fun play() { sendAction("play") };      fun pause() { sendAction("pause") }
+
+    private fun sendAction( actionName: String ) {
+
+        val floppy = getStack(0);      if ( floppy.isEmpty ) return
+
+
+        val netID = MusicPlayer.netID("action")
+
+        val listeners = playersListening()
+
+
+        val sender = Sender(netID) { it.write( actionName ).write(id) }
+
+        sender.toClients(listeners)
+
+    }
+
+    private fun scheduleRead() {    Timer(5) { read() }     }
+
+    fun read() {
+
+        if ( world!!.isClient ) return
+
+        fun write( buf: BufWrapper ) {
+
+            buf.write(id)
+
+            for ( i in 0 until size() ) buf.write( getStack(i) )
+
+        }
+
+        val id = MusicPlayer.netID("read");     val listeners = playersListening()
+
+        val sender = Sender(id) { write(it) };      sender.toClients(listeners)
+
+    }
+
+    private fun entityTick() {
+
+        val entity = entity ?: return;      if ( entity.blockPos == pos ) return
+
+        entity.setPos(pos)
+
+    }
+
+    private fun mediaTick() {
+
+        val isClient = world!!.isClient;    val floppy = items.first()
+
+        if ( floppy.isEmpty ) return
+
+        if (isClient) MusicPlayer.get(id).midiTick() else {
+
+            // No listening button interaction. Can happen on disconnect.
+
+            val isEmpty = playersListening().isEmpty()
+
+            if ( isEmpty && isPlaying() ) setPlaying(false)
+
+        }
+
+    }
+
+    private fun trackSlots() { items.forEachIndexed { i, stack ->
+
+        if ( stack.isEmpty ) return@forEachIndexed
+
+        val nbt = NBT.get(stack)
+
+        nbt.putString( "BlockPos", pos!!.toShortString() )
+
+        nbt.putInt( "Slot", i )
+
+    } }
+
+    private fun musicPlayerTick() { mediaTick(); trackSlots() }
 
 }
 
 /** This entity used as instruments holder and for particles. */
 class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : Entity( type, world ) {
 
-    constructor( blockEntity: MusicPlayerBlockEntity ) : this( Companion.type, blockEntity.world!! ) {
-
-        setPos( blockEntity.pos )
-
-    }
+    constructor( blockEntity: MusicPlayerBlockEntity ) : this( Companion.type, blockEntity.world!! ) { spawn(blockEntity) }
 
     override fun initDataTracker() {}
 
@@ -586,15 +751,9 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
 
         super.onSpawnPacket(packet)
 
-        val musicPlayer = world.getBlockEntity(blockPos)
+        val blockEntity = get( world, blockPos ) ?: return
 
-        if ( musicPlayer !is MusicPlayerBlockEntity ) return
-
-        // It seems this next check is bad when there's mods handling entity loading :(.
-
-        val entity = musicPlayer.entity;    //if ( entity != null && !entity.isRemoved ) return
-
-        musicPlayer.spawnEntity(this);    musicPlayer.clientInit()
+        spawn(blockEntity)
 
     }
 
@@ -602,19 +761,24 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
 
     override fun getName(): Text { return Text.of( Translation.block("music_player") ) }
 
-    fun init() {
+        fun setPos(blockPos: BlockPos) {
+
+        val newPos = Vec3d.of(blockPos).add( 0.5, 0.0, 0.5 )
+
+        setPosition(newPos)
+
+    }
+
+    private fun spawn( blockEntity: MusicPlayerBlockEntity ) {
+
+        blockEntity.entity = this;      setPos( blockEntity.pos )
+
 
         val facing = world.getBlockState(blockPos).get(FACING)
 
         this.yaw = facing.asRotation()
 
-    }
-
-    fun setPos(blockPos: BlockPos) {
-
-        val newPos = Vec3d.of(blockPos).add( 0.5, 0.0, 0.5 )
-
-        setPosition(newPos)
+        world!!.spawnEntity(this)
 
     }
 
@@ -633,119 +797,149 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
 /** Handles all the music playback. Used for the clientside only. */
 class MusicPlayer( val id: Int ) {
 
-    var blockEntity: MusicPlayerBlockEntity? = null;    var path = ""
+    /*
+        Local files are linked to host (last owner) of the floppy disk.
+        Online files are linked by the listening button.
+     */
 
-    private var sequencer: Sequencer? = null;       private var isPlaying = false
+    /** Reads requests on world load. */
+    var worldLoaded = false;        var path = ""
+
+    var blockEntity: MusicPlayerBlockEntity? = null
+
+    private var sequencer: Sequencer? = null
 
     private var pauseTick: Long = 0;                var spawnParticles = false
 
-    private var onQuery = false;                    private var isDirectAudio = false
+    private var onQuery = false;                    private var isInputStream = false
 
-    var sound: ExternalSound? = null;               init { list.add(this) }
-
-    val items: DefaultedList<ItemStack> = DefaultedList.ofSize( INVENTORY_SIZE, ItemStack.EMPTY )
+    var sound: CustomSound? = null;               init { list.add(this) }
 
     private val actions = mapOf( "play" to ::play, "pause" to ::pause )
 
-    override fun toString(): String { return "Music Player: ${ pos() }" }
+    override fun toString(): String {
 
-    fun stopSequencer() { sequencer!!.stop() };     fun pos(): BlockPos { return blockEntity!!.pos }
+        if ( blockEntity == null ) return super.toString()
 
-    fun isFormerPlayer(): Boolean {
-
-        val floppy = items[16];     val player = lookupPlayer( world()!!, floppy )
-
-        return player() == player
+        return "Music Player: ${ pos() }"
 
     }
 
-    private fun setPlaying(isPlaying: Boolean) {
+    private fun floppy(): ItemStack { return item(0) }
+    private fun file(): ModFile { return ModFile(path) }
+    private fun url(): URL { return URL(path) }
 
-        val floppy = items[16];     this.isPlaying = isPlaying
+    private fun isPlaying(): Boolean { return blockEntity!!.isPlaying() }
 
-        if ( !isFormerPlayer() && !floppy.isEmpty ) return
+    fun item(slot: Int): ItemStack {
 
-        val id = MusicPlayerBlockEntity.netID("set_playing_state")
+        val items = blockEntity!!.items();      return items[slot]
 
-        val buf = PacketByteBufs.create().writeBlockPos( pos() );   buf.writeBoolean(isPlaying)
+    }
 
-        ClientPlayNetworking.send( id, buf )
+    fun stopSequencer() { sequencer!!.stop() };     fun pos(): BlockPos { return blockEntity!!.pos }
+
+    private fun isHost(): Boolean {
+
+        val host = host( world()!!, floppy() ) ?: return false
+
+        return player().uuid == host.uuid
+
+    }
+
+    private fun updateEntities( isPlaying: Boolean ) {
+
+        val world = world()!!;      get( world, pos() ) ?: return
+
+        val renderer = client().worldRenderer as WorldRendererAccessor
+
+        renderer.invokeUpdateEntitiesForSong( world, pos(), isPlaying )
+
+    }
+
+    private fun setPlaying( isPlaying: Boolean ) {
+
+        updateEntities(isPlaying)
+
+        if ( !isHost() ) return;    blockEntity!!.updateState( "set_playing", isPlaying )
+
+    }
+
+    fun inputStream(): InputStream {
+
+        val isURL = isValidUrl(path)
+
+        return if (isURL) url().openStream() else file().inputStream()
 
     }
 
     private fun isMidi(): Boolean { return path.endsWith(".mid") }
 
-    // Local files are linked to the last player having the floppy.
-    // Online files are linked by the listening button.
-
     private fun playMidi(): Boolean {
 
-        if ( !isMidi() || !hasSequencer() ) return false;       val sequencer = sequencer!!
+        if ( !isMidi() || !hasSequencer() ) return false
+
+        val sequencer = sequencer!!
+
 
         try {
 
-            val input = if (isDirectAudio) URL(path).openStream() else ModFile(path).inputStream()
+            val next = MidiSystem.getSequence( inputStream() )
 
-            sequencer.sequence = MidiSystem.getSequence(input);     sound = null
+            sequencer.sequence = next;          sound = null
 
         } catch ( e: Exception ) {
 
-            warnUser( FloppyDisk.missingMessage(path) )
+            warnInvalidMidi();    e.printStackTrace()
 
-            warnUser( Translation.get("message.check_console") )
-
-            e.printStackTrace();        return false
+            return false
 
         }
 
-        sequencer.start();      sequencer.tickPosition = pauseTick;     return true
+
+        sequencer.start();      sequencer.tickPosition = pauseTick
+
+        return true
 
     }
 
-    /** Try to load direct url or local file. */
+    private fun warnInvalidMidi() { warnConsole("$path #error.invalid_midi") }
+
+    private fun warnMissingFile() { warnConsole("$path #error.missing_file") }
+
+    private fun sound(): CustomSound? {
+
+        return try { CustomSound(this) } catch (e: Exception ) {
+
+            warnConsole("error.file_access");   e.printStackTrace()
+
+            null
+
+        }
+
+    }
+
     private fun playSound(): Boolean {
 
-        if ( isMidi() ) return false
+        if (onQuery) { warnUser("message.file_on_query");       return false }
 
-        val warning = Translation.get("message.file_on_query")
 
-        if (onQuery) { warnUser(warning); return false }
-
-        loadSound();        val sound = sound ?: return false
+        val sound = sound() ?: return false
 
         if ( !sound.isValid() ) return false
 
-        sound.play();       return true
 
-    }
-
-    private fun loadSound() {
-
-        if ( !inputExists() ) return
-
-        sound = try { ExternalSound(this) } catch ( e: Exception ) {
-
-            warnUser( Translation.get("error.file_access") )
-
-            warnUser( Translation.get("message.check_console") )
-
-            e.printStackTrace();    null
-
-        }
+        this.sound = sound;     sound.play();       return true
 
     }
 
     fun play() { coroutine.launch {
 
-        setThreadName();    if ( path.isEmpty() ) return@launch
+        setThreadName();    if ( !hasInput() ) return@launch
 
-        var playMidi = false;       if ( isFormerPlayer() ) playMidi = playMidi()
+        val isPlaying = playMidi() || playSound();       setPlaying(isPlaying)
 
-        val isPlaying = playMidi || playSound();       setPlaying(isPlaying)
-
-        if ( isMidi() && !isFormerPlayer() ) statusMessage("Listening...")
-
-        if ( !isPlaying ) return@launch; statusMessage("Playing...")
+        if ( !isPlaying ) return@launch;        statusMessage("Playing...")
 
         startParticles()
 
@@ -753,220 +947,244 @@ class MusicPlayer( val id: Int ) {
 
     private fun startParticles() {
 
-        if ( !isFormerPlayer() ) return;    val id = netID("particles")
+        if ( !isHost() ) return;    val netID = netID("particles")
 
-        val buf = PacketByteBufs.create().writeBlockPos( pos() );   buf.writeInt( this.id )
+        val sender = Sender(netID) { it.write( pos() ).write(id) }
 
-        ClientPlayNetworking.send( id, buf )
+        sender.toServer()
 
     }
 
-    fun pause() { pause( blockEntity!!.repeatOnPlay ) }
+    fun pause() { pause( blockEntity!!.onRepeat ) }
 
-    fun pause(stop: Boolean) { coroutine.launch {
+    private fun pause(stop: Boolean) {
 
-        setThreadName();        spawnParticles = false
+        fun pause() {
 
-        if ( !isPlaying ) return@launch;       setPlaying(false)
+            setThreadName();        spawnParticles = false
 
-        if ( hasSound() ) sound!!.fadeOut() else {
+            if ( !isPlaying() ) return;      setPlaying(false)
 
-            if ( !hasSequencer() ) return@launch;          val sequencer = sequencer!!
+            if ( hasSound() ) sound!!.fadeOut() else pauseMidi(stop)
 
-            pauseTick = sequencer.tickPosition;     if (stop) pauseTick = 0
-
-            for ( i in 0..15 ) {
-
-                val stack = items[16];    val item = stack.item
-
-                if ( item is Instrument ) item.stopDeviceSounds(stack)
-
-            }
-
-            sequencer.stop()
+            statusMessage("Stopping...")
 
         }
 
-        statusMessage("Stopping...")
+        val deferred = coroutine.async { pause() }
 
-    } }
+        runBlocking { deferred.await() }
 
-    fun pauseOnMidiHost() { if ( !isFormerPlayer() || !isMidi() ) return; pause() }
+    }
 
-    /** Loads resources / youtube-dl requests. */
-    fun read() {
+    private fun pauseMidi(stop: Boolean) {
 
-        setThreadName();        isDirectAudio = false
+        if ( !hasSequencer() ) return;      val sequencer = sequencer!!
 
-        val validURL = isValidUrl(path);       if ( !validURL ) return
+        pauseTick = sequencer.tickPosition;     if (stop) pauseTick = 0
 
-        val connection = URL(path).openConnection();        val type = connection.contentType
 
-        // TODO: Handle application/octet-stream.
+        for ( i in 0 until blockEntity!!.size() ) {
 
-        isDirectAudio = type != null && type.contains("audio");     if ( isMidi() ) return
+            val stack = item(i);    val item = stack.item
 
-        if (isDirectAudio) statusMessage("Direct Stream Format: $type:")
-
-        val isWav = type.endsWith(".wav")
-
-        if ( isDirectAudio && !isWav || isCached(path) ) return
-
-        onQuery = true;     modPrint("$this: Starting request...")
-
-        val info = infoRequest(path) ?: return // Download sources using yt-dl + ffmpeg.
-
-        val max = clientConfig["max_length"] as Int // Limit to max_length in config.
-
-        if ( info.duration > max ) {
-
-            val warning = Translation.get("error.long_stream")
-                .replace( "X", "${ max / 60f }" )
-
-            warnUser(warning); return
+            if ( item is Instrument ) item.stopDeviceSounds(stack)
 
         }
 
-        val streamsPath = directories["streams"]!!.path;        var filePath = "$streamsPath\\"
 
-        var name = info.id + "-" + info.title + ".ogg"
+        sequencer.stop()
 
-        if ( isWav ) name = path.replace(".wav", ".ogg")
+    }
 
-        name = urlFileName(name);       filePath += name
+    /** Reads requests. Download media using yt-dl + ffmpeg. */
+    private fun read() {
 
-        val outputFile = ModFile(filePath);     outputFile.createNewFile()
+
+        setThreadName();        onQuery = true;     isInputStream = false
+
+        modPrint("$this: Reading...")
+
+
+        val validURL = isValidUrl(path);       if ( !validURL ) { sendFile(); return }
+
+
+        // Application/octet-stream
+
+        val connection = url().openConnection();        val type = connection.contentType ?: return
+
+
+        isInputStream = type.contains("audio")
+
+        if ( isInputStream ) statusMessage("URL Content Type: $type:")
+
+
+        val ytdlp = YTDLP(path);   val info = ytdlp.info ?: return
+
+
+        val output = ytdlp.output("ogg") ?: return
+
+        val isWav = type.endsWith("wav")
+
+
+        // Use yt-dlp and ffmpeg to convert wav to ogg directly.
+
+        if ( isInputStream && !isWav || isStored(info) ) return
+
+
+        if ( isLong(info) ) return
+
 
         try {
 
-            val request = MediaRequest(path);   request.setOption( "format", 139 )
+            warnUser("message.downloading"); warnUser( info.title )
 
-            val outputPath = outputFile.path.replace( ".ogg", ".%(ext)s" )
+            if ( !ytdlp.requestAudio() ) throw Exception("Failed to get audio from yt-dlp request!")
 
-            request.setOption("output $outputPath")
 
-            val keepVideos = clientConfig["keep_videos"] as Boolean
+            val keepVideos = Config.client().keepVideos
 
-            if (keepVideos) coroutine.launch { setThreadName(); requestVideo(outputPath) }
+            if ( keepVideos ) coroutine.launch { setThreadName(); ytdlp.requestVideo() }
 
-            warnUser( Translation.get("message.downloading") ); warnUser( info.title )
 
-            if ( executeYTDL(request).isEmpty() ) throw Exception("Request failed!")
-
-            val quality = clientConfig["audio_quality"] as Int
-
-            var convertPath = outputPath.replace( "%(ext)s", "m4a" )
-
-            if ( isWav ) { convertPath = path }
-
-            val builder = FFmpegImpl.builder ?: throw YoutubeDLException("Missing ffmpeg!")
-
-            builder.setInput(convertPath).addOutput(filePath).setFormat("ogg")
-                .setAudioCodec("libvorbis").setAudioQuality( quality.toDouble() )
-
-            FFmpegImpl.builder = FFmpegBuilder()
-
-            val executor = FFmpegImpl.executor ?: throw YoutubeDLException("Missing ffmpeg!")
-
-            executor.createJob(builder).run();      if ( !isWav ) ModFile(convertPath).delete()
-
-            this.path = filePath;                   warnUser( Translation.get("message.done") )
+            path = output;    warnUser("message.done")
 
         } catch ( e: Exception ) {
 
-            val warning = Translation.get("error.exec_ytdl") + ": " + Translation.get("error.check_console")
+            warnUser("error.exec_ytdlp#: #error.check_console")
 
-            warnUser(warning);  warnUser( Translation.get("message.check_console") )
-
-            outputFile.delete();    e.printStackTrace()
+            ModFile(output).delete();      e.printStackTrace()
 
         }
 
     }
 
-    private fun requestVideo(outputPath: String) {
+    private fun receiveFile( bytes: ByteArray, isFirst: Boolean ) {
 
-        val request = MediaRequest(path)
+        if ( file().exists() && isFirst ) Files.delete( file().toPath() )
 
-        val outputPath = outputPath.replace( "%(ext)s", "mp4" )
-
-        request.setOption("output $outputPath");    request.setOption( "format", 18 )
-
-        executeYTDL(request)
+        file().appendBytes(bytes)
 
     }
 
-    /** Verifies if the file was already downloaded. */
-    private fun isCached(path: String): Boolean {
+    private fun sendFile() {
 
-        val path = urlFileName(path).replace(".wav", ".ogg")
+        val isAllowed = isMidi() || path.endsWith(".mp3") || path.endsWith(".ogg")
+
+        if ( !isAllowed || isHost() ) return
+
+        val file = file();   if ( !file.exists() ) { warnMissingFile(); return }
+
+        val bytes = file.readBytes();       val size = bytes.size
+
+        val indices = bytes.indices
+
+        for ( i in indices step maxData ) {
+
+            var nextSize = size - i;        if ( nextSize > maxData ) nextSize = maxData
+
+            val id = netID("share_file")
+
+            val sender = Sender(id) {
+
+                it.write( pos() ).write(nextSize)
+
+                it.buf.writeBytes( bytes, i, nextSize )
+
+                it.write( i == indices.first )
+
+            }
+
+            sender.toServer()
+
+        }
+
+    }
+
+    /** Check if requested media is stored. */
+    private fun isStored( info: MediaInfo ): Boolean {
 
         val directory = directories["streams"]!!
 
+        val name = info.id + " - " + info.title
+
+
         directory.listFiles()!!.forEach {
 
-            val file = it;      val name = file.name
+            val file = it;      val name2 = file.name
+            
+            val ext = file.extension;       if ( this.path == it.path ) return true
 
-            val id = name.substringBefore("-")
 
-            if ( this.path == it.path ) return true
+            if ( !name2.contains(name) || ext != "ogg" ) return@forEach
 
-            if ( !path.contains(id) ) return@forEach
+            this.path = it.path;    warnUser("$name2 #message.file_found")
 
-            val extension = file.extension;     if ( extension != "ogg" ) return@forEach
 
-            val message = Translation.get("message.file_found")
-
-            this.path = it.path;    warnUser("$name $message");     return true
+            return true
 
         }
+
 
         return false
 
     }
 
-    fun inputExists(): Boolean { return isValidUrl(path) || ModFile(path).exists() }
+    fun hasInput(): Boolean {
+
+        val isEmpty = floppy().isEmpty
+
+        val isValid = isValidUrl(path) || file().exists()
+
+        return path.isNotBlank() && isValid && !isEmpty
+
+    }
 
     fun setMIDIReceiver() {
 
-        if ( sequencer != null || !Midi.hasSystemSequencer() ) return
 
-        sequencer = MidiSystem.getSequencer()
+        if ( hasSequencer() || !MIDI.hasSystemSequencer() ) return
 
-        val sequencer = sequencer!!;        if ( !sequencer.isOpen ) sequencer.open()
+        sequencer = MidiSystem.getSequencer();      val sequencer = sequencer!!
 
+
+        if ( !sequencer.isOpen ) sequencer.open()
+
+        val transmitter = sequencer.transmitter
         val transmitters = sequencer.transmitters
 
         for ( transmitter in transmitters ) transmitter.receiver = MusicPlayerReceiver(this)
 
-        sequencer.transmitter.receiver = MusicPlayerReceiver(this)
+        transmitter.receiver = MusicPlayerReceiver(this)
+
 
     }
 
     fun spawnParticles(wave: ParticleEffect) {
 
-        val allow = clientConfig["music_particles"] as Boolean
+        val isAllowed = Config.client().musicParticles
 
-        if ( !spawnParticles || !allow ) return
+        if ( !spawnParticles || !isAllowed ) return
+
 
         val l1 = Random.nextInt(10)
         val l2 = Random.nextInt( 10, 15 )
         val l3 = Random.nextInt( 10, 15 )
         val l4 = Random.nextInt( 5, 15 )
 
-        if ( blockEntity!!.repeatOnPlay ) spawnParticles = false
+        if ( blockEntity!!.onRepeat ) spawnParticles = false
 
         Timer(l4) { spawnParticles(wave) }
 
         val blockEntity = blockEntity ?: return
-
         val entity = blockEntity.entity ?: return
-
         val distance = Particles.MIN_DISTANCE
+        val playerPos = player().blockPos
 
-        val isNear = player()!!.blockPos.isWithinDistance( entity.pos, distance )
+        val isNear = playerPos.isWithinDistance( entity.pos, distance )
 
         if ( isMuted(entity) || !isNear ) return
+
 
         Timer(l1) { ActionParticles.spawnNote(entity) }
 
@@ -976,35 +1194,39 @@ class MusicPlayer( val id: Int ) {
 
     }
 
-    fun tick() { midiTick() }
+    fun midiTick() {
 
-    private fun midiTick() {
 
         if ( hasSound() || !hasSequencer() ) return
 
-        val floppy = items[16];     val sequencer = sequencer!!
+        val sequencer = sequencer!!
 
-        if ( floppy.isEmpty ) { if ( sequencer.isRunning ) sendPause(); return }
 
-        val nbt = NBT.get(floppy)
+        if ( floppy().isEmpty ) {
 
-        sequencer.tempoFactor = nbt.getFloat("Rate")
+            if ( sequencer.isRunning ) midiPause(); return
+
+        }
+
 
         val sequence = sequencer.sequence ?: return
 
         val finished = sequencer.tickPosition == sequence.tickLength
 
-        if ( isPlaying && finished ) sendPause()
+        if ( isPlaying() && finished ) midiPause()
+
 
     }
 
-    private fun sendPause() {
+    private fun midiPause() {
 
         sequencer!!.tickPosition = 0
 
-        val id = netID("send_pause");      val buf = PacketByteBufs.create()
+        val id = netID("pause")
 
-        buf.writeBlockPos( pos() );     ClientPlayNetworking.send( id, buf )
+        val sender = Sender(id) { it.write( pos() ) }
+
+        sender.toServer()
 
     }
 
@@ -1014,9 +1236,35 @@ class MusicPlayer( val id: Int ) {
 
     private fun statusMessage( statusType: String ) {
 
-        if ( blockEntity!!.repeatOnPlay ) return
+        if ( blockEntity!!.onRepeat ) return
 
         modPrint("$this: $statusType \"$path\"")
+
+    }
+
+    // @Environment(EnvType.CLIENT)
+    fun tryReading() {
+
+        val floppy = floppy();           val isEmpty = floppy.isEmpty
+
+        val hasData = NBT.has(floppy);      var path = ""
+
+
+        if ( !isEmpty && hasData ) {
+
+            path = NBT.get(floppy).getString("Path")
+
+        }
+
+
+        val isSame = this.path == path
+
+        if ( isEmpty || !isSame ) pause(true)
+
+        this.path = path;       if ( isEmpty || isSame ) return
+
+
+        coroutine.launch { read();  onQuery = false }
 
     }
 
@@ -1024,13 +1272,15 @@ class MusicPlayer( val id: Int ) {
 
         val list = mutableListOf<MusicPlayer>()
 
-        private fun create(id: Int): MusicPlayer {
+        private fun create(id: Int): MusicPlayer { return MusicPlayer(id) }
 
-            val musicPlayer = MusicPlayer(id);      list.add(musicPlayer)
+        fun onDisconnect() { list.forEach {
 
-            return musicPlayer
+            it.pauseMidi(true);    it.worldLoaded = false
 
-        }
+        } }
+
+        // fun has(id: Int): Boolean { return list.find { it.id == id } != null }
 
         fun get(id: Int): MusicPlayer {
 
@@ -1044,154 +1294,208 @@ class MusicPlayer( val id: Int ) {
 
         fun remove( world: World, id: Int ) {
 
-            val buf = PacketByteBufs.create();      val players = world.players
+            val netID = netID("remove")
 
-            buf.writeInt(id);      val id = netID("remove")
+            val sender = Sender(netID) { it.write(id) }
 
-            players.forEach { ServerPlayNetworking.send( it as ServerPlayerEntity, id, buf ) }
+            sender.toClients(world)
+
+        }
+
+        fun isLong( info: MediaInfo ): Boolean {
+
+            val max = Config.client().maxLength
+
+            if ( info.duration < max ) return false
+
+
+            val warning = Translation.get("error.long_stream")
+                .replace( "X", "${ max / 60f }" )
+
+            warnUser(warning); return true
 
         }
 
         fun networking() {
 
-            var id = netID("send_pause")
-            ServerPlayNetworking.registerGlobalReceiver(id) {
 
-                server: MinecraftServer, _: ServerPlayerEntity,
-                _: ServerPlayNetworkHandler, buf: PacketByteBuf, _: PacketSender ->
+            var id = netID("pause")
+
+            Receiver(id).register { server, _, buf ->
 
                 val world = server.overworld;   val pos = buf.readBlockPos()
 
-                server.send( ServerTask( server.ticks ) {
 
-                    val musicPlayer = world.getBlockEntity(pos) as MusicPlayerBlockEntity
+                serverSend(server) {
 
-                    musicPlayer.pause()
+                    val blockEntity = get( world, pos ) ?: return@serverSend
 
-                } )
+                    blockEntity.pause()
+
+                }
 
             }
 
+
+            id = netID("share_file")
+
+            val fileReceiver = Receiver(id)
+
+            fileReceiver.register { server, sender, buf ->
+
+                val world = server.overworld;           val netID = netID("share_file")
+
+                val pos = buf.readBlockPos();           val size = buf.readInt()
+                val bytes = buf.readBytes(size);        val isFirst = buf.readBoolean()
+
+                serverSend(server) {
+
+                    val blockEntity = get( world, pos ) ?: return@serverSend
+
+                    val id = blockEntity.id;        val name = sender.name.string
+
+                    val listeners = blockEntity.playersListening()
+
+                    val sender = Sender( netID, sender ) {
+
+                        it.write(size).write(bytes).write(id).write( isFirst ).write(name)
+
+                    }
+
+                    sender.toClients(listeners)
+
+                }
+
+            }
+
+
             id = netID("particles")
-            ServerPlayNetworking.registerGlobalReceiver(id) {
 
-                server: MinecraftServer, _: ServerPlayerEntity,
-                _: ServerPlayNetworkHandler, buf: PacketByteBuf, _: PacketSender ->
+            val particlesReceiver = Receiver(id)
 
-                val world = server.overworld;   val pos = buf.readBlockPos();   val id = buf.readInt()
+            particlesReceiver.register { server, _, buf ->
 
-                server.send( ServerTask( server.ticks ) {
+                val world = server.overworld
 
-                    val musicPlayer = world.getBlockEntity(pos) as MusicPlayerBlockEntity
+                val pos = buf.readBlockPos();   val id = buf.readInt()
 
-                    val floppy = musicPlayer.getStack(16)
 
-                    val allow = serverConfig["music_particles"] as Boolean
+                serverSend(server) {
 
-                    if ( !musicPlayer.isPlaying() || !allow ) return@ServerTask
+                    val blockEntity = get( world, pos ) ?: return@serverSend
+
+                    val isAllowed = Config.SERVER.data().musicParticles
+
+
+                    if ( !blockEntity.isPlaying() || !isAllowed ) return@serverSend
+
+
+                    val netID = netID("particles")
 
                     val waveType = ActionParticles.randomWave()
 
-                    val buf = PacketByteBufs.create(); buf.writeInt(waveType); buf.writeInt(id)
+                    val listeners = blockEntity.playersListening()
 
-                    musicPlayer.usersListening(floppy).forEach {
+                    val sender = Sender(netID) { it.write(waveType).write(id) }
 
-                        ServerPlayNetworking.send( it as ServerPlayerEntity, netID("particles"), buf )
+                    sender.toClients(listeners)
 
-                    }
-
-                } )
+                }
 
             }
+
 
             if ( !isClient() ) return
 
-            ClientPlayNetworking.registerGlobalReceiver(id) {
 
-                client: MinecraftClient, _: ClientPlayNetworkHandler,
-                buf: PacketByteBuf, _: PacketSender ->
+            particlesReceiver.register { buf ->
 
                 val type = buf.readInt();       val id = buf.readInt()
 
-                client.send {
 
-                    val musicPlayer = get(id);  musicPlayer.spawnParticles = true
+                client().send {
 
-                    musicPlayer.spawnParticles( ActionParticles.waves[type] )
+                    val type = ActionParticles.waves[type]
+
+                    val musicPlayer = get(id)
+
+                    musicPlayer.spawnParticles = true
+
+                    musicPlayer.spawnParticles(type)
 
                 }
 
             }
+
+
+            fileReceiver.register { buf ->
+
+                val size = buf.readInt()
+
+                val array = ByteArray(size);        buf.readBytes(array)
+
+                val id = buf.readInt();             val isFirst = buf.readBoolean()
+
+                val senderName = buf.readString()
+
+
+                client().send {
+
+                    warnUser( "$senderName #message.player_shared" )
+
+                    val musicPlayer = get(id);          warnUser( musicPlayer.path )
+
+                    musicPlayer.receiveFile( array, isFirst )
+
+                }
+
+            }
+
 
             id = netID("read")
-            ClientPlayNetworking.registerGlobalReceiver(id) {
 
-                client: MinecraftClient, _: ClientPlayNetworkHandler,
-                buf: PacketByteBuf, _: PacketSender ->
-
-                val id = buf.readInt();     val stacks = mutableListOf<ItemStack>()
-
-                for ( i in 0 .. 16 ) stacks.add( buf.readItemStack() )
-
-                client.send {
-
-                    val musicPlayer = get(id);      val items = musicPlayer.items
-
-                    val blockEntity = musicPlayer.blockEntity
-
-                    for ( i in 0 .. 16 ) {
-
-                        val stack = stacks[i];      items[i] = stack
-
-                        blockEntity!!.setStack( i, stack )
-
-                    }
-
-                    val floppy = items[16];     var path = ""
-
-                    val isEmpty = floppy.isEmpty
-
-                    if ( !isEmpty ) path = NBT.get(floppy).getString("Path")
-
-                    val isSame = path == musicPlayer.path
-
-                    if ( !isSame || isEmpty ) musicPlayer.pause(true)
-
-                    musicPlayer.path = path;         if (isEmpty) return@send
-
-                    coroutine.launch { musicPlayer.read();  musicPlayer.onQuery = false }
-
-                }
-
-            }
-
-            id = netID("position")
-            ClientPlayNetworking.registerGlobalReceiver(id) {
-
-                client: MinecraftClient, _: ClientPlayNetworkHandler,
-                buf: PacketByteBuf, _: PacketSender ->
-
-                val newPos = buf.readBlockPos();    val id = buf.readInt()
-
-                client.send {
-
-                    val entity = get(id).blockEntity!!.entity!!
-
-                    entity.setPos(newPos)
-
-                }
-
-            }
-
-            id = netID("remove")
-            ClientPlayNetworking.registerGlobalReceiver(id) {
-
-                client: MinecraftClient, _: ClientPlayNetworkHandler,
-                buf: PacketByteBuf, _: PacketSender ->
+            Receiver(id).register { buf ->
 
                 val id = buf.readInt()
 
-                client.send {
+
+                val stacks = mutableListOf<ItemStack>()
+
+                val size = MusicPlayerBlockEntity.INVENTORY_SIZE
+
+                for ( i in 0 until size ) stacks.add( buf.readItemStack() )
+
+
+                client().send {
+
+                    val musicPlayer = get(id)
+                    val blockEntity = musicPlayer.blockEntity!!
+
+
+                    stacks.forEachIndexed { i, stack ->
+
+                        val netStack = Instrument.find(stack)
+
+                        blockEntity.setStack( i, netStack )
+
+                    }
+
+
+                    musicPlayer.tryReading()
+
+                }
+
+            }
+
+
+            id = netID("remove")
+
+            Receiver(id).register { buf ->
+
+                val id = buf.readInt()
+
+
+                client().send {
 
                     val musicPlayer = list.find { it.id == id } ?: return@send
 
@@ -1201,17 +1505,26 @@ class MusicPlayer( val id: Int ) {
 
             }
 
+
             id = netID("action")
-            ClientPlayNetworking.registerGlobalReceiver(id) {
 
-                client: MinecraftClient, _: ClientPlayNetworkHandler,
-                buf: PacketByteBuf, _: PacketSender ->
+            Receiver(id).register { buf ->
 
-                val name = buf.readString();    val id = buf.readInt()
+                val actionName = buf.readString();          val id = buf.readInt()
 
-                client.send { get(id).actions[name]!!() }
+
+                client().send {
+
+                    val musicPlayer = get(id)
+
+                    val actions = musicPlayer.actions
+
+                    val action = actions[actionName]!!;       action()
+
+                }
 
             }
+
 
         }
 
@@ -1227,7 +1540,7 @@ class MusicPlayer( val id: Int ) {
 
                 val pos = entity.pos.add( Vec3d( 0.0, 1.25, 0.0 ) )
 
-                val particle = Particles.spawnOne( Particles.SIMPLE_NOTE, pos ) as SimpleNoteParticle
+                val particle = Particles.spawnOne( ModParticles.SIMPLE_NOTE, pos ) as SimpleNoteParticle
 
                 particle.addVelocityY( - 0.06 )
 
@@ -1237,7 +1550,7 @@ class MusicPlayer( val id: Int ) {
 
                 world() ?: return
 
-                val yaw = degreeToRadians( entity.yaw.toDouble() )
+                val yaw = rad( entity.yaw.toDouble() )
 
                 val pos = entity.pos.add( Vec3d( 0.0, 0.5, 0.0 ) )
 

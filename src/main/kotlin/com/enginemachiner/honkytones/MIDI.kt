@@ -1,17 +1,17 @@
 package com.enginemachiner.honkytones
 
+import com.enginemachiner.harmony.*
 import com.enginemachiner.honkytones.items.instruments.Instrument
 import com.enginemachiner.honkytones.items.instruments.InstrumentReceiver
 import com.enginemachiner.honkytones.sound.InstrumentSound
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
 import net.minecraft.entity.Entity
 import net.minecraft.item.ItemStack
 import net.minecraft.util.Language
 import javax.sound.midi.*
+import javax.sound.midi.Receiver
 
-@Environment(EnvType.CLIENT)
-object Midi {
+// @Environment(EnvType.CLIENT)
+object MIDI {
 
     /** Sets and links midi transmitters and receivers. */
     fun configDevices() {
@@ -32,7 +32,7 @@ object Midi {
 
                 device.open();      modPrint( "MIDI device found: $info." )
 
-            } catch( e: MidiUnavailableException ) {
+            } catch( e: MidiUnavailableException) {
 
                 modPrint( "MIDI device $info is unavailable." )
 
@@ -50,12 +50,8 @@ object Midi {
 
             val key = "error.midi_sequencer"
 
-            if ( Language.getInstance().hasTranslation(key) ) {
-
-                warnUser( Translation.get(key) )
-                warnUser( Translation.get("message.check_console") )
-
-            } else modPrint( "ERROR: Couldn't load MIDI Devices!" )
+            if ( Language.getInstance().hasTranslation(key) ) warnConsole(key)
+            else modPrint( "ERROR: Couldn't load MIDI Devices!" )
 
             e.printStackTrace();        return false
 
@@ -67,7 +63,7 @@ object Midi {
 
 }
 
-@Environment(EnvType.CLIENT)
+// @Environment(EnvType.CLIENT)
 abstract class GenericReceiver : Receiver {
 
     var entity: Entity? = null;     var instruments = mutableListOf<ItemStack>()
@@ -78,29 +74,35 @@ abstract class GenericReceiver : Receiver {
 
     }
 
-    abstract fun setData()
+    abstract fun setData();     open fun volume(): Float { return 1f }
 
     abstract fun canPlay( stack: ItemStack, channel: Int ): Boolean
 
+    open fun shouldNetwork(): Boolean { return true }
+
     open fun onPlay( sound: InstrumentSound, stack: ItemStack, entity: Entity ) {
 
-        checkHolder( stack, entity );    sound.play(stack)
+        sound.isManual = true
+
+        Trackable.trackHolder( stack, entity );    sound.play(stack)
+
+        sound.isManual = false
 
     }
 
-    fun checkHolder( stack: ItemStack, entity: Entity ) { if ( stack.holder != entity ) stack.holder = entity }
-
     private fun onSend(message: ShortMessage) {
 
-        setData();      if ( client().isPaused ) return
+        setData();      val entity = entity ?: return
 
-        val entity = entity!!;      val channel = message.channel;      val command = message.command
+        if ( client().isPaused ) return
+
+        val channel = message.channel;      val command = message.command
 
         instruments.forEach {
 
             val canPlay = canPlay( it, channel )
 
-            if ( !canPlay ) return@forEach;         val nbt = NBT.get(it)
+            if ( !canPlay ) return@forEach
 
             val instrument = it.item as Instrument
             val sounds = instrument.stackSounds(it).deviceNotes
@@ -110,7 +112,7 @@ abstract class GenericReceiver : Receiver {
 
             val sound = sounds[index] ?: return@forEach
 
-            val volume = message.data2 / 127f
+            val volume = message.data2 * volume() / 127f
 
             val isNoteOn = command == ShortMessage.NOTE_ON
             val isNoteOff = command == ShortMessage.NOTE_OFF
@@ -119,19 +121,42 @@ abstract class GenericReceiver : Receiver {
 
             var stop = ( isNoteOn && volume == 0f ) || isNoteOff
 
-            // Make sure the stack is the same and not null.
-            // It can happen when playing midi and switching channels at the same time.
+            /*
+                Make sure the stack is the same and not null.
+                It can happen when playing midi and switching channels at the same time.
+             */
+
             stop = stop && sound.stack == it
 
-            if (play) {
 
-                sound.maxVolume = volume * nbt.getFloat("Volume")
+            wrap(sound) {
 
-                onPlay( sound, it, entity )
+                sound.shouldNetwork = shouldNetwork()
 
-            } else if (stop) sound.fadeOut()
+
+                if (stop) sound.fadeOut() else if (play) {
+
+                    val instrumentVolume = NBT.get(it).getFloat("Volume")
+
+                    sound.maxVolume = volume * instrumentVolume
+
+                    onPlay( sound, it, entity )
+
+                }
+
+            }
+
 
         }
+
+    }
+
+    /** Wraps the networking state of the sound. Saves the state if it changes on action. */
+    protected fun wrap( sound: InstrumentSound, action: () -> Unit ) {
+
+        val shouldNetwork = sound.shouldNetwork;        action()
+
+        sound.shouldNetwork = shouldNetwork
 
     }
 

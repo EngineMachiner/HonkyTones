@@ -1,199 +1,103 @@
 package com.enginemachiner.honkytones
 
-import com.enginemachiner.honkytones.Init.Companion.MOD_NAME
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
-import java.io.File
-import java.util.*
+import com.enginemachiner.harmony.ConfigFile
+import com.enginemachiner.harmony.isClient
+import kotlin.math.max
 
-// TODO: Move to json.
+object Config {
 
-@JvmField
-@Environment(EnvType.CLIENT)
-val clientConfig = mutableMapOf<String, Any>()
+    @JvmField // @Environment(EnvType.CLIENT)
+    val CLIENT = ClientConfigFile("client")
 
-@JvmField
-val serverConfig = mutableMapOf<String, Any>()
+    // @Environment(EnvType.CLIENT)
+    fun client(): ClientData { return CLIENT.data() }
 
-@JvmField
-@Environment(EnvType.CLIENT)
-val clientConfigFile = ClientConfigFile("client.txt")
 
-@JvmField
-val serverConfigFile = ServerConfigFile("server.txt")
+    @JvmField
+    val SERVER = ServerConfigFile("server")
 
-@Environment(EnvType.CLIENT)
-val clientConfigKeys = mutableMapOf(
-
-    Boolean::class to listOf(
-        "keep_downloads", "keep_videos", "mob_particles", "write_device_info",
-        "player_particles", "listen_all", "music_particles"
-    ),
-
-    Int::class to listOf( "audio_quality", "max_length" ),
-
-    String::class to listOf( "ffmpeg_directory", "youtube-dl_path" )
-
-)
-
-val serverConfigKeys = mutableMapOf(
-
-    Boolean::class to listOf(
-        "mob_particles", "player_particles", "allow_pushing_players",
-        "music_particles"
-    ),
-
-    Int::class to listOf("mobs_playing_delay")
-
-)
-
-@Environment(EnvType.CLIENT)
-fun readClientConfig() {
-
-    val boolKeys = clientConfigKeys[ Boolean::class ]!!
-    for ( key in boolKeys ) {
-        clientConfig[key] = clientConfigFile.properties.getProperty(key).toBoolean()
-    }
-
-    val intKeys = clientConfigKeys[ Int::class ]!!
-    for ( key in intKeys ) {
-
-        val value = clientConfigFile.properties.getProperty(key).toInt()
-
-        clientConfig[key] = value
-
-        if ( key == "audio_quality" && value !in (0..10) ) clientConfig[key] = 5
-
-        if ( key == "max_length" && value <= 0 ) clientConfig[key] = 120
-
-    }
-
-    val stringKeys = clientConfigKeys[ String::class ]!!
-    for ( key in stringKeys ) {
-        clientConfig[key] = clientConfigFile.properties.getProperty(key)
-    }
+    fun server(): ServerData { return SERVER.data() }
 
 }
 
-fun readServerConfig() {
+private typealias ClientData = ClientConfigFile.Companion.Data
 
-    val boolKeys = serverConfigKeys[ Boolean::class ]!!
-    for ( key in boolKeys ) {
-        serverConfig[key] = serverConfigFile.properties.getProperty(key).toBoolean()
-    }
+// @Environment(EnvType.CLIENT)
+class ClientConfigFile(path: String) : ConfigFile<ClientData>( path, Data::class ) {
 
-    val intKeys = serverConfigKeys[ Int::class ]!!
-    for ( key in intKeys ) {
+    override fun canCreateFile(): Boolean { return isClient() }
 
-        val value = serverConfigFile.properties.getProperty(key).toInt()
+    override fun setDefaults() {
 
-        serverConfig[key] = value
-
-        if ( key == "mobs_playing_delay" && value < 120 ) serverConfig[key] = 120
+        data = Data();       map = json( data, map::class );        write()
 
     }
 
+    override fun check() {
 
-}
+        val length = data!!.maxLength
 
-open class ConfigFile( s: String ): File( CONFIG_DIRECTORY + s ) {
-
-    private var shouldCreate = true;        val properties = Properties()
-
-    init { create() }
-
-    open fun defaults(): Map<String, String> { return default }
-
-    open fun verify(shouldCreate: Boolean): Boolean { return shouldCreate }
-
-    fun setDefaultProperties() {
-
-        for ( pair in defaults() ) {
-
-            val key = pair.key
-            val hasKey = properties.containsKey(key)
-            if ( !hasKey ) properties.setProperty( key, pair.value )
-
-        }
-
-        store()
-
-    }
-
-    fun updateProperties( map: Map<String, Any> ) {
-
-        for ( entry in map ) properties.setProperty( entry.key, entry.value.toString() )
-
-        store()
-
-    }
-
-    private fun create() {
-
-        shouldCreate = verify(shouldCreate);    if ( !shouldCreate ) return
-
-        if ( !exists() || length() == 0L ) createNewFile()
-
-        properties.load( inputStream() );   setDefaultProperties()
-
-    }
-
-    private fun store() {
-
-        properties.store( outputStream(), "\n HonkyTones main configuration. \n" )
+        if ( length <= 0 ) data!!.maxLength = MAX_LENGTH
 
     }
 
     companion object {
 
-        private const val CONFIG_DIRECTORY = "config/$MOD_NAME/"
+        const val MAX_LENGTH = 600 // 60 * 10 -> 10 min
 
-        private val default = mapOf<String, String>()
+        data class Data(
 
-        fun checkConfigDirectory() {
+            var listenAll: Boolean = false,
+            var musicParticles: Boolean = true,
+            var mobParticles: Boolean = true,
+            var writeDeviceName: Boolean = true,
+            var playerParticles: Boolean = true,
+            var keepDownloads: Boolean = false,
+            var keepVideos: Boolean = false,
 
-            val dir = File(CONFIG_DIRECTORY);   if ( !dir.exists() ) dir.mkdirs()
+            var ffmpegDirectory: String = "",
+            var ytdlpPath: String = "yt-dlp.exe",
 
-        }
+            var maxLength: Int = MAX_LENGTH
 
-    }
-
-}
-
-class ClientConfigFile(path: String) : ConfigFile(path) {
-
-    override fun defaults(): Map<String, String> { return default }
-
-    override fun verify( shouldCreate: Boolean ): Boolean {
-        if ( !isClient() ) return false;        return shouldCreate
-    }
-
-    companion object {
-
-        private val default = mapOf(
-            "listen_all" to "false",              "music_particles" to "true",
-            "ffmpeg_directory" to "",           "youtube-dl_path" to "youtube-dl",
-            "mob_particles" to "true",          "write_device_info" to "true",
-            "player_particles" to "true",       "keep_downloads" to "false",
-            "keep_videos" to "false",           "audio_quality" to "5",
-            "max_length" to "1200" // 60 * 20 -> 20 min
         )
 
     }
 
 }
 
-class ServerConfigFile(path: String) : ConfigFile(path) {
 
-    override fun defaults(): Map<String, String> { return default }
+private typealias ServerData = ServerConfigFile.Companion.Data
+
+class ServerConfigFile(path: String) : ConfigFile<ServerData>( path, Data::class ) {
+
+    override fun setDefaults() {
+
+        data = Data();       map = json( data, map::class );        write()
+
+    }
+
+    override fun check() {
+
+        val delay = data!!.mobsPlayingDelay
+
+        data!!.mobsPlayingDelay = max( delay, MOBS_PLAYING_DELAY )
+
+    }
 
     companion object {
 
-        val default = mapOf(
-            "music_particles" to "true",
-            "mobs_playing_delay" to "120",
-            "mob_particles" to "true",     "player_particles" to "true",
-            "allow_pushing_players" to "false"
+        const val MOBS_PLAYING_DELAY = 120
+
+        data class Data(
+
+            var musicParticles: Boolean = true,
+            var mobParticles: Boolean = true,
+            var playerParticles: Boolean = true,
+            var allowPushingPlayers: Boolean = false,
+
+            var mobsPlayingDelay: Int = MOBS_PLAYING_DELAY
+
         )
 
     }
