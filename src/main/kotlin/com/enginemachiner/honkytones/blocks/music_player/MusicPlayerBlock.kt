@@ -743,16 +743,6 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
 
     override fun writeCustomDataToNbt(nbt: NbtCompound) {}
 
-    override fun onSpawnPacket( packet: EntitySpawnS2CPacket ) {
-
-        super.onSpawnPacket(packet)
-
-        val blockEntity = get( world, blockPos ) ?: return
-
-        spawn(blockEntity)
-
-    }
-
     override fun createSpawnPacket(): Packet<*> { return EntitySpawnS2CPacket(this) }
 
     override fun getName(): Text { return Text.of( Translation.block("music_player") ) }

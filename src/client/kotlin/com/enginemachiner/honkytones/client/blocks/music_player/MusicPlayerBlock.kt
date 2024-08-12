@@ -228,7 +228,7 @@ class MusicPlayer( val id: Int ) {
 
     fun update( blockEntity: MusicPlayerBlockEntity? ) {
 
-        blockEntity ?: return
+        blockEntity ?: return;          blockEntity.entity = MusicPlayerEntity(blockEntity)
 
         isPlaying = blockEntity.isPlaying();            onRepeat = blockEntity.onRepeat
 
@@ -713,9 +713,7 @@ class MusicPlayer( val id: Int ) {
 
     private fun spawnRead() {
 
-        blockEntity ?: return;          if ( !isListening ) return
-
-        tryReading()
+        if ( !isListening ) return;         tryReading()
 
     }
 
