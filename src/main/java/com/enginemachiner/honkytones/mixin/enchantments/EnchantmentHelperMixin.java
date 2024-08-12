@@ -1,7 +1,7 @@
 package com.enginemachiner.honkytones.mixin.enchantments;
 
 import com.enginemachiner.harmony.BasedOn;
-import com.enginemachiner.honkytones.items.instruments.Instrument;
+import com.enginemachiner.honkytones.items.instruments.InstrumentItem;
 import com.google.common.collect.Lists;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -29,10 +29,10 @@ public class EnchantmentHelperMixin {
             CallbackInfoReturnable< List<EnchantmentLevelEntry> > callback
     ) {
 
-        boolean isInstrument = stack.getItem() instanceof Instrument;
+        boolean isInstrument = stack.getItem() instanceof InstrumentItem;
         if ( !isInstrument ) { callback.cancel(); return; }
 
-        List<Enchantment> enchantments = Instrument.Companion.getEnchantments();
+        List<Enchantment> enchantments = InstrumentItem.Companion.getEnchantments();
 
         // Next code is based on the former method.
 

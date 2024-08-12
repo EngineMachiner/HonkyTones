@@ -1,6 +1,6 @@
 package com.enginemachiner.honkytones.mixin.mob;
 
-import com.enginemachiner.honkytones.blocks.musicplayer.MusicPlayerBlock;
+import com.enginemachiner.honkytones.blocks.music_player.MusicPlayerBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.passive.ParrotEntity;

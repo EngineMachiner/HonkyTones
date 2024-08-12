@@ -1,26 +1,63 @@
 package com.enginemachiner.honkytones
 
 import com.enginemachiner.honkytones.items.instruments.DrumSet
-import com.enginemachiner.honkytones.items.instruments.Instrument
+import com.enginemachiner.honkytones.items.instruments.InstrumentItem
 import com.enginemachiner.honkytones.items.instruments.Keyboard
 import com.enginemachiner.honkytones.items.instruments.SFX
 import kotlin.reflect.KClass
 
+private typealias map = MutableMap<KClass<out InstrumentItem>, Set<String> >
+
 object MusicTheory {
 
-    val instrumentFiles = mutableMapOf< KClass< out Instrument >, Set<String> >()
+    val noteMap: map = mutableMapOf()
+
 
     private val notes = mutableSetOf("C","D","E","F","G","A","B")
 
-    val sharpsToFlats = mapOf(
-        "C#" to "D_",   "D#" to "E_",   "F#" to "G_",   "G#" to "A_",   "A#" to "B_"
-    )
+    val sharpsToFlats = mapOf("C#" to "D_",   "D#" to "E_",   "F#" to "G_",   "G#" to "A_",   "A#" to "B_")
+
 
     val octave = mutableSetOf<String>()
 
     private val twoOctaves = mutableListOf<String>()
 
     var completeSet = setOf<String>()
+
+
+    init {
+
+        // Single octave, no range.
+
+        for ( note in notes ) {
+
+            if ( note != "C" && note != "F" ) octave.add( note + "_" )
+
+            octave.add(note)
+
+        }
+
+
+        // Two octaves, no range.
+
+        val temp = builder( octave, 1..2 )
+
+        for ( t in temp ) {
+
+            val s = t.replace( "1", "" )
+                .replace( "2", "" )
+
+            twoOctaves.add(s)
+
+        }
+
+
+        // A complete set of octaves with ranges.
+
+        completeSet = builder( octave, -1..8 )
+
+    }
+
 
     fun noteCount(): Int { return completeSet.size }
 
@@ -44,61 +81,41 @@ object MusicTheory {
 
     }
 
-    fun buildSoundData() {
+    /** Builds the sound data. */
+    fun build() {
 
-        // Build a single octave (no range).
-        for ( note in notes ) {
+        // Sound file path sets.
 
-            if ( note != "C" && note != "F" ) octave.add( note + "_" )
+        // Most generic set.
+        val set1 = builder( setOf( "C4-E4_", "E4-G4", "A4_-B4" ), 4..5 );       set1.add("C6")
 
-            octave.add(note)
+        val set2 = builder( octave, 3..5 )
 
-        }
+        val set3 = builder( octave, 2..2 ) + setOf( "C3", "D3_", "D3", "E3_" )
 
-        // Build two octaves (no range).
-        val temp = builder( octave, setOf( 1, 2 ) )
-        for ( t in temp ) {
+        val set4 = builder( octave, 3..6 ) - setOf( "C3", "D3_", "D3", "A4" ) + setOf("C7")
 
-            val s = t.replace( "1", "" )
-                .replace( "2", "" )
 
-            twoOctaves.add(s)
+        InstrumentItem.classes.forEach {
 
-        }
+            var set: Set<String> = set1
 
-        // A complete set of octaves with ranges.
-        completeSet = builder( octave, ( -1..8 ).toSet() )
+            when(it) {
 
-        // Sets to be added to the map used by some instrument sound files paths.
+                Keyboard::class -> set = set2
+                DrumSet::class -> set = set3
+                SFX::class -> set = set4
 
-        val set1 = builder( octave, ( 3..5 ).toSet() ) // Keyboard set.
+            }
 
-        val set2 = builder( mutableSetOf( "C4-E4_", "E4-G4", "A4_-B4" ), ( 4..5 ).toSet() )
-        set2.add("C6")
-
-        // Based for percussion.
-        val set3 = builder( octave, setOf(2) )
-        for ( n in mutableSetOf( "C3", "D3_", "D3", "E3_" ) ) set3.add(n)
-
-        // SFX.
-        val set4 = builder( octave, ( 3..6 ).toSet() )
-        for ( n in mutableSetOf( "C3", "D3_", "D3", "A4" ) ) set4.remove(n)
-        set4.add("C7")
-
-        Instrument.classes.forEach {
-
-            var set = set2 as Set<String>;     if ( it == DrumSet::class ) set = set3
-
-            if ( it == Keyboard::class ) set = set1;        if ( it == SFX::class ) set = set4
-
-            instrumentFiles[it] = set
+            noteMap[it] = set
 
         }
 
     }
 
     /** Parse and build according to template and range. **/
-    private fun builder( template: Set<String>, range: Set<Int> ): MutableSet<String>{
+    private fun builder( template: Set<String>, range: IntRange ): MutableSet<String>{
 
         val output = mutableSetOf<String>()
 

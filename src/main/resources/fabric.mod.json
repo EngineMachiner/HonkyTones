@@ -17,19 +17,25 @@
 	"environment": "*",
 	"entrypoints": {
 
-		"fabric-datagen": ["com.enginemachiner.honkytones.DataGen"],
+		"fabric-datagen": ["com.enginemachiner.honkytones.datagen.DataGen"],
 
-		"main": ["com.enginemachiner.honkytones.Init"],
-		"client": ["com.enginemachiner.honkytones.Init"]
+		"main": ["com.enginemachiner.honkytones.HonkyTones"],
+
+		"client": ["com.enginemachiner.honkytones.client.HonkyTones"]
 
 	},
 
 	"mixins": [
+
+		{ "config": "honkytones.client.mixins.json", "environment": "client" },
+		{ "config": "honkytones.client.mixins.chest.json", "environment": "client" },
+		{ "config": "honkytones.client.mixins.player.json", "environment": "client" },
+
 		"honkytones.mixins.json",
 		"honkytones.mixins.mob.json",
 		"honkytones.mixins.chest.json",
-		"honkytones.mixins.player.json",
 		"honkytones.mixins.enchantments.json"
+
 	],
 
 	"depends": {

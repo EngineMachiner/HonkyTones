@@ -2,7 +2,7 @@ package com.enginemachiner.honkytones.mixin.mob;
 
 import com.enginemachiner.harmony.ItemKt;
 import com.enginemachiner.honkytones.MixinLogic;
-import com.enginemachiner.honkytones.items.instruments.Instrument;
+import com.enginemachiner.honkytones.items.instruments.InstrumentItem;
 import kotlin.reflect.KClass;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
@@ -60,7 +60,7 @@ public abstract class MobsCanPlay extends LivingEntity {
 
     @Unique
     private KClass<?>[] getClasses() {
-        return Instrument.Companion.getClasses().toArray( new KClass[0] );
+        return InstrumentItem.Companion.getClasses().toArray( new KClass[0] );
     }
 
 }

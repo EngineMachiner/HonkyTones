@@ -4,7 +4,7 @@ import com.enginemachiner.harmony.NBT;
 import com.enginemachiner.honkytones.Config;
 import com.enginemachiner.honkytones.MixinLogic;
 import com.enginemachiner.honkytones.ServerConfigFile;
-import com.enginemachiner.honkytones.items.instruments.Instrument;
+import com.enginemachiner.honkytones.items.instruments.InstrumentItem;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
@@ -23,6 +23,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Random;
 
+import static com.enginemachiner.harmony.NBT.nbt;
+
 @Mixin( MobEntity.class )
 public abstract class MobEntityMixin extends LivingEntity {
 
@@ -35,7 +37,7 @@ public abstract class MobEntityMixin extends LivingEntity {
     @Shadow public abstract boolean isAiDisabled();
 
     @Unique
-    private static final Instrument.Companion companion = Instrument.Companion;
+    private static final InstrumentItem.Companion companion = InstrumentItem.Companion;
 
     /** Make mobs play instruments when attacking. */
     @Inject( at = @At("HEAD"), method = "tryAttack" )
@@ -43,19 +45,19 @@ public abstract class MobEntityMixin extends LivingEntity {
 
         ItemStack stack = getMainHandStack();       Item item = stack.getItem();
 
-        boolean isInstrument = item instanceof Instrument;
+        boolean isInstrument = item instanceof InstrumentItem;
 
 
         if ( !isInstrument ) return;        stack.setHolder(this);
+
 
         // Play one instrument sound minimum.
 
         int random1 = new Random().nextInt(2);
         int random2 = new Random().nextInt(2);
+        int limit = 2 + random1 + random2;
 
-        for ( int i = 1; ( i < 2 + random1 + random2 ); i++ ) {
-            companion.mobPlay(this);
-        }
+        for ( int i = 1; i < limit; i++ ) companion.mobPlay(this);
 
     }
 
@@ -65,7 +67,7 @@ public abstract class MobEntityMixin extends LivingEntity {
 
         ItemStack stack = getMainHandStack();       Item item = stack.getItem();
 
-        boolean isInstrument = item instanceof Instrument;
+        boolean isInstrument = item instanceof InstrumentItem;
 
         boolean allow = !isAttacking() && isAlive() && !isAiDisabled()
                 && MixinLogic.canPlay( getClass() ) && !world.isClient;
@@ -74,10 +76,10 @@ public abstract class MobEntityMixin extends LivingEntity {
         if ( !allow || !isInstrument ) return;      stack.setHolder(this);
 
 
-        Instrument instrument = (Instrument) item;
+        InstrumentItem instrument = (InstrumentItem) item;
         if ( !NBT.has(stack) ) instrument.setupNBT(stack);
 
-        NbtCompound nbt = NBT.get(stack);
+        NbtCompound nbt = nbt(stack);
         int timer = nbt.getInt("mobTick");
 
         ServerConfigFile.Companion.Data config = Config.INSTANCE.server();

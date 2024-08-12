@@ -6,10 +6,16 @@ import net.minecraft.enchantment.EnchantmentTarget
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.item.ItemStack
 
-class RangedEnchantment : Enchantment(
-    Rarity.RARE, EnchantmentTarget.WEAPON, EquipmentSlot.entries.toTypedArray()
-), ModID {
+class RangedEnchantment : Enchantment( Rarity.RARE, EnchantmentTarget.WEAPON, slotTypes ), ModID {
 
-    override fun isAcceptableItem(stack: ItemStack): Boolean { return stack.item is Instrument }
+    override fun isAcceptableItem(stack: ItemStack): Boolean { return stack.item is InstrumentItem }
+
+    companion object {
+
+        private val slotTypes = EquipmentSlot.entries.toTypedArray()
+
+        lateinit var registered: Enchantment
+
+    }
 
 }

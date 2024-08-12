@@ -1,7 +1,7 @@
 package com.enginemachiner.honkytones;
 
 import com.enginemachiner.harmony.ItemKt;
-import com.enginemachiner.honkytones.items.instruments.Instrument;
+import com.enginemachiner.honkytones.items.instruments.InstrumentItem;
 import net.minecraft.entity.mob.*;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
@@ -33,7 +33,7 @@ public class MixinLogic {
 
             Item item = stack.getItem();        Hand[] hands = ItemKt.getHands();
 
-            boolean canAttack = item instanceof Instrument && player.isInSneakingPose();
+            boolean canAttack = item instanceof InstrumentItem && player.isInSneakingPose();
 
             if ( !canAttack ) { i++; continue; }
 

@@ -1,6 +1,7 @@
 package com.enginemachiner.honkytones.items.console
 
 import com.enginemachiner.harmony.*
+import com.enginemachiner.harmony.NBT.nbt
 import com.enginemachiner.harmony.NBT.trackHand
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
@@ -43,7 +44,7 @@ class DigitalConsole : Item(settings), StackScreen {
 
     }
 
-    fun createMenu(stack: ItemStack): NamedScreenHandlerFactory {
+    fun createMenu( stack: ItemStack ): NamedScreenHandlerFactory {
 
         val factory = DigitalConsoleScreenHandler.factory(stack)
         val text = Text.of("Digital Console Screen")
@@ -54,15 +55,13 @@ class DigitalConsole : Item(settings), StackScreen {
 
     private fun checkDamage( stack: ItemStack, world: World, entity: Entity ) {
 
-        val nbt = NBT.get(stack);       val damage = world.isClient || !nbt.contains("damageStack")
+        val nbt = nbt(stack);       val damage = world.isClient || !nbt.contains("damageStack")
 
 
         if (damage) return;             entity as PlayerEntity
 
 
-        stack.damage( 1, entity ) { breakEquipment( entity, stack ) }
-
-        nbt.remove("damageStack")
+        damage(stack);      nbt.remove("damageStack")
 
     }
 

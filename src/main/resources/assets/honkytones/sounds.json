@@ -5,6 +5,10 @@
 
   "magic.c3-e3_": { "sounds": [ "honkytones:effects/magic_c3-b3" ] },
 
+  "radio1": { "sounds": [ "honkytones:radio/tuning1" ] },
+  "radio2": { "sounds": [ "honkytones:radio/tuning2" ] },
+  "radio3": { "sounds": [ "honkytones:radio/tuning3" ] },
+
   "hit1": { "sounds": [ "honkytones:effects/hits/1" ] },
   "hit2": { "sounds": [ "honkytones:effects/hits/2" ] },
   "hit3": { "sounds": [ "honkytones:effects/hits/3" ] },

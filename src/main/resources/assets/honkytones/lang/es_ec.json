@@ -44,6 +44,16 @@
 
   "item.honkytones.musical_storage": "Cofre musical",
 
+  "item.honkytones.radio": "Radio",
+  "item.honkytones.radio.link": "Radio sintonizado.",
+  "item.honkytones.radio.unlink": "Radio desintonizado.",
+
+  "item.honkytones.remote": "Control remoto",
+  "item.honkytones.remote.play": "Reproducir",
+  "item.honkytones.remote.stop": "Detener",
+  "item.honkytones.remote.link": "Control calibrado.",
+  "item.honkytones.remote.unlink": "Control descalibrado.",
+
   "item.honkytones.floppy_disk": "Disquete",
   "item.honkytones.floppy_disk.title": "Opciones de disquete",
   "item.honkytones.gui.path": "Ruta",
@@ -119,7 +129,7 @@
   "honkytones.error.parse": "Hubo un error analizando los datos.",
   "honkytones.error.url": "¡La url no es valida o la petición tardo mucho!",
   "honkytones.error.missing_ytdlp": "¡El ejecutable yt-dlp no se encuentra or fue denegado!",
-  "honkytones.error.denied": "Acceso denegado.",
+  "honkytones.error.denied": "Acceso denegado para X.",
   "honkytones.error.ffmpeg": "¡Los ejecutables de ffmpeg no se encuentran o fueron denegados / incompatibles!",
   "honkytones.error.midi_sequencer": "¡No fue posible encontrar el secuenciador MIDI del sistema!",
   "honkytones.error.missing_file": "no fue encontrado.",
@@ -132,6 +142,7 @@
   "honkytones.error.invalid_sequence": "Secuencia invalida.",
   "honkytones.error.out_of_range": "Fuera de rango.",
 
+  "honkytones.message.sequence_end": "¡La secuencia termino!",
   "honkytones.message.player_shared": "compartió un archivo.",
   "honkytones.message.downloading": "Descargando...",
   "honkytones.message.done": "¡Finalizo!",
@@ -141,7 +152,8 @@
   "honkytones.message.file_written": "El archivo (X) fue escrito exitosamente.",
   "honkytones.message.config_restore": "La configuración de HonkyTones fue restaurada.",
   "honkytones.message.check_console": "Revise la consola para más detalles.",
-  "honkytones.message.resetSequences": "Secuencias recargadas.",
+  "honkytones.message.reload_sequences": "Secuencias recargadas.",
+  "honkytones.message.midi_reload": "Dispositivos MIDI recargados.",
 
   "honkytones.help.write_device_name": "Reescribir el nombre del instrumento.",
   "honkytones.help.allow_pushing_players": "Activar / Desactivar empujar jugadores con instrumentos.",
@@ -165,6 +177,36 @@
   "honkytones.help.tip7": "Una consola digital puede grabar midi y tocar con los controles del juego.",
   "honkytones.help.tip8": "Un cofre musical puede almacenar objetos HonkyTones y puede leer mensajes MIDI de los instrumentos.",
   "honkytones.help.tip9": "Se puede cambiar el volumen global de HonkyTones en el deslizador de jugadores de las opciones de audio.",
-  "honkytones.help.tip10": "Se puede silenciar a los jugadores usando un instrumento y estando agachado a la vez."
+  "honkytones.help.tip10": "Se puede silenciar a los jugadores usando un instrumento y estando agachado a la vez.",
+
+  "honkytones.advancements.root.description": "Obten tu primer instrumento.",
+
+  "honkytones.advancements.doot.description": "Toma la trompeta de un esqueleto.",
+
+  "honkytones.advancements.keyboard.title": "Clasico",
+  "honkytones.advancements.keyboard.description": "Fabrica un teclado.",
+
+  "honkytones.advancements.enchantment.title": "Proyectiles musicales",
+  "honkytones.advancements.enchantment.description": "Encanta un instrumento con el encantamiento de rango.",
+
+  "honkytones.advancements.instrument.description": "Obten el instrumento.",
+
+  "honkytones.advancements.floppy_disk.title": "El disquete",
+  "honkytones.advancements.floppy_disk.description": "Fabrica un disquete.",
+
+  "honkytones.advancements.digital_console.title": "El poder de la producción",
+  "honkytones.advancements.digital_console.description": "Fabrica una consola digital.",
+
+  "honkytones.advancements.musical_storage.title": "Almacén de records",
+  "honkytones.advancements.musical_storage.description": "Fabrica un cofre musical.",
+
+  "honkytones.advancements.music_player.title": "Maquina musical",
+  "honkytones.advancements.music_player.description": "Fabrica un reproductor de musica.",
+
+  "honkytones.advancements.radio.title": "Transmisión de antena",
+  "honkytones.advancements.radio.description": "Fabrica un radio.",
+
+  "honkytones.advancements.remote.title": "Acceso global",
+  "honkytones.advancements.remote.description": "Fabrica un control remoto."
 
 }

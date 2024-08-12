@@ -44,6 +44,16 @@
 
   "item.honkytones.musical_storage": "Musical Storage",
 
+  "item.honkytones.radio": "Radio",
+  "item.honkytones.radio.link": "Radio tuned.",
+  "item.honkytones.radio.unlink": "Radio untuned.",
+
+  "item.honkytones.remote": "Remote",
+  "item.honkytones.remote.play": "Play",
+  "item.honkytones.remote.stop": "Stop",
+  "item.honkytones.remote.link": "Remote linked.",
+  "item.honkytones.remote.unlink": "Remote unlinked.",
+
   "item.honkytones.floppy_disk": "Floppy Disk",
   "item.honkytones.floppy_disk.title": "Floppy Disk Options",
   "item.honkytones.gui.path": "Path",
@@ -119,7 +129,7 @@
   "honkytones.error.parse": "There was an error parsing the data.",
   "honkytones.error.url": "URL is not valid or request took too long! Timing out.",
   "honkytones.error.missing_ytdlp": "yt-dlp executable is missing or was denied!",
-  "honkytones.error.denied": "Access Denied.",
+  "honkytones.error.denied": "Access denied for X.",
   "honkytones.error.ffmpeg": "ffmpeg executables are missing or were denied / incompatible!",
   "honkytones.error.midi_sequencer": "Couldn't get the OS default midi sequencer!",
   "honkytones.error.missing_file": "was not found!",
@@ -132,6 +142,7 @@
   "honkytones.error.invalid_sequence": "Invalid sequence.",
   "honkytones.error.out_of_range": "Out of range.",
 
+  "honkytones.message.sequence_end": "Sequence has ended!",
   "honkytones.message.player_shared": "shared a file.",
   "honkytones.message.downloading": "Downloading...",
   "honkytones.message.done": "Done!",
@@ -141,7 +152,8 @@
   "honkytones.message.file_written": "MIDI File (X) has been successfully written!",
   "honkytones.message.config_restore": "HonkyTones config restored!",
   "honkytones.message.check_console": "Check console for more details.",
-  "honkytones.message.resetSequences": "Sequences reloaded.",
+  "honkytones.message.reload_sequences": "Sequences reloaded.",
+  "honkytones.message.midi_reload": "MIDI Devices reloaded.",
 
   "honkytones.help.write_device_name": "Overwrite the instrument name with the MIDI device name and channel.",
   "honkytones.help.allow_pushing_players": "Enable / Disable pushing players with instruments.",
@@ -165,6 +177,36 @@
   "honkytones.help.tip7": "A digital console can record midi and play with key bindings in case you don't have controller.",
   "honkytones.help.tip8": "A musical storage can store HonkyTones items and can read MIDI from it's instruments.",
   "honkytones.help.tip9": "You can use the sound settings player slider to change the mod global volume.",
-  "honkytones.help.tip10": "You can mute players by using an instrument and sneaking."
+  "honkytones.help.tip10": "You can mute players by using an instrument and sneaking.",
+
+  "honkytones.advancements.root.description": "Get your first instrument.",
+
+  "honkytones.advancements.doot.description": "Steal a skeleton's trumpet.",
+
+  "honkytones.advancements.keyboard.title": "Classic",
+  "honkytones.advancements.keyboard.description": "Craft a keyboard.",
+
+  "honkytones.advancements.enchantment.title": "Musical projectiles",
+  "honkytones.advancements.enchantment.description": "Enchant an instrument with the ranged enchantment.",
+
+  "honkytones.advancements.instrument.description": "Obtain the instrument.",
+
+  "honkytones.advancements.floppy_disk.title": "The Diskette",
+  "honkytones.advancements.floppy_disk.description": "Craft a floppy disk.",
+
+  "honkytones.advancements.digital_console.title": "Power of production",
+  "honkytones.advancements.digital_console.description": "Craft a digital console.",
+
+  "honkytones.advancements.musical_storage.title": "Records Store",
+  "honkytones.advancements.musical_storage.description": "Craft a musical storage.",
+
+  "honkytones.advancements.music_player.title": "Music Machine",
+  "honkytones.advancements.music_player.description": "Craft a music player.",
+
+  "honkytones.advancements.radio.title": "Radio Station",
+  "honkytones.advancements.radio.description": "Craft a radio.",
+
+  "honkytones.advancements.remote.title": "Global Access",
+  "honkytones.advancements.remote.description": "Craft a remote."
 
 }

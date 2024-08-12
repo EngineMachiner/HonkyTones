@@ -9,17 +9,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.io.File;
 
-import static com.enginemachiner.harmony.ClientKt.isClient;
-
 @Mixin( CrashReport.class )
 public class CrashReportMixin {
 
     /** Write HonkyTones config in case of crash. */
     @Inject( at = @At("HEAD"), method = "writeToFile" )
-    private void honkyTonesWriteConfigOnCrash( File file, CallbackInfoReturnable<Boolean> callback ) {
-
-        if ( isClient() ) Config.CLIENT.write(); else Config.SERVER.write();
-
-    }
+    private void honkyTonesWriteConfigOnCrash( File file, CallbackInfoReturnable<Boolean> callback ) { Config.SERVER.write(); }
 
 }

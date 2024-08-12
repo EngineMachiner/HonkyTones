@@ -1,9 +1,6 @@
 package com.enginemachiner.honkytones.items.storage
 
 import com.enginemachiner.harmony.*
-import net.minecraft.client.gui.screen.ingame.HandledScreen
-import net.minecraft.client.gui.screen.ingame.HandledScreens
-import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventory
@@ -12,35 +9,33 @@ import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandlerFactory
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.SlotActionType
-import net.minecraft.text.Text
 import net.minecraft.util.registry.Registry
 
 class StorageScreenHandler(
 
-    syncID: Int,    private val playerInventory: PlayerInventory,       private val inventory: Inventory
+    syncID: Int,        private val playerInventory: PlayerInventory,       private val inventory: Inventory
 
 ) : HarmonyScreenHandler( type, syncID ) {
 
 
-    constructor( syncID: Int, playerInventory: PlayerInventory ) : this( syncID, playerInventory, SimpleInventory(INVENTORY_SIZE) )
+    constructor( syncID: Int, playerInventory: PlayerInventory ) : this( syncID, playerInventory, inventory() )
 
-    constructor( stack: ItemStack, syncID: Int, playerInventory: PlayerInventory ) : this( syncID, playerInventory, MusicalStorageInventory(stack) )
+    constructor( stack: ItemStack, syncID: Int, playerInventory: PlayerInventory ) : this( syncID, playerInventory, inventory(stack) )
 
 
-    private val player = playerInventory.player
+    private val player = playerInventory.player;        private val stackSlot: Int?
 
     private val stack = handItem( player, MusicalStorage::class )
 
     private val storage = stack.item as MusicalStorage
-
-    private val stackSlot: Int?
 
 
     init {
 
         storage.open(stack)
 
-        checkSize( inventory, inventory.size() );   inventory.onOpen(player)
+
+        checkSize( inventory, inventory.size() );       inventory.onOpen(player)
 
 
         slots( 2, 8, 17f, 25f, inventory ).forEach { addSlot(it) }
@@ -146,6 +141,16 @@ class StorageScreenHandler(
 
         }
 
+        private const val INVENTORY_SIZE = MusicalStorageInventory.INVENTORY_SIZE
+
+        private fun inventory( stack: ItemStack? = null ): Inventory {
+
+            stack ?: return SimpleInventory(INVENTORY_SIZE)
+
+            return MusicalStorageInventory(stack)
+
+        }
+
         fun factory( stack: ItemStack ): ScreenHandlerFactory {
 
             return ScreenHandlerFactory { id, inventory, _ ->
@@ -156,62 +161,9 @@ class StorageScreenHandler(
 
         }
 
-        private const val INVENTORY_SIZE = MusicalStorageInventory.INVENTORY_SIZE
-
         val type = ScreenHandlerType(::StorageScreenHandler)
 
-        fun register() {
-
-            Registry.register( Registry.SCREEN_HANDLER, classID(), type )
-
-            if ( !isClient() ) return
-
-            HandledScreens.register( type, ::StorageScreen )
-
-        }
-
-    }
-
-}
-
-// @Environment(EnvType.CLIENT)
-class StorageScreen(
-    handler: StorageScreenHandler, playerInv: PlayerInventory, text: Text
-) : HandledScreen<StorageScreenHandler>( handler, playerInv, text ) {
-
-    init { titleX += 9; titleY += 8;        playerInventoryTitleY -= 7 }
-
-    private val texture = Texture(textureID) {
-
-        it.setSize(176f, 150f);    it.center(width, height)
-
-    }
-
-    override fun init() { super.init();       texture.init() }
-
-    override fun drawBackground( matrices: MatrixStack, delta: Float, mouseX: Int, mouseY: Int ) {
-
-        texture.draw(matrices)
-
-    }
-
-    override fun render( matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float ) {
-
-        renderBackground(matrices);         super.render( matrices, mouseX, mouseY, delta )
-
-        drawMouseoverTooltip( matrices, mouseX, mouseY )
-
-    }
-
-    override fun isClickOutsideBounds( mouseX: Double, mouseY: Double, left: Int, top: Int, button: Int ): Boolean {
-
-        return texture.isClickOutsideBounds( mouseX, mouseY )
-
-    }
-
-    private companion object {
-
-        val textureID = textureID("item/storage_slots.png")
+        fun register() { Registry.register( Registry.SCREEN_HANDLER, classID(), type ) }
 
     }
 
