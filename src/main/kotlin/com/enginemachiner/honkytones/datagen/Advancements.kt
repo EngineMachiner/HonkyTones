@@ -90,7 +90,7 @@ class Advancements( generator: FabricDataGenerator ) : FabricAdvancementProvider
 
             override fun title(): Text { return Text.of(MOD_TITLE) }
 
-            override val icon = modItem( ItemGroup::class )
+            override val icon = ModItemGroup.item
 
             override fun conditions(): AbstractCriterionConditions {
 

@@ -1,10 +1,10 @@
 package com.enginemachiner.honkytones.client.items.instruments
 
+import com.enginemachiner.harmony.ModItemGroup
 import com.enginemachiner.harmony.NBT.nbt
 import com.enginemachiner.harmony.client.inventory
 import com.enginemachiner.harmony.client.player
 import com.enginemachiner.harmony.inventoryList
-import com.enginemachiner.harmony.itemGroup
 import com.enginemachiner.harmony.modPrint
 import com.enginemachiner.honkytones.client.AbstractReceiver
 import com.enginemachiner.honkytones.client.sound.InstrumentSound
@@ -24,7 +24,7 @@ class InstrumentReceiver( private val deviceID: String ) : AbstractReceiver() {
 
         inventory.forEach {
 
-            val item = it.item;         val itemGroup = item.group != itemGroup()
+            val item = it.item;         val itemGroup = item.group != ModItemGroup.itemGroup
 
             if ( itemGroup || current.contains(it) || !it.hasNbt() ) return@forEach
 
