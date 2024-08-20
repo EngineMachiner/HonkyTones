@@ -1,0 +1,19 @@
+{
+
+  "type": "minecraft:crafting_shaped",
+
+  "pattern": [
+    "DOD",
+    "OCO",
+    "DOD"
+  ],
+
+  "key": {
+    "D": { "item": "minecraft:diamond" },
+    "O": { "item": "minecraft:obsidian" },
+    "C": { "item": "honkytones:musical_storage" }
+  },
+
+  "result": { "item": "honkytones:radio", "count": 1 }
+
+}

@@ -1,0 +1,19 @@
+package com.enginemachiner.honkytones.client.mixin;
+
+import com.enginemachiner.honkytones.client.Config;
+import net.minecraft.util.crash.CrashReport;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.io.File;
+
+@Mixin( CrashReport.class )
+public class CrashReportMixin {
+
+    /** Write HonkyTones config in case of crash. */
+    @Inject( at = @At("HEAD"), method = "writeToFile" )
+    private void honkyTonesWriteConfigOnCrash( File file, CallbackInfoReturnable<Boolean> callback ) { Config.CLIENT.write(); }
+
+}
