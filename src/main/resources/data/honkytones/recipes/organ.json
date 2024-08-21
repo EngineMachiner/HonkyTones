@@ -9,7 +9,7 @@
   ],
 
   "key": {
-    "H": { "item": "minecraft:hopper" },
+    "H": { "item": "minecraft:copper_ingot" },
     "K": { "item": "honkytones:keyboard" },
     "P": { "item": "minecraft:piston" }
   },
