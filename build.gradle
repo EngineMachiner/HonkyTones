@@ -1,7 +1,9 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
-	id 'fabric-loom' version '1.4-SNAPSHOT'
 	id 'maven-publish'
-  	id "org.jetbrains.kotlin.jvm" version "1.9.10"
+	id 'fabric-loom' version '1.6-SNAPSHOT'
+  	id "org.jetbrains.kotlin.jvm" version "1.9.22"
 }
 
 version = "mc${ project.minecraft_version }-v${ project.mod_version }"
@@ -21,6 +23,26 @@ repositories {
 
 }
 
+loom {
+
+	splitEnvironmentSourceSets()
+
+	mods {
+
+		"harmony" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+
+		"honkytones" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+
+	}
+
+}
+
 dependencies {
 
 	// To change the versions see the gradle.properties file
@@ -31,24 +53,23 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 	modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
-	// Uncomment the following line to enable the deprecated Fabric API modules.
-	// These are included in the Fabric API production distribution and allow you to update your mod to the latest modules at a later more convenient time.
 
-	// modImplementation "net.fabricmc.fabric-api:fabric-api-deprecated:${project.fabric_version}"
-	
-	include( implementation "com.fasterxml.jackson.core:jackson-annotations:2.14.1" )
-	include( implementation "com.fasterxml.jackson.core:jackson-core:2.14.1" )
-	include( implementation "com.fasterxml.jackson.core:jackson-databind:2.14.1" )
-	include( implementation "com.github.sapher:youtubedl-java:1.1" )
-	include( implementation "net.bramp.ffmpeg:ffmpeg:0.7.0" )
-	include( implementation "commons-validator:commons-validator:1.7" )
+	modImplementation "com.github.EngineMachiner:Harmony:1.20-SNAPSHOT"
 
-	include( implementation "com.googlecode.soundlibs:mp3spi:1.9.5.4" )
-	include( implementation "com.googlecode.soundlibs:tritonus-share:0.3.7.4" )
-	include( implementation "javazoom:jlayer:1.0.1" )
+	include( implementation( 'com.fasterxml.jackson.module:jackson-module-kotlin:2.17.2' ) )
+	include( implementation( 'com.fasterxml.jackson.core:jackson-core:2.17.2' ) )
+	include( implementation( 'com.fasterxml.jackson.core:jackson-databind:2.17.2' ) )
+	include( implementation( 'com.fasterxml.jackson.core:jackson-annotations:2.17.2' ) )
+	include( implementation( 'com.fasterxml.jackson:jackson-bom:2.17.2' ) )
 
-	include( implementation "com.squareup.okhttp:okhttp:2.7.5" )
-	include( implementation "com.squareup.okio:okio:1.6.0" )
+	include( implementation( 'commons-validator:commons-validator:1.9.0' ) )
+
+	include( implementation( 'com.googlecode.soundlibs:mp3spi:1.9.5.4' ) )
+	include( implementation( 'com.googlecode.soundlibs:tritonus-share:0.3.7.4' ) )
+	include( implementation( 'javazoom:jlayer:1.0.1' ) )
+
+	include( implementation( 'com.squareup.okhttp3:okhttp:5.0.0-alpha.14' ) )
+	include( implementation( 'com.squareup.okio:okio:3.9.0' ) )
 
 }
 
@@ -62,7 +83,7 @@ processResources {
 
 tasks.withType(JavaCompile).configureEach { it.options.release = 17 }
 
-tasks.withType( org.jetbrains.kotlin.gradle.tasks.KotlinCompile ).all {
+tasks.withType( KotlinCompile ).configureEach {
 	kotlinOptions { jvmTarget = 17 }
 }
 
@@ -83,7 +104,13 @@ jar {
 // configure the maven publication
 publishing {
 
-	publications { mavenJava(MavenPublication) { from components.java } }
+	publications {
+
+		create( "mavenJava", MavenPublication ) {
+			artifactId = project.archives_base_name;		from components.java
+		}
+
+	}
 
 	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
 	repositories {
@@ -94,3 +121,5 @@ publishing {
 	}
 
 }
+
+fabricApi { configureDataGeneration() }
