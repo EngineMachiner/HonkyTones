@@ -1,0 +1,76 @@
+package com.enginemachiner.honkytones.mixin;
+
+import com.enginemachiner.honkytones.items.FloppyDisk;
+import com.enginemachiner.honkytones.items.instruments.InstrumentItem;
+import com.enginemachiner.honkytones.items.music_player.RadioItem;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.world.World;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+@Mixin( PlayerEntity.class )
+public abstract class PlayerEntityMixin extends LivingEntity {
+
+    protected PlayerEntityMixin( EntityType<? extends LivingEntity> entityType, World world ) {
+        super( entityType, world );
+    }
+
+    @Unique
+    private static final String method = "dropItem(Lnet/minecraft/item/ItemStack;ZZ)Lnet/minecraft/entity/ItemEntity;";
+
+    /** If a floppy disk queries the title and is dropped.
+     * This can track it to request the query again. */
+    @Inject( at = @At("HEAD"), method = method )
+    private void honkyTonesFloppyDrop(
+            ItemStack stack, boolean throwRandomly, boolean retainOwnership,
+            CallbackInfoReturnable<ItemEntity> callback
+    ) {
+
+        boolean isFloppy = stack.getItem() instanceof FloppyDisk;
+
+        if ( !isFloppy ) return;        FloppyDisk.Companion.interrupt(stack);
+
+    }
+
+    /** If the radio is dropped then remove the music player link. */
+    @Inject( at = @At("HEAD"), method = method )
+    private void honkyTonesRadioDrop(
+            ItemStack stack, boolean throwRandomly, boolean retainOwnership,
+            CallbackInfoReturnable<ItemEntity> callback
+    ) {
+
+        boolean isRadio = stack.getItem() instanceof RadioItem;
+
+        if ( !isRadio ) return;
+
+
+        RadioItem.Companion radio = RadioItem.Companion;
+
+        stack.setHolder(this);       radio.unlink(stack);
+
+    }
+
+    @Inject( at = @At("HEAD"), method = "onDeath" )
+    private void honkyTonesStopInstrumentsOnDeath( DamageSource damageSource, CallbackInfo info ) {
+
+        ItemStack stack = getMainHandStack();   Item item = stack.getItem();
+
+        boolean isInstrument = item instanceof InstrumentItem;
+
+        if ( !isInstrument ) return;
+
+        item.onStoppedUsing( stack, getWorld(), this, 0 );
+
+    }
+
+}
