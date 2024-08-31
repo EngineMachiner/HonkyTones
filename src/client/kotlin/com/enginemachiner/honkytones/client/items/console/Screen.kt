@@ -22,6 +22,7 @@ import com.enginemachiner.honkytones.items.instruments.InstrumentItem
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.screen.ingame.HandledScreens
+import net.minecraft.client.gui.widget.CheckboxWidget
 import net.minecraft.client.option.KeyBinding
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.text.Text
@@ -87,7 +88,7 @@ class DigitalConsoleScreen(
 
     fun record() {
 
-        val box = box ?: return;      if ( !box.isChecked ) return
+        val box = box ?: return;      if ( !box.isChecked() ) return
 
 
         val sequencer = sequencer!!
@@ -118,7 +119,7 @@ class DigitalConsoleScreen(
         texts.forEach { it.init(textRenderer) }
 
 
-        box = RecordingCheckbox( width * 0.07f, height * 0.25f, 20f, 20f, text, false, this )
+        box = RecordingCheckbox( width * 0.07f, height * 0.25f, text, false, this )
 
     }
 
@@ -148,7 +149,7 @@ class DigitalConsoleScreen(
 
     override fun close() {
 
-        if ( box!!.isChecked ) stop();         super.close()
+        if ( box!!.isChecked() ) stop();         super.close()
 
     }
 
@@ -172,7 +173,7 @@ class DigitalConsoleScreen(
 
     }
 
-    private fun isRecording(): Boolean { return box!!.isChecked && sequencer != null }
+    private fun isRecording(): Boolean { return box!!.isChecked() && sequencer != null }
 
     private fun sounds(): Instrument.Sounds.Copy { return soundsCopy(instrument) }
 
@@ -511,21 +512,32 @@ class DigitalConsoleScreen(
 
         class RecordingCheckbox(
 
-            x: Float, y: Float,         w: Float, h: Float,
+            x: Float, y: Float,
 
             message: String,            checked: Boolean,
 
             private val screen: DigitalConsoleScreen
 
-        ) : Checkbox( x, y, w, h, message, checked ) {
+        ) {
 
+            private val text = Text.of(message)
+            
+            private val checkbox: CheckboxWidget = CheckboxWidget.builder( text, screen.textRenderer )
+                .pos( x.toInt(), y.toInt() )
+                .checked(checked).callback { checkbox, _ -> onPress(checkbox) }
+                .build()
+            
             init {
 
-                val stack = screen.instrument;          visible = !stack.isEmpty
+                val stack = screen.instrument;          checkbox.visible = !stack.isEmpty
 
-                screen.addDrawableChild(this)
+                screen.addDrawableChild(checkbox)
 
             }
+
+            fun isChecked(): Boolean { return checkbox.isChecked }
+
+            fun check() { checkbox.onPress() }
 
             private fun reset() {
 
@@ -539,11 +551,13 @@ class DigitalConsoleScreen(
 
             }
 
-            override fun onPress() {
+            private fun onPress(checkbox: CheckboxWidget ) {
 
                 if ( sequencer == null ) { modPrint( MIDI_ERROR ); return }
 
-                if ( isChecked ) screen.stop() else reset();      super.onPress()
+                if ( checkbox.isChecked ) screen.stop() else reset()
+
+                checkbox.onPress()
 
             }
 

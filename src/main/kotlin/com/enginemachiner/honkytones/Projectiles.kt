@@ -36,11 +36,9 @@ private typealias type = EntityType<out PersistentProjectileEntity>
 
 class NoteEntity : PersistentProjectileEntity {
 
-    constructor( type: type, world: World ) : super( type, world )
+    constructor( world: World, stack: ItemStack ) : super( type(), world, stack )
 
-    constructor( world: World, entity: LivingEntity ) : super( type(), entity, world )
-
-    constructor( stack: ItemStack, world: World ) : this( world, holder(stack) ) {
+    constructor( stack: ItemStack, world: World ) : this( world, stack ) {
 
         if ( !world.isClient ) setColor( randomColor().rgb )
 
@@ -239,7 +237,7 @@ class NoteEntity : PersistentProjectileEntity {
 
         fun register() {
 
-            type = FabricEntityTypeBuilder.create( SpawnGroup.MISC, ::NoteEntity )
+            type = FabricEntityTypeBuilder.create<NoteEntity>( SpawnGroup.MISC )
                 .dimensions( EntityDimensions.fixed( 0.5f, 0.5f ) )
                 .build()
 

@@ -15,6 +15,7 @@ import com.enginemachiner.honkytones.items.FloppyDisk
 import com.enginemachiner.honkytones.items.instruments.InstrumentItem
 import com.enginemachiner.honkytones.items.music_player.RadioItem
 import com.enginemachiner.honkytones.items.music_player.Remote
+import com.mojang.serialization.MapCodec
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricEntityTypeBuilder
@@ -83,6 +84,8 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
         return MusicPlayerBlockEntity( pos, state )
     }
 
+    override fun getCodec(): MapCodec<BlockWithEntity>? { return null }
+
     override fun appendProperties( builder: StateManager.Builder<Block, BlockState> ) {
         builder.add( *arrayOf( FACING, PLAYING ) )
     }
@@ -120,9 +123,9 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
 
     }
 
-    override fun onBreak( world: World, pos: BlockPos, state: BlockState, player: PlayerEntity ) {
+    override fun onBreak( world: World, pos: BlockPos, state: BlockState, player: PlayerEntity ): BlockState {
 
-        onBreak( world, pos, player );      super.onBreak( world, pos, state, player )
+        onBreak( world, pos, player );      return super.onBreak( world, pos, state, player )
 
     }
 
