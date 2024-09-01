@@ -51,8 +51,6 @@ class HonkyTones : ModInitializer {
             MusicPlayerBlock.register();         Register.item( MusicalStorage.registryItem )
 
 
-
-
             Register.item( FloppyDisk.registeredItem )
 
             RadioItem.registerItem()
