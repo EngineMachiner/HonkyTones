@@ -27,9 +27,9 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.item.ToolMaterial
 import net.minecraft.nbt.NbtCompound
-import net.minecraft.particle.DefaultParticleType
 import net.minecraft.particle.ParticleEffect
 import net.minecraft.particle.ParticleTypes
+import net.minecraft.particle.SimpleParticleType
 import net.minecraft.registry.tag.BlockTags
 import net.minecraft.screen.PlayerScreenHandler
 import net.minecraft.server.MinecraftServer
@@ -697,7 +697,7 @@ class ElectricGuitarClean : ElectricGuitar() {
 
     private companion object {
 
-        val particleType: DefaultParticleType = ParticleTypes.LANDING_OBSIDIAN_TEAR
+        val particleType: SimpleParticleType = ParticleTypes.LANDING_OBSIDIAN_TEAR
 
     }
 

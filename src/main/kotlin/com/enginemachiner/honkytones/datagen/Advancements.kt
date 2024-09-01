@@ -19,17 +19,19 @@ import net.minecraft.predicate.entity.EntityPredicate
 import net.minecraft.predicate.entity.LootContextPredicate
 import net.minecraft.predicate.item.EnchantmentPredicate
 import net.minecraft.predicate.item.ItemPredicate
+import net.minecraft.registry.RegistryWrapper
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
 import java.util.*
+import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 import kotlin.reflect.KClass
 
 // TODO: Parrots vibing and fuel advancement.
 
-class Advancements( output: FabricDataOutput ) : FabricAdvancementProvider(output) {
+class Advancements( output: FabricDataOutput, registryLookup: CompletableFuture<RegistryWrapper.WrapperLookup>) : FabricAdvancementProvider( output, registryLookup ) {
 
-    override fun generateAdvancement( consumer: Consumer<AdvancementEntry> ) {
+    override fun generateAdvancement( registryLookup: RegistryWrapper.WrapperLookup, consumer: Consumer<AdvancementEntry> ) {
 
         Root.build( consumer, "any_instrument" )
 

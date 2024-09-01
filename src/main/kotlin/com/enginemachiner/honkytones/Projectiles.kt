@@ -67,11 +67,11 @@ class NoteEntity : PersistentProjectileEntity {
 
     val textureIndex = ( 1..2 ).random()
 
-    override fun initDataTracker() {
+    override fun initDataTracker( builder: DataTracker.Builder ) {
 
-        super.initDataTracker()
+        super.initDataTracker(builder)
 
-        dataTracker.startTracking( colorData, -1 )
+        dataTracker.set( colorData, -1 )
 
     }
 
@@ -139,6 +139,7 @@ class NoteEntity : PersistentProjectileEntity {
 
     override fun asItemStack(): ItemStack { return ItemStack.EMPTY }
 
+    override fun getDefaultItemStack(): ItemStack { return asItemStack() }
 
     fun color(): Int { return dataTracker.get(colorData) }
 

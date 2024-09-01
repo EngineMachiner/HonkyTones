@@ -128,6 +128,8 @@ class FloppyDisk : Item( settings() ), StackScreen {
 
     private fun trackDamage(stack: ItemStack) {
 
+        val maxDamage = stack.maxDamage
+
         val nbt = nbt(stack);           val times = nbt.getInt("timesWritten")
 
         if ( times <= maxDamage ) return;       damage( stack, maxDamage )

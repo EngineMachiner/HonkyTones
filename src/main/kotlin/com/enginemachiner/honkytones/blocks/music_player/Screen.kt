@@ -222,11 +222,11 @@ class MusicPlayerScreenHandler(
 
     companion object: ModID {
 
-        val type = ExtendedScreenHandlerType { id, inventory, buf ->
+        val type = ExtendedScreenHandlerType( { id, inventory, buf ->
 
             MusicPlayerScreenHandler( id, inventory, buf )
 
-        }
+        }, packet_codec )
 
         fun register() {
 

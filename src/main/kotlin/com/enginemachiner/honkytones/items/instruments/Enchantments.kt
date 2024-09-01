@@ -6,6 +6,8 @@ import net.minecraft.enchantment.EnchantmentTarget
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.item.ItemStack
 
+// TODO: Enchantment.Properties
+
 class RangedEnchantment : Enchantment( Rarity.RARE, EnchantmentTarget.WEAPON, slotTypes ), ModID {
 
     override fun isAcceptableItem(stack: ItemStack): Boolean { return stack.item is InstrumentItem }

@@ -11,14 +11,12 @@ import com.enginemachiner.honkytones.ModParticles.WAVE4
 import com.enginemachiner.honkytones.blocks.music_player.MusicPlayerBlock.Companion.FACING
 import com.enginemachiner.honkytones.blocks.music_player.MusicPlayerBlock.Companion.PLAYING
 import com.enginemachiner.honkytones.blocks.music_player.MusicPlayerBlockEntity.Companion.get
+import com.enginemachiner.honkytones.blocks.music_player.MusicPlayerBlockEntity.Companion.type
 import com.enginemachiner.honkytones.items.FloppyDisk
 import com.enginemachiner.honkytones.items.instruments.InstrumentItem
 import com.enginemachiner.honkytones.items.music_player.RadioItem
 import com.enginemachiner.honkytones.items.music_player.Remote
 import com.mojang.serialization.MapCodec
-import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
-import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
-import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricEntityTypeBuilder
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory
 import net.minecraft.block.Block
 import net.minecraft.block.BlockRenderType
@@ -29,6 +27,7 @@ import net.minecraft.block.entity.BlockEntityType
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
 import net.minecraft.entity.SpawnGroup
+import net.minecraft.entity.data.DataTracker
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventories
@@ -36,13 +35,13 @@ import net.minecraft.inventory.Inventory
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NbtCompound
-import net.minecraft.network.PacketByteBuf
 import net.minecraft.network.listener.ClientPlayPacketListener
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
+import net.minecraft.registry.RegistryWrapper
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerContext
 import net.minecraft.server.network.ServerPlayerEntity
@@ -53,7 +52,6 @@ import net.minecraft.state.property.DirectionProperty
 import net.minecraft.state.property.Properties
 import net.minecraft.text.Text
 import net.minecraft.util.ActionResult
-import net.minecraft.util.Hand
 import net.minecraft.util.collection.DefaultedList
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
@@ -101,7 +99,7 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
     @Deprecated("Deprecated in Java")
     override fun onUse(
         state: BlockState, world: World, pos: BlockPos,
-        player: PlayerEntity, hand: Hand, hit: BlockHitResult
+        player: PlayerEntity, hit: BlockHitResult
     ): ActionResult {
 
         val action = ActionResult.SUCCESS
@@ -210,7 +208,7 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
         /** Register the block, the block entity and the entity. */
         fun register() {
 
-            val settings = FabricBlockSettings.create().strength( 1.0f )
+            val settings = Settings.create().strength( 1.0f )
 
 
             val block = MusicPlayerBlock(settings);     registryBlock = block
@@ -220,7 +218,7 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
 
             var id = MusicPlayerBlockEntity.classID()
 
-            val builder1 = FabricBlockEntityTypeBuilder.create( ::MusicPlayerBlockEntity, registerBlock )
+            val builder1 = BlockEntityType.Builder.create( ::MusicPlayerBlockEntity, registerBlock ).build()
 
 
             /*
@@ -230,14 +228,14 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
 
             val registries = Registries.BLOCK
 
-            for ( i in 0 until registries.size() ) builder1.addBlock( registries[i] )
+            // TODO: for ( i in 0 until registries.size() ) builder1.addBlock( registries[i] )
 
-            MusicPlayerBlockEntity.type = Registry.register( Registries.BLOCK_ENTITY_TYPE, id, builder1.build() )
+            type = Registry.register( Registries.BLOCK_ENTITY_TYPE, id, builder1 )
 
 
             id = MusicPlayerEntity.classID()
 
-            val builder2 = FabricEntityTypeBuilder.create( SpawnGroup.MISC, ::MusicPlayerEntity ).build()
+            val builder2 = EntityType.Builder.create( ::MusicPlayerEntity, SpawnGroup.MISC ).build()
 
             MusicPlayerEntity.type = Registry.register( Registries.ENTITY_TYPE, id, builder2 )
 
@@ -247,7 +245,9 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
 
 }
 
-class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState? ) : BlockEntity( type, pos, state ), ExtendedScreenHandlerFactory, HarmonyInventory {
+private typealias ScreenFactory = ExtendedScreenHandlerFactory<MusicPlayerScreenHandler>
+
+class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState? ) : BlockEntity( type, pos, state ), ScreenFactory, HarmonyInventory {
 
     private val listeners = mutableMapOf<String, UUID>()
 
@@ -272,7 +272,11 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState? ) : BlockEntity(
 
     override fun items(): DefaultedList<ItemStack> { return items }
 
-    override fun toInitialChunkDataNbt(): NbtCompound { return createNbt() }
+    override fun toInitialChunkDataNbt( registryLookup: RegistryWrapper.WrapperLookup ): NbtCompound {
+
+        return createNbt(registryLookup)
+
+    }
 
     fun init() {
 
@@ -293,9 +297,9 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState? ) : BlockEntity(
 
     }
 
-    override fun readNbt(nbt: NbtCompound) {
+    override fun readNbt( nbt: NbtCompound, registryLookup: RegistryWrapper.WrapperLookup ) {
 
-        super.readNbt(nbt);     Inventories.readNbt(nbt, items)
+        super.readNbt( nbt, registryLookup );     Inventories.readNbt( nbt, items, registryLookup )
 
         id = nbt.getInt("ID");      readListeners(nbt)
 
@@ -303,13 +307,15 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState? ) : BlockEntity(
 
     }
 
-    override fun writeNbt(nbt: NbtCompound) {
+    override fun writeNbt( nbt: NbtCompound, registryLookup: RegistryWrapper.WrapperLookup ) {
 
         if ( !nbt.contains("ID") ) nbt.putInt( "ID", id )
 
         nbt.putBoolean( "Repeat", onRepeat );     writeListeners(nbt)
 
-        Inventories.writeNbt( nbt, items );     super.writeNbt(nbt)
+        Inventories.writeNbt( nbt, items, registryLookup )
+
+        super.writeNbt( nbt, registryLookup )
 
 
         trySpawning();          Timer(250) { init() }
@@ -406,7 +412,7 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState? ) : BlockEntity(
 
     }
 
-    override fun writeScreenOpeningData( player: ServerPlayerEntity, buf: PacketByteBuf ) {
+    override fun getScreenOpeningData( player: ServerPlayerEntity ): MusicPlayerScreenHandler? {
 
         buf.writeBlockPos(pos);         buf.writeInt(id);           buf.writeBoolean( isPlaying() )
 
@@ -739,7 +745,7 @@ class MusicPlayerEntity( type: EntityType<MusicPlayerEntity>, world: World ) : E
 
     constructor( blockEntity: MusicPlayerBlockEntity ) : this( Companion.type, blockEntity.world!! ) { spawn(blockEntity) }
 
-    override fun initDataTracker() {}
+    override fun initDataTracker( builder: DataTracker.Builder ) {}
 
     override fun readCustomDataFromNbt(nbt: NbtCompound) {}
 
