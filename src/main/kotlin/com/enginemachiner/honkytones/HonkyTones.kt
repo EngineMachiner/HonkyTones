@@ -46,10 +46,7 @@ class HonkyTones : ModInitializer {
 
         fun register() {
 
-            registerSounds()
-
-            Register.group( ModItemGroup.itemGroup )
-            Register.item( ModItemGroup.item )
+            registerSounds();       Register.group( ModItemGroup )
 
             MusicPlayerBlock.register();         Register.item( MusicalStorage.registryItem )
 
