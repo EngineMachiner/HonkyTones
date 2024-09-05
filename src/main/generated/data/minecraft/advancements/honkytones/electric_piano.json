@@ -1,0 +1,40 @@
+{
+  "parent": "minecraft:honkytones/harpsichord",
+  "criteria": {
+    "electric_piano": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "honkytones:electric_piano"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "announce_to_chat": false,
+    "background": "minecraft:textures/gui/advancements/backgrounds/adventure.png",
+    "description": {
+      "translate": "honkytones.advancements.instrument.description"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "item": "honkytones:electric_piano",
+      "nbt": "{Damage:0}"
+    },
+    "show_toast": false,
+    "title": {
+      "translate": "item.honkytones.electric_piano"
+    }
+  },
+  "requirements": [
+    [
+      "electric_piano"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

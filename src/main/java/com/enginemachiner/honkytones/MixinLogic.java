@@ -1,6 +1,7 @@
 package com.enginemachiner.honkytones;
 
-import com.enginemachiner.honkytones.items.instruments.Instrument;
+import com.enginemachiner.harmony.ItemKt;
+import com.enginemachiner.honkytones.items.instruments.InstrumentItem;
 import net.minecraft.entity.mob.*;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
@@ -8,11 +9,10 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
 
 import java.util.Arrays;
-import java.util.List;
 
-/** These are used in the HonkyTones mixins. */
 public class MixinLogic {
-    static final Object[] mobs = {
+
+    private static final Class<?>[] mobs = {
             ZombieEntity.class,                 ZombieVillagerEntity.class,
             HuskEntity.class,                   DrownedEntity.class,
             SkeletonEntity.class,               StrayEntity.class,
@@ -21,41 +21,25 @@ public class MixinLogic {
             ZombifiedPiglinEntity.class,        WitherSkeletonEntity.class
     };
 
-    static public boolean canPlay( Object mobClass ) {
-
-        List<Object> list = Arrays.stream(mobs)
-                .filter( (p) -> p.equals(mobClass) )
-                .toList();
-
-        return !list.isEmpty();
-
+    static public boolean canPlay( Class<?> mobClass ) {
+        return Arrays.asList(mobs).contains(mobClass);
     }
 
-    static public boolean canForceAttack( PlayerEntity player, MobEntity entity ) {
+    static public boolean tryForceAttack( PlayerEntity player, MobEntity entity ) {
 
-        ItemStack[] array = { player.getMainHandStack(), player.getOffHandStack() };
+        int i = 0;      ItemStack[] stacks = { player.getMainHandStack(), player.getOffHandStack() };
 
-        for ( ItemStack stack : array ) {
+        for ( ItemStack stack : stacks ) {
 
-            Item item = stack.getItem();
+            Item item = stack.getItem();        Hand[] hands = ItemKt.getHands();
 
-            boolean canAttack = item instanceof Instrument && player.isInSneakingPose();
-            Hand[] hands = ItemKt.getHands();
-            
-            int index = 0;
-            for ( int i = 0; i < array.length; i++ ) {
+            boolean canAttack = item instanceof InstrumentItem && player.isInSneakingPose();
 
-                if ( array[i] == stack ) { index = i; break; }
+            if ( !canAttack ) { i++; continue; }
 
-            }
+            item.useOnEntity( stack, player, entity, hands[i] );
 
-            if (canAttack) {
-
-                item.useOnEntity( stack, player, entity, hands[index] );
-
-                return true;
-
-            }
+            return true;
 
         }
 

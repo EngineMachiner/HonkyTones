@@ -1,0 +1,40 @@
+{
+  "parent": "minecraft:honkytones/trombone",
+  "criteria": {
+    "oboe": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "honkytones:oboe"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "announce_to_chat": false,
+    "background": "minecraft:textures/gui/advancements/backgrounds/adventure.png",
+    "description": {
+      "translate": "honkytones.advancements.instrument.description"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "item": "honkytones:oboe",
+      "nbt": "{Damage:0}"
+    },
+    "show_toast": false,
+    "title": {
+      "translate": "item.honkytones.oboe"
+    }
+  },
+  "requirements": [
+    [
+      "oboe"
+    ]
+  ],
+  "sends_telemetry_event": true
+}
