@@ -1,0 +1,34 @@
+{
+  "parent": "minecraft:honkytones/floppy_disk",
+  "criteria": {
+    "digital_console": {
+      "conditions": {
+        "recipe": "honkytones:digital_console"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "display": {
+    "announce_to_chat": false,
+    "background": "minecraft:textures/gui/advancements/backgrounds/adventure.png",
+    "description": {
+      "translate": "honkytones.advancements.digital_console.description"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "item": "honkytones:digital_console",
+      "nbt": "{Damage:0}"
+    },
+    "show_toast": false,
+    "title": {
+      "translate": "honkytones.advancements.digital_console.title"
+    }
+  },
+  "requirements": [
+    [
+      "digital_console"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

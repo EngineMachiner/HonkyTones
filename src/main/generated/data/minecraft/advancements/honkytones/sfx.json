@@ -1,0 +1,40 @@
+{
+  "parent": "minecraft:honkytones/drum_set",
+  "criteria": {
+    "sfx": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "honkytones:sfx"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "announce_to_chat": false,
+    "background": "minecraft:textures/gui/advancements/backgrounds/adventure.png",
+    "description": {
+      "translate": "honkytones.advancements.instrument.description"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "item": "honkytones:sfx",
+      "nbt": "{Damage:0}"
+    },
+    "show_toast": false,
+    "title": {
+      "translate": "item.honkytones.sfx"
+    }
+  },
+  "requirements": [
+    [
+      "sfx"
+    ]
+  ],
+  "sends_telemetry_event": true
+}
