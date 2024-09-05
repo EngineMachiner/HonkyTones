@@ -17,7 +17,6 @@ import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.text.Text
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.registry.Registry
 import kotlin.math.roundToInt
 
 class MusicPlayerScreen(
