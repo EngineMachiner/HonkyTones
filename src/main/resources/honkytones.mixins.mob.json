@@ -3,5 +3,5 @@
   "package": "com.enginemachiner.honkytones.mixin.mob",
   "compatibilityLevel": "JAVA_17",
   "injectors": { "defaultRequire": 1 },
-  "mixins": [ "MobsCanPlay", "MenuMob", "MobEntityMixin" ]
+  "mixins": [ "MobsCanPlay", "InteractionMixin", "MobEntityMixin", "ParrotEntityMixin" ]
 }

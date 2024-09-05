@@ -1,231 +1,169 @@
 package com.enginemachiner.honkytones.items.storage
 
-import com.enginemachiner.honkytones.ModID
-import com.enginemachiner.honkytones.lookupSlot
-import com.enginemachiner.honkytones.isModItem
-import com.mojang.blaze3d.systems.RenderSystem
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
-import net.minecraft.client.gui.screen.ingame.HandledScreen
-import net.minecraft.client.gui.screen.ingame.HandledScreens
-import net.minecraft.client.render.GameRenderer
-import net.minecraft.client.util.math.MatrixStack
+import com.enginemachiner.harmony.*
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventory
 import net.minecraft.inventory.SimpleInventory
 import net.minecraft.item.ItemStack
-import net.minecraft.screen.ScreenHandler
+import net.minecraft.screen.ScreenHandlerFactory
 import net.minecraft.screen.ScreenHandlerType
-import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
-import net.minecraft.text.Text
-import net.minecraft.util.Identifier
 import net.minecraft.util.registry.Registry
 
 class StorageScreenHandler(
-    syncID: Int,    playerInventory: PlayerInventory,   private val inventory: Inventory
-) : ScreenHandler( type, syncID ) {
+
+    syncID: Int,        private val playerInventory: PlayerInventory,       private val inventory: Inventory
+
+) : HarmonyScreenHandler( type, syncID ) {
 
 
-    constructor( syncID: Int, playerInventory: PlayerInventory ) : this( syncID, playerInventory, SimpleInventory( MusicalStorageInventory.INVENTORY_SIZE ) )
+    constructor( syncID: Int, playerInventory: PlayerInventory ) : this( syncID, playerInventory, inventory() )
 
-    constructor( stack: ItemStack, syncID: Int, playerInventory: PlayerInventory ) : this( syncID, playerInventory, MusicalStorageInventory(stack) )
+    constructor( stack: ItemStack, syncID: Int, playerInventory: PlayerInventory ) : this( syncID, playerInventory, inventory(stack) )
 
 
-    private val player = playerInventory.player
+    private val player = playerInventory.player;        private val stackSlot: Int?
 
-    private val stack = player.handItems.find { it.item is MusicalStorage }!!
+    private val stack = handItem( player, MusicalStorage::class )
 
     private val storage = stack.item as MusicalStorage
-
-    private val stackSlot: Int?
 
 
     init {
 
         storage.open(stack)
 
-        checkSize( inventory, inventory.size() );   inventory.onOpen(player)
 
-        val w = 18;     val x = 8;      val y = - w;      val x2 = - w * 4
+        checkSize( inventory, inventory.size() );       inventory.onOpen(player)
 
-        // Chest inventory.
-        for ( i in 0 .. 5 ) { for ( j in 0 .. 15 ) {
 
-            val index = j + i * 16;     val x = w * j + x + x2 + 9
+        slots( 2, 8, 17f, 25f, inventory ).forEach { addSlot(it) }
 
-            val y = w * i - y
+        playerSlots( 8f, 76f, playerInventory ).forEach { addSlot(it) }
 
-            addSlot( Slot( inventory, index, x, y ) )
 
-        } }
+        stackSlot = slotIndex(slots, stack)
 
-        // Player Inventory.
-        for ( i in 0 .. 2 ) { for ( j in 0 .. 8 ) {
+    }
 
-            val index = j + i * 9 + 9;      val x = w * j + x
+    override fun close( player: PlayerEntity ) {
 
-            val y = w * ( i + 6 ) - y + 13
+        super.close(player);        storage.close(stack)
 
-            addSlot( Slot( playerInventory, index, x, y ) )
+    }
 
-        } }
+    override fun canUse( player: PlayerEntity ): Boolean { return true }
 
-        for ( j in 0 .. 8 ) {
+    private fun insertAllowed( slotIndex: Int ): Boolean {
 
-            val x = w * j + x;      val y = w * 10 - y - 1
+        val stack = stacks[slotIndex]
 
-            addSlot( Slot( playerInventory, j, x, y ) )
+        if ( !isModItem(stack) ) return false
+
+        return insertItem( slotIndex, 0, inventory.size() )
+
+    }
+
+    private fun insertAny( slotIndex: Int ): Boolean {
+
+        val start = inventory.size()
+
+        val limit = start + playerInventory.size() * 0.5f
+
+        return insertItem( slotIndex, start, limit.toInt() )
+
+    }
+
+    override fun transferSlot( player: PlayerEntity, slotIndex: Int ): ItemStack {
+
+        val slot = slots[slotIndex];        val stack = slot.stack;         val isEmpty = stack.isEmpty
+
+        val empty = ItemStack.EMPTY
+
+
+        if ( isEmpty ) return empty
+
+
+        val success = insertAllowed(slotIndex) || insertAny(slotIndex)
+
+        if ( !success ) return empty
+
+
+        slot.markDirty();       return stack.copy()
+
+    }
+
+    override fun onSlotClick( slotIndex: Int, button: Int, actionType: SlotActionType, player: PlayerEntity ) {
+
+        val onSlots = slotIndex < inventory.size()
+
+
+        fun click() { super.onSlotClick(slotIndex, button, actionType, player) }
+
+        fun canPickUp(): Boolean {
+
+            return canPickUp( onSlots, ::isModItem ) || !onSlots
 
         }
 
-        stackSlot = lookupSlot( slots, stack )
+        fun onSwap(): Boolean {
 
-    }
+            if ( actionType != SlotActionType.SWAP ) return true
 
-    override fun close(player: PlayerEntity) {
 
-        super.close(player);        storage.close(stack);       inventory.markDirty()
+            val isStorage = slotIndex(button) == stackSlot
 
-    }
+            val canSwap = canSwap( button, slotIndex, ::isModItem ) && onSlots
 
-    override fun canUse(player: PlayerEntity): Boolean { return inventory.canPlayerUse(player) }
-
-    override fun transferSlot( player: PlayerEntity, index: Int ): ItemStack {
-
-        var currentStack = ItemStack.EMPTY;    val currentSlot = slots[index]
-
-        if ( currentSlot.hasStack() ) {
-
-            val stack = currentSlot.stack;      currentStack = stack.copy()
-
-            val isNotAllowed = index < inventory.size()
-                    && !insertItem( stack, inventory.size(), slots.size, true )
-                    || !insertItem( stack, 0, inventory.size(), false )
-
-            if (isNotAllowed) return ItemStack.EMPTY
-
-            if ( stack.isEmpty ) currentSlot.stack = ItemStack.EMPTY else currentSlot.markDirty()
+            return !isStorage && ( canSwap || !onSlots )
 
         }
-
-        return currentStack
-
-    }
-
-    override fun onSlotClick(
-        slotIndex: Int, button: Int, actionType: SlotActionType, player: PlayerEntity
-    ) {
-
-        // THROW action.
-        if ( slotIndex == -999 ) super.onSlotClick( slotIndex, button, actionType, player )
 
         // slotIndex < 0 are used for networking internals.
-        if ( slotIndex < 0 ) return;        val slotStack = slots[slotIndex].stack
 
-        val isSlotModItem = isModItem(slotStack)
-        val hasModItem = isSlotModItem || isModItem(cursorStack)
+        if ( slotIndex < 0 ) { click(); return }
 
-        if ( !isSlotModItem && actionType == SlotActionType.QUICK_MOVE ) return
 
-        // You can't put the chest in the chest.
-        val isStorageSlot = stackSlot == slotIndex
+        val isStorage = slotIndex == stackSlot
 
-        // Can move the hotbar items and the inventory around freely.
-        // Can't move non honkytones stacks in the storage.
-        if ( slotIndex < inventory.size() && !hasModItem || isStorageSlot ) return
+        if ( isStorage || !canPickUp() || !onSwap() ) return
 
-        super.onSlotClick( slotIndex, button, actionType, player )
+        click()
 
     }
 
     companion object : ModID {
 
+        object Translations {
+
+            val name = Translation.item("musical_storage")
+
+        }
+
+        private const val INVENTORY_SIZE = MusicalStorageInventory.INVENTORY_SIZE
+
+        private fun inventory( stack: ItemStack? = null ): Inventory {
+
+            stack ?: return SimpleInventory(INVENTORY_SIZE)
+
+            return MusicalStorageInventory(stack)
+
+        }
+
+        fun factory( stack: ItemStack ): ScreenHandlerFactory {
+
+            return ScreenHandlerFactory { id, inventory, _ ->
+
+                StorageScreenHandler( stack, id, inventory )
+
+            }
+
+        }
+
         val type = ScreenHandlerType(::StorageScreenHandler)
 
         fun register() { Registry.register( Registry.SCREEN_HANDLER, classID(), type ) }
-
-    }
-
-}
-
-@Environment(EnvType.CLIENT)
-class StorageScreen(
-    handler: StorageScreenHandler, playerInv: PlayerInventory, text: Text
-) : HandledScreen<StorageScreenHandler>( handler, playerInv, text ) {
-
-    private val texture = Identifier("textures/gui/container/generic_54.png")
-    private val rows = 6
-
-    init { backgroundHeight += 60;     playerInventoryTitleY += 55;     titleX += 40 }
-
-    override fun drawBackground( matrices: MatrixStack, delta: Float, mouseX: Int, mouseY: Int ) {
-
-        RenderSystem.setShader( GameRenderer::getPositionTexShader )
-        RenderSystem.setShaderColor( 1f, 1f, 1f, 1f )
-        RenderSystem.setShaderTexture( 0, texture )
-
-        val centerX = ( width - backgroundWidth ) / 2
-        val centerY = ( height - backgroundHeight ) / 2
-
-        val spaceX = 86;       val padX = 20
-
-        var x = centerX + spaceX + padX;      val w = backgroundWidth
-        var h = rows * 18 + 30
-
-        // Bottom border.
-        drawTexture( matrices, x, centerY + h, 43, backgroundHeight - 7, w - 3, 3 )
-
-        x = centerX - spaceX + padX
-        drawTexture( matrices, x, centerY + h, -3, backgroundHeight - 7, w - 3, 3 )
-
-        // Player inventory.
-        h = 96
-        drawTexture( matrices, centerX, centerY + rows * 18 + 17, 0, 126, w, h )
-
-        // Storage inventory.
-        h = rows * 18 + 30
-        drawTexture( matrices, x, centerY, -3, 0, w - 3, h )
-
-        x = centerX + spaceX + padX
-        drawTexture( matrices, x, centerY, 43, 0, w - 43, h )
-
-    }
-
-    override fun render( matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float ) {
-
-        renderBackground(matrices);         super.render( matrices, mouseX, mouseY, delta )
-
-        drawMouseoverTooltip( matrices, mouseX, mouseY )
-
-    }
-
-    override fun isClickOutsideBounds(
-        mouseX: Double, mouseY: Double, left: Int, top: Int, button: Int
-    ): Boolean {
-
-        val centerX = ( width - backgroundWidth ) / 2
-        val centerY = ( height - backgroundHeight ) / 2
-
-        val topX1 = centerX - backgroundWidth * 0.35f
-        val topX2 = centerX + backgroundWidth * 1.35f
-
-        val topY2 = centerY + backgroundHeight * 0.55f
-
-        val onY = mouseY < centerY || mouseY >= topY2
-
-        val box1 = super.isClickOutsideBounds( mouseX, mouseY, left, top, button )
-
-        val box2 = onY || mouseX < topX1;     val box3 = onY || mouseX > topX2
-
-        return box1 && ( box2 || box3 )
-
-    }
-
-    companion object {
-
-        fun register() { HandledScreens.register( StorageScreenHandler.type, ::StorageScreen ) }
 
     }
 
