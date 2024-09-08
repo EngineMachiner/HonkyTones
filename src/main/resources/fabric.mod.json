@@ -30,6 +30,7 @@
 		{ "config": "honkytones.client.mixins.json", "environment": "client" },
 		{ "config": "honkytones.client.mixins.chest.json", "environment": "client" },
 		{ "config": "honkytones.client.mixins.player.json", "environment": "client" },
+		{ "config": "honkytones.client.mixins.sound.json", "environment": "client" },
 
 		"honkytones.mixins.json",
 		"honkytones.mixins.mob.json",
