@@ -1,0 +1,19 @@
+{
+
+  "type": "minecraft:crafting_shaped",
+
+  "pattern": [
+    "QEQ",
+    "QCQ",
+    "QEQ"
+  ],
+
+  "key": {
+    "E": { "item": "minecraft:emerald" },
+    "Q": { "item": "minecraft:quartz_block" },
+    "C": { "item": "honkytones:musical_storage" }
+  },
+
+  "result": { "item": "honkytones:remote", "count": 3 }
+
+}

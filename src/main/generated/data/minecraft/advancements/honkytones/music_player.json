@@ -1,0 +1,33 @@
+{
+  "parent": "minecraft:honkytones/musical_storage",
+  "criteria": {
+    "music_player": {
+      "conditions": {
+        "recipe": "honkytones:music_player"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "background": "minecraft:textures/gui/advancements/backgrounds/adventure.png",
+    "description": {
+      "translate": "honkytones.advancements.music_player.description"
+    },
+    "frame": "goal",
+    "hidden": false,
+    "icon": {
+      "item": "honkytones:music_player"
+    },
+    "show_toast": true,
+    "title": {
+      "translate": "honkytones.advancements.music_player.title"
+    }
+  },
+  "requirements": [
+    [
+      "music_player"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

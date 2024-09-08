@@ -1,0 +1,48 @@
+{
+  "criteria": {
+    "doot": {
+      "conditions": {
+        "entity": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "type": "minecraft:skeleton",
+              "equipment": {
+                "mainhand": {
+                  "items": [
+                    "honkytones:trumpet"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      "trigger": "minecraft:player_killed_entity"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "background": "minecraft:textures/gui/advancements/backgrounds/adventure.png",
+    "description": {
+      "translate": "honkytones.advancements.doot.description"
+    },
+    "frame": "challenge",
+    "hidden": false,
+    "icon": {
+      "item": "honkytones:trumpet",
+      "nbt": "{Damage:0}"
+    },
+    "show_toast": true,
+    "title": {
+      "text": "DOOT!"
+    }
+  },
+  "requirements": [
+    [
+      "doot"
+    ]
+  ],
+  "sends_telemetry_event": true
+}
