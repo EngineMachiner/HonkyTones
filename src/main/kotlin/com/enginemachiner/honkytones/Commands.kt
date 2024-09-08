@@ -1,224 +1,189 @@
 package com.enginemachiner.honkytones
 
-import com.enginemachiner.honkytones.Init.Companion.MOD_NAME
-import com.mojang.brigadier.CommandDispatcher
-import com.mojang.brigadier.arguments.BoolArgumentType
-import com.mojang.brigadier.arguments.IntegerArgumentType
-import net.fabricmc.api.DedicatedServerModInitializer
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
-import net.fabricmc.fabric.api.client.command.v1.ClientCommandManager
-import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback
-import net.minecraft.server.command.CommandManager
+import com.enginemachiner.harmony.*
+import com.mojang.brigadier.context.CommandContext
 import net.minecraft.server.command.ServerCommandSource
-import net.minecraft.util.Language
 
-class Commands : DedicatedServerModInitializer {
+object Commands {
 
-    override fun onInitializeServer() { server() }
+    val arguments = Command.Arguments
 
-    companion object {
+    fun register() { Server.bool().int().help().restore() }
 
-        @Environment(EnvType.CLIENT)
-        fun client() {
+    fun tip( i: Int ): String {
 
-            val dispatcher = ClientCommandManager.DISPATCHER
+        val tip = "/@help.tip$i/@";    return "\n- $tip \n"
 
-            val literal1 = ClientCommandManager.literal(MOD_NAME)
+    }
 
-            val boolKeys = clientConfigKeys[ Boolean::class ]!!
-            for ( key in boolKeys ) {
+    fun description( commandName: String, translationKey: String ): String {
 
-                val literal2 = ClientCommandManager.literal(key)
-                val boolArgument = ClientCommandManager.argument( "bool", BoolArgumentType.bool() )
+        return "\n§6$commandName§f - /@$translationKey/@\n"
 
-                val command = literal1.then( literal2.then( boolArgument.executes {
+    }
 
-                    val bool = BoolArgumentType.getBool( it, "bool" )
-                    clientConfig[key] = bool;      0
+    private object Server {
 
-                } ) )
+        val server = Command.Server;        val config = Config.SERVER
 
-                dispatcher.register(command)
+        fun warn( message: String, ctx: CommandContext<ServerCommandSource> ) {
 
-            }
-
-            val intKeys = clientConfigKeys[ Int::class ]!!
-            for ( key in intKeys ) {
-
-                val literal2 = ClientCommandManager.literal(key)
-                val intArgument = ClientCommandManager.argument( "int", IntegerArgumentType.integer() )
-
-                val command = literal1.then( literal2.then( intArgument.executes {
-
-                    var allow = true
-                    val i = IntegerArgumentType.getInteger( it, "int" )
-
-                    val error = Translation.get("error.$key")
-
-                    if ( key == "audio_quality" ) allow = i in 1..10
-                    if ( key == "max_length" ) allow = i > 0
-
-                    if (allow) clientConfig[key] = i else warnUser(error)
-
-                    0
-
-                } ) )
-
-                dispatcher.register(command)
-
-            }
-
-            var literal2 = ClientCommandManager.literal("help")
-            var literal3 = ClientCommandManager.literal("tips")
-            var command = literal1.then( literal2.then( literal3.executes {
-
-                var s = ""
-
-                for ( i in 1..10 ) {
-
-                    val tip = Translation.get("help.tip$i");    s += "\n-$tip \n"
-
-                }
-
-                warnUser(s);      0
-
-            } ) )
-
-            dispatcher.register(command)
-
-            literal2 = ClientCommandManager.literal("help")
-            literal3 = ClientCommandManager.literal("commands")
-            command = literal1.then( literal2.then( literal3.executes {
-
-                val key = "restore_defaults";       val message = Translation.get("help.$key")
-
-                var s = '\n' + "§6" + key + "§f - " + message + '\n'
-
-                clientConfig.keys.forEach {
-
-                    val key = "help.$it"
-
-                    if ( !Translation.has(key) ) return@forEach
-
-                    val message = Translation.get(key)
-
-                    s += '\n' + "§6" + it + "§f - " + message + '\n'
-
-                }
-
-                warnUser(s);      0
-
-            } ) )
-
-            dispatcher.register(command)
-
-            literal2 = ClientCommandManager.literal("restoreDefaults")
-            command = literal1.then( literal2.executes {
-
-                clientConfigFile.setDefaultProperties();    clientConfig.clear()
-
-                readClientConfig();     val s = Translation.get("message.config_restore")
-
-                warnUser(s);          0
-
-            } )
-
-            dispatcher.register(command)
+            Message( message, ctx.source.player ).send()
 
         }
 
-        private fun server() {
 
-            CommandRegistrationCallback.EVENT.register {
+        /** Register commands with boolean arguments. */
+        fun bool(): Server {
 
-                dispatcher: CommandDispatcher<ServerCommandSource>, _: Boolean ->
+            val type = arguments.bool();        val keys = config.keys( Boolean::class )
 
-                val literal1 = CommandManager.literal(MOD_NAME)
+            server.register { dispatcher, main ->
 
-                val boolKeys = serverConfigKeys[ Boolean::class ]!!
-                for ( key in boolKeys ) {
+                for ( key in keys ) {
 
-                    val literal2 = CommandManager.literal(key)
-                    val boolArgument = CommandManager.argument( "bool", BoolArgumentType.bool() )
+                    val sub = server.literal(key)
 
-                    val command = literal1.then( literal2.then( boolArgument.executes {
 
-                        val b = BoolArgumentType.getBool( it, "bool" )
-                        serverConfig[key] = b;      0
+                    val argument = server.argument(type).executes {
 
-                    } ) )
-
-                    dispatcher.register(command)
-
-                }
-
-                val intKeys = serverConfigKeys[ Int::class ]!!
-                for ( key in intKeys ) {
-
-                    val min = serverConfig[key] as Int
-                    val literal2 = CommandManager.literal(key)
-                    val intArgument = CommandManager.argument( "int", IntegerArgumentType.integer() )
-                    val command = literal1.then( literal2.then( intArgument.executes {
-
-                        var allow = true
-                        val i = IntegerArgumentType.getInteger( it, "int" )
-
-                        val error = Translation.get("error.$key")
-
-                        if ( key == "mobs_playing_delay" ) allow = i >= min
-
-                        if (allow) serverConfig[key] = i
-                        else warnPlayer( it.source.player!!, error )
-
-                        0
-
-                    } ) )
-
-                    dispatcher.register(command)
-
-                }
-
-                var literal2 = CommandManager.literal("help")
-                val literal3 = CommandManager.literal("commands")
-                var command = literal1.then( literal2.then( literal3.executes {
-
-                    val key = "restore_defaults";       val message = Translation.get("help.$key")
-
-                    var s = '\n' + "§6" + it + "§f - " + message + '\n'
-
-                    serverConfig.keys.forEach {
-
-                        val key = "help.$it"
-
-                        if ( !Language.getInstance().hasTranslation(key) ) return@forEach
-
-                        val message = Translation.get(key)
-
-                        s += '\n' + "§6" + it + "§f - " + message + '\n'
+                        config.set( key, arguments.bool(it) ); 0
 
                     }
 
-                    warnPlayer( it.source.player!!, s );        0
 
-                } ) )
+                    val command = main.then( sub.then( argument ) )
 
-                dispatcher.register(command)
+                    dispatcher.register(command)
 
-                literal2 = CommandManager.literal("restoreDefaults")
-                command = literal1.then( literal2.executes {
+                }
 
-                    serverConfigFile.setDefaultProperties();    serverConfig.clear()
+            }
 
-                    readServerConfig();     val s = Translation.get("message.config_restore")
+            return Server
 
-                    warnPlayer( it.source.player!!, s );        0
+        }
 
-                } )
+
+        /** Register commands with integer arguments. */
+        fun int(): Server {
+
+            val type = arguments.int();         val keys = config.keys( Int::class )
+
+            val min = ServerConfigFile.MOBS_PLAYING_DELAY
+
+            server.register { dispatcher, main ->
+
+                val mobsPlayingKey = "mobs_playing_delay"
+
+                for ( key in keys ) {
+
+                    val sub = server.literal(key)
+
+                    val argument = server.argument(type).executes {
+
+                        val i = arguments.int(it)
+
+
+                        if ( key == mobsPlayingKey && i < min ) {
+
+                            warn( "error.out_of_range", it );   return@executes -1
+
+                        }
+
+
+                        config.set( key, i ); 0
+
+                    }
+
+
+                    val command = main.then( sub.then( argument ) )
+
+                    dispatcher.register(command)
+
+                }
+
+            }
+
+            return Server
+
+        }
+
+        /** Register help commands. */
+        fun help(): Server {
+
+            fun sub(): Literal { return server.literal("help") }
+
+            server.register { dispatcher, main ->
+
+                val end = server.literal("tips").executes {
+
+                    var s = "";         for ( i in 1..10 ) s += tip(i)
+
+                    warn( s, it ); 0
+
+                }
+
+                val command = main.then( sub().then( end ) )
 
                 dispatcher.register(command)
 
             }
+
+
+            server.register { dispatcher, main ->
+
+                val end = server.literal("commands").executes {
+
+                    val key = "restore_defaults"
+
+                    var s = description( key, "help.$key" )
+
+
+                    config.keys().forEach {
+
+                        val translationKey = "help.$it"
+
+                        if ( !Translation.has( translationKey ) ) return@forEach
+
+                        s += description( it, translationKey )
+
+                    }
+
+
+                    warn( s, it ); 0
+
+                }
+
+
+                val command = main.then( sub().then( end ) )
+
+                dispatcher.register(command)
+
+            }
+
+            return Server
+
+        }
+
+        /** Registers restore to defaults command. */
+        fun restore(): Server {
+
+            server.register { dispatcher, main ->
+
+                val final = server.literal("restoreDefaults").executes {
+
+                    config.setDefaults();       warn( "message.config_restore", it ); 0
+
+                }
+
+                val command = main.then(final)
+
+                dispatcher.register(command)
+
+            }
+
+            return Server
 
         }
 

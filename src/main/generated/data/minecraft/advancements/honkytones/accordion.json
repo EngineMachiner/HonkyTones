@@ -1,0 +1,40 @@
+{
+  "parent": "minecraft:honkytones/keyboard",
+  "criteria": {
+    "accordion": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "honkytones:accordion"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "announce_to_chat": false,
+    "background": "minecraft:textures/gui/advancements/backgrounds/adventure.png",
+    "description": {
+      "translate": "honkytones.advancements.instrument.description"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "item": "honkytones:accordion",
+      "nbt": "{Damage:0}"
+    },
+    "show_toast": false,
+    "title": {
+      "translate": "item.honkytones.accordion"
+    }
+  },
+  "requirements": [
+    [
+      "accordion"
+    ]
+  ],
+  "sends_telemetry_event": true
+}
