@@ -1,0 +1,46 @@
+{
+  "parent": "minecraft:honkytones/keyboard",
+  "criteria": {
+    "ranged_enchantment": {
+      "conditions": {
+        "item": {
+          "enchantments": [
+            {
+              "enchantment": "honkytones:ranged",
+              "levels": {
+                "min": 2
+              }
+            }
+          ],
+          "tag": "honkytones:instruments"
+        },
+        "levels": {
+          "min": 2
+        }
+      },
+      "trigger": "minecraft:enchanted_item"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "background": "minecraft:textures/gui/advancements/backgrounds/adventure.png",
+    "description": {
+      "translate": "honkytones.advancements.enchantment.description"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "item": "minecraft:enchanted_book"
+    },
+    "show_toast": true,
+    "title": {
+      "translate": "honkytones.advancements.enchantment.title"
+    }
+  },
+  "requirements": [
+    [
+      "ranged_enchantment"
+    ]
+  ],
+  "sends_telemetry_event": true
+}
