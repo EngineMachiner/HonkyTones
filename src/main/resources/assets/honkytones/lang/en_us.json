@@ -145,6 +145,7 @@
   "honkytones.message.sequence_end": "Sequence has ended!",
   "honkytones.message.player_shared": "shared a file.",
   "honkytones.message.downloading": "Downloading...",
+  "honkytones.message.reading": "Reading...",
   "honkytones.message.done": "Done!",
   "honkytones.message.file_on_query": "Current file processing not done!",
   "honkytones.message.file_found": "file was found!",
