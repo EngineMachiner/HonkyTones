@@ -219,16 +219,6 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
 
             val builder1 = FabricBlockEntityTypeBuilder.create( ::MusicPlayerBlockEntity, registerBlock )
 
-
-            /*
-             * This might not be the right solution, but I did this
-             * because of the tick in the block entity that checks new position and gets unsupported blocks.
-             */
-
-            val registries = Registries.BLOCK
-
-            for ( i in 0 until registries.size() ) builder1.addBlock( registries[i] )
-
             MusicPlayerBlockEntity.type = Registry.register( Registries.BLOCK_ENTITY_TYPE, id, builder1.build() )
 
 
