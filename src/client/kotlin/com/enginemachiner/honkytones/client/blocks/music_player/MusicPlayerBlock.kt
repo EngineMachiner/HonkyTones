@@ -550,6 +550,8 @@ class MusicPlayer( val id: Int ) {
 
         val file = file();          if ( !file.exists() ) { warnMissingFile(); return }
 
+        sendMessage( "message.reading/@ " + file.name )
+        
 
         val bytes = file.readBytes();       val size = bytes.size;          val indices = bytes.indices
 
