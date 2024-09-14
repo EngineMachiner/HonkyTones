@@ -481,13 +481,15 @@ class MusicPlayer( val id: Int ) {
     /** Reads requests asynchronously. Download media using yt-dlp + ffmpeg. */
     private fun read() {
 
-        onQuery = true;     isInputStream = false;      modPrint("$this: Reading...")
+        onQuery = true;     isInputStream = false
 
 
         val isValid = isValidUrl(path);       if ( !isValid ) { sendFile(); return }
 
 
         // Application / octet-stream.
+
+        modPrint("$this: Reading...")
 
         val connection = url().openConnection();        val type = connection.contentType ?: return
 
@@ -543,11 +545,12 @@ class MusicPlayer( val id: Int ) {
 
         val canSend = isMidi() || path.endsWith(".mp3") || path.endsWith(".ogg")
 
-        if ( !canSend || isHost() ) return
+        if ( !canSend || !isHost() ) return
 
 
         val file = file();          if ( !file.exists() ) { warnMissingFile(); return }
 
+        sendMessage( "message.reading/@ " + file.name )
 
         val bytes = file.readBytes();       val size = bytes.size;          val indices = bytes.indices
 
