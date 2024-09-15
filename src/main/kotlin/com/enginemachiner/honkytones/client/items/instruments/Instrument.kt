@@ -551,9 +551,9 @@ object Instrument : ModID {
 
         private const val CATEGORY = "instrument"
 
-        val play = ModKey( "play", CATEGORY );           val menu = ModKey( "reset", CATEGORY )
+        val play = ModKey( "play", CATEGORY );           val reset = ModKey( "reset", CATEGORY )
 
-        val reset = ModKey( "menu", CATEGORY, InputUtil.Type.MOUSE, GLFW.GLFW_MOUSE_BUTTON_MIDDLE )
+        val menu = ModKey( "menu", CATEGORY, InputUtil.Type.MOUSE, GLFW.GLFW_MOUSE_BUTTON_MIDDLE )
 
         fun register() { play.register();   menu.register();    reset.register() }
 
