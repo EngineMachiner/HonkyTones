@@ -89,7 +89,7 @@ class MusicPlayerBlock(settings: Settings) : BlockWithEntity(settings) {
 
     override fun getPlacementState( context: ItemPlacementContext ): BlockState {
 
-        val direction = context.playerLookDirection.opposite
+        val direction = context.horizontalPlayerFacing.opposite
 
         return defaultState.with( FACING, direction ).with( PLAYING, false )
 
