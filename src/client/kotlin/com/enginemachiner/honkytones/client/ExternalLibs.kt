@@ -112,7 +112,7 @@ open class YTDLP( input: String ) : ExternalProcessing {
 
     private val output = directory + fileName
 
-    private var formerOptions = "$path \"$input\" -o \"$output\" --no-playlist --no-mark-watched --replace-in-metadata \"title\" \"[\\/]\" \"\" "
+    private var formerOptions = "$path \"$input\" -o \"$output\" --no-playlist --no-mark-watched --replace-in-metadata \"title\" \"[\\/]\" \"\""
 
     private var options = formerOptions;    val info = info()
 
