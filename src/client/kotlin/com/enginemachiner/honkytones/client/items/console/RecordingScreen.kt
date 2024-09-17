@@ -128,7 +128,9 @@ class RecordingScreen( private val lastScreen: DigitalConsoleScreen ) : Screen( 
 
                 val name = pathField.text
                 val directory = directories["midis"]!!.path
-                val path = "$directory/$name"
+                var path = "$directory\\$name"
+
+                if ( !path.endsWith(".mid") ) path += ".mid"
 
                 val isFile = ModFile(path).isFile
 
