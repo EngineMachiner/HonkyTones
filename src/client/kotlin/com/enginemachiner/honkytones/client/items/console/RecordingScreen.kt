@@ -128,8 +128,6 @@ class RecordingScreen( private val lastScreen: DigitalConsoleScreen ) : Screen( 
 
             override fun render( context: DrawContext, color: Int ) {
 
-                text = former
-
                 val name = pathField.text
                 val directory = directories["midis"]!!.path
                 var path = "$directory\\$name"
