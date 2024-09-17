@@ -122,15 +122,19 @@ class RecordingScreen( private val lastScreen: DigitalConsoleScreen ) : Screen( 
 
             init { init(this);      setPos(pathField);      y -= height() * 1.25f + 1 }
 
+            private val former = text
+
             override fun render( context: DrawContext, color: Int ) {
 
                 val name = pathField.text
                 val directory = directories["midis"]!!.path
-                val path = "$directory/$name"
+                var path = "$directory\\$name"
+
+                if ( !path.endsWith(".mid") ) path += ".mid"
 
                 val isFile = ModFile(path).isFile
 
-                if (isFile) text += " (${Translations.overwrite})"
+                if (isFile) text = former + " (${Translations.overwrite})"
 
                 super.render(context, color)
 
