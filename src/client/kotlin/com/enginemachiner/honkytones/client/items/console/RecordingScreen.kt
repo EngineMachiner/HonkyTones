@@ -49,7 +49,7 @@ class RecordingScreen( private val lastScreen: DigitalConsoleScreen ) : Screen( 
 
         val screen = lastScreen;        close();       channelField!!.checkField()
 
-        screen.path = path();       screen.channel = channel()
+        screen.willRecord = true;       screen.path = path();       screen.channel = channel()
 
         screen.box!!.check();       screen.record()
 
@@ -122,6 +122,8 @@ class RecordingScreen( private val lastScreen: DigitalConsoleScreen ) : Screen( 
 
             init { init(this);      setPos(pathField);      y -= height() * 1.25f + 1 }
 
+            private val former = text
+
             override fun render( context: DrawContext, color: Int ) {
 
                 val name = pathField.text
@@ -130,7 +132,7 @@ class RecordingScreen( private val lastScreen: DigitalConsoleScreen ) : Screen( 
 
                 val isFile = ModFile(path).isFile
 
-                if (isFile) text += " (${Translations.overwrite})"
+                if (isFile) text = former + " (${Translations.overwrite})"
 
                 super.render(context, color)
 

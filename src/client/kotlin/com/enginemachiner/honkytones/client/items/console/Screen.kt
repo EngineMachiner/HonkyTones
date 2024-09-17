@@ -42,7 +42,7 @@ class DigitalConsoleScreen(
 
     private val instrument = inventory(console).getStack(0)
 
-    private val item = instrument.item
+    private val item = instrument.item;         var willRecord = false
 
 
     var path = "";      var channel = 0
@@ -551,13 +551,13 @@ class DigitalConsoleScreen(
 
             }
 
-            private fun onPress(checkbox: CheckboxWidget ) {
+            private fun onPress( checkbox: CheckboxWidget ) {
+
+                if ( screen.willRecord ) { screen.willRecord = false; return }
 
                 if ( sequencer == null ) { modPrint( MIDI_ERROR ); return }
 
-                if ( checkbox.isChecked ) screen.stop() else reset()
-
-                checkbox.onPress()
+                if ( !checkbox.isChecked ) screen.stop() else reset()
 
             }
 
