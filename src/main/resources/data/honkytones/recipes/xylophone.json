@@ -3,13 +3,12 @@
   "type": "minecraft:crafting_shaped",
 
   "pattern": [
-    "BBB",
+    "   ",
     "CCC",
     "PPP"
   ],
 
   "key": {
-    "B": { "tag": "minecraft:birch_planks" },
     "C": { "item": "minecraft:stick" },
     "P": { "tag": "minecraft:planks" }
   },
