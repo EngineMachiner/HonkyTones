@@ -119,7 +119,12 @@ class HonkyTones : ModInitializer {
 
         }
 
-        fun registerScreenHandlers() { MusicPlayerScreenHandler.register() }
+        fun registerScreenHandlers() {
+
+            DigitalConsoleScreenHandler.type;       StorageScreenHandler.type
+            MusicPlayerScreenHandler.register();        PickStackScreenHandler.type
+            
+        }
 
         fun registerTickEvents() {
 
