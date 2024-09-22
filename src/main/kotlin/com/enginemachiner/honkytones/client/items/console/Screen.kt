@@ -322,7 +322,7 @@ class DigitalConsoleScreen(
 
         try {
 
-            MidiSystem.write(sequence, 0, file);    sendMessage(message)
+            MidiSystem.write(sequence, 0, file);    Message(message).send()
 
         } catch (exception: Exception) {
 
