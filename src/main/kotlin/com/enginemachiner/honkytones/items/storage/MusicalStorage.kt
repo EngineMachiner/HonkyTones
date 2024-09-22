@@ -12,6 +12,7 @@ import net.minecraft.nbt.NbtCompound
 import net.minecraft.screen.NamedScreenHandlerFactory
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory
 import net.minecraft.text.Text
+import net.minecraft.text.TranslatableText
 import net.minecraft.util.Hand
 import net.minecraft.util.TypedActionResult
 import net.minecraft.util.math.BlockPos
@@ -126,7 +127,7 @@ class MusicalStorage : Item( modItemSettings() ), StackScreen {
 
         val name = StorageScreenHandler.Companion.Translations.name
         val factory = StorageScreenHandler.factory(stack)
-        val text = Text.of(name)
+        val text = TranslatableText(name)
 
         return SimpleNamedScreenHandlerFactory(factory, text)
 

@@ -49,6 +49,7 @@ import net.minecraft.state.property.BooleanProperty
 import net.minecraft.state.property.DirectionProperty
 import net.minecraft.state.property.Properties
 import net.minecraft.text.Text
+import net.minecraft.text.TranslatableText
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 import net.minecraft.util.collection.DefaultedList
@@ -391,7 +392,7 @@ class MusicPlayerBlockEntity( pos: BlockPos, state: BlockState? ) : BlockEntity(
 
         val title = Translation.block("music_player")
 
-        return Text.of("§1$title")
+        return TranslatableText(title).styled { it.withColor( 0x0000FF ) }
 
     }
 
