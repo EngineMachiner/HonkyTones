@@ -15,7 +15,6 @@ import net.minecraft.item.Items
 import net.minecraft.predicate.NumberRange
 import net.minecraft.predicate.entity.EntityEquipmentPredicate
 import net.minecraft.predicate.entity.EntityPredicate
-import net.minecraft.predicate.entity.LootContextPredicate
 import net.minecraft.predicate.item.EnchantmentPredicate
 import net.minecraft.predicate.item.ItemPredicate
 import net.minecraft.text.Text
@@ -176,14 +175,13 @@ class Advancements( output: FabricDataOutput ) : FabricAdvancementProvider(outpu
 
             override fun conditions(): AbstractCriterionConditions {
 
-                val range = NumberRange.IntRange.atLeast(2)
+                val range = NumberRange.IntRange.ANY
                 val enchantmentPredicate = EnchantmentPredicate( enchantment, range )
-                val player = LootContextPredicate.create()
 
-                val itemPredicate = ItemPredicate.Builder.create().tag(tag)
-                    .enchantment( enchantmentPredicate ).build()
+                val predicate = ItemPredicate.Builder.create()
+                    .enchantment( enchantmentPredicate ).tag(tag).build()
 
-                return EnchantedItemCriterion.Conditions( player, itemPredicate, range )
+                return InventoryChangedCriterion.Conditions.items(predicate)
 
             }
 
