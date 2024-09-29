@@ -181,16 +181,11 @@ class Advancements( output: FabricDataOutput ) : FabricAdvancementProvider(outpu
 
                 val range = NumberRange.IntRange.ANY
                 val enchantmentPredicate = EnchantmentPredicate( enchantment, range )
-                val player = LootContextPredicate.create( AllOfLootCondition.create( listOf() ) )
 
-                val itemPredicate = ItemPredicate.Builder.create().tag(tag)
-                    .enchantment( enchantmentPredicate ).build()
+                val predicate = ItemPredicate.Builder.create()
+                    .enchantment( enchantmentPredicate ).tag(tag).build()
 
-                val optional1 = Optional.of(player);            val optional2 = Optional.of(itemPredicate)
-
-                val conditions = EnchantedItemCriterion.Conditions( optional1, optional2, range )
-
-                return Criteria.ENCHANTED_ITEM.create(conditions)
+                return InventoryChangedCriterion.Conditions.items(predicate)
 
             }
 
