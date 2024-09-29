@@ -30,7 +30,7 @@ class Advancements( output: FabricDataOutput ) : FabricAdvancementProvider(outpu
 
         Root.build( consumer, "any_instrument" )
 
-        Doot.build(consumer);           Keyboard.build(consumer)
+        Keyboard.build(consumer);           Doot.build(consumer)
 
         addInstruments( percussion, consumer )
         addInstruments( strings, consumer )
