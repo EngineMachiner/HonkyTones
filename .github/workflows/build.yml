@@ -31,7 +31,7 @@ jobs:
         if: ${{ runner.os != 'Windows' }}
         run: chmod +x ./gradlew
       - name: refresh
-        run: ./gradlew refreshDependencies
+        run: ./gradlew --refresh-dependencies
       - name: data-gen
         run: ./gradlew runDatagen
       - name: build
