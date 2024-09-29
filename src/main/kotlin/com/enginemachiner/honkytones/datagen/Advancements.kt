@@ -13,11 +13,9 @@ import net.minecraft.advancement.criterion.*
 import net.minecraft.entity.EntityType
 import net.minecraft.item.Item
 import net.minecraft.item.Items
-import net.minecraft.loot.condition.AllOfLootCondition
 import net.minecraft.predicate.NumberRange
 import net.minecraft.predicate.entity.EntityEquipmentPredicate
 import net.minecraft.predicate.entity.EntityPredicate
-import net.minecraft.predicate.entity.LootContextPredicate
 import net.minecraft.predicate.item.EnchantmentPredicate
 import net.minecraft.predicate.item.ItemPredicate
 import net.minecraft.text.Text
