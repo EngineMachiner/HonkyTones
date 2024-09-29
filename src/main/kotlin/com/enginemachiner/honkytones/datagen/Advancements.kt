@@ -179,7 +179,7 @@ class Advancements( output: FabricDataOutput ) : FabricAdvancementProvider(outpu
 
             override fun conditions(): AdvancementCriterion<*> {
 
-                val range = NumberRange.IntRange.atLeast(2)
+                val range = NumberRange.IntRange.ANY
                 val enchantmentPredicate = EnchantmentPredicate( enchantment, range )
                 val player = LootContextPredicate.create( AllOfLootCondition.create( listOf() ) )
 
