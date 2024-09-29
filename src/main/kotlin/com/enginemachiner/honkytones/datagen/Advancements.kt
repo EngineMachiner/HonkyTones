@@ -13,11 +13,9 @@ import net.minecraft.advancement.criterion.*
 import net.minecraft.entity.EntityType
 import net.minecraft.item.Item
 import net.minecraft.item.Items
-import net.minecraft.loot.condition.AllOfLootCondition
 import net.minecraft.predicate.NumberRange
 import net.minecraft.predicate.entity.EntityEquipmentPredicate
 import net.minecraft.predicate.entity.EntityPredicate
-import net.minecraft.predicate.entity.LootContextPredicate
 import net.minecraft.predicate.item.EnchantmentPredicate
 import net.minecraft.predicate.item.ItemPredicate
 import net.minecraft.registry.RegistryWrapper
@@ -179,20 +177,15 @@ class Advancements( output: FabricDataOutput, registryLookup: CompletableFuture<
 
             override val toast = true;          override val announce = true
 
-            override fun conditions(): AdvancementCriterion<*> {
+            override fun conditions(): AbstractCriterionConditions {
 
-                val range = NumberRange.IntRange.atLeast(2)
-                val enchantmentPredicate = EnchantmentPredicate( enchantment, range )
-                val player = LootContextPredicate.create( AllOfLootCondition.create( listOf() ) )
+              val range = NumberRange.IntRange.ANY
+              val enchantmentPredicate = EnchantmentPredicate( enchantment, range )
 
-                val itemPredicate = ItemPredicate.Builder.create().tag(tag)
-                    .enchantment( enchantmentPredicate ).build()
+              val predicate = ItemPredicate.Builder.create()
+                  .enchantment( enchantmentPredicate ).tag(tag).build()
 
-                val optional1 = Optional.of(player);            val optional2 = Optional.of(itemPredicate)
-
-                val conditions = EnchantedItemCriterion.Conditions( optional1, optional2, range )
-
-                return Criteria.ENCHANTED_ITEM.create(conditions)
+              return InventoryChangedCriterion.Conditions.items(predicate)
 
             }
 
