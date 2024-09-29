@@ -176,15 +176,14 @@ class Advancements( generator: FabricDataGenerator ) : FabricAdvancementsProvide
 
             override fun conditions(): AbstractCriterionConditions {
 
-                val range = NumberRange.IntRange.atLeast(2)
+                val range = NumberRange.IntRange.ANY
                 val enchantmentPredicate = EnchantmentPredicate( enchantment, range )
-                val player = EntityPredicate.Extended.create()
 
-                val itemPredicate = ItemPredicate.Builder.create().tag(tag)
-                    .enchantment( enchantmentPredicate ).build()
+                val predicate = ItemPredicate.Builder.create()
+                    .enchantment( enchantmentPredicate ).tag(tag).build()
 
-                return EnchantedItemCriterion.Conditions( player, itemPredicate, range )
-
+                return InventoryChangedCriterion.Conditions.items(predicate)
+                
             }
 
         }
