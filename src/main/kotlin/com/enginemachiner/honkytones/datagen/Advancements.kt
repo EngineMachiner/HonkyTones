@@ -177,7 +177,7 @@ class Advancements( output: FabricDataOutput, registryLookup: CompletableFuture<
 
             override val toast = true;          override val announce = true
 
-            override fun conditions(): AbstractCriterionConditions {
+            override fun conditions(): AdvancementCriterion<*> {
 
               val range = NumberRange.IntRange.ANY
               val enchantmentPredicate = EnchantmentPredicate( enchantment, range )
