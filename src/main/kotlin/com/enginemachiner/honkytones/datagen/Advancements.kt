@@ -12,6 +12,7 @@ import net.minecraft.advancement.criterion.*
 import net.minecraft.entity.EntityType
 import net.minecraft.item.Item
 import net.minecraft.item.Items
+import net.minecraft.loot.condition.AllOfLootCondition
 import net.minecraft.predicate.NumberRange
 import net.minecraft.predicate.entity.EntityEquipmentPredicate
 import net.minecraft.predicate.entity.EntityPredicate
@@ -178,7 +179,7 @@ class Advancements( output: FabricDataOutput ) : FabricAdvancementProvider(outpu
 
                 val range = NumberRange.IntRange.atLeast(2)
                 val enchantmentPredicate = EnchantmentPredicate( enchantment, range )
-                val player = LootContextPredicate.create()
+                val player = LootContextPredicate.create( AllOfLootCondition.create( listOf() ) )
 
                 val itemPredicate = ItemPredicate.Builder.create().tag(tag)
                     .enchantment( enchantmentPredicate ).build()
